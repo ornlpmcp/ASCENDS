@@ -4,11 +4,11 @@ It’s so great that you want to contribute! There are several ways to contribut
 
 #### **Did you find a bug?**
 
-Please create a new issue on the issue tracker https://github.com/liza183/ascends-toolkit/issues and let us know
+Please create a new issue on the issue tracker https://github.com/ornlpmcp/ASCENDS/issues and let us know
 
 #### **Do you have questions about the source code?**
 
-Please create a new issue on the issue tracker https://github.com/liza183/ascends-toolkit/issues and let us know
+Please create a new issue on the issue tracker https://github.com/ornlpmcp/ASCENDS/issues and let us know
 
 #### **Did you write a patch that fixes a bug?**
 
