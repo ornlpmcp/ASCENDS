@@ -36,9 +36,9 @@ the tool can be also used for many other applications.
 We encourage you to cite using the following BibTex citation, if you have used our tool:
 ```
 @misc{snapnets,
-  author       = {Sangkeun Lee and Dongwon Shin and Jian Peng},
+  author       = {Sangkeun Lee and Dongwon Shin and Jian Peng and Andrew Williams},
   title        = {{ASCENDS}: Advanced data SCiENce toolkit for Non-Data Scientists},
-  howpublished = {\url{https://github.com/liza183/ascends-toolkit}},
+  howpublished = {\url{https://github.com/ornlpmcp/ASCENDS}},
   month        = Jan,
   year         = 2019
 }
