@@ -4,7 +4,7 @@
 
 # What is it for?
 
-ASCENDS is a toolkit that is developed to assist scientists or any persons who want to use their data for machine leearning.
+ASCENDS is a toolkit that is developed to assist scientists or any persons who want to use their data for machine learning.
 We know that there are so many tools available for data scientists, but most of them require programming skills and often overwhelming.
 
 We aim to provide a set of simple but powerful tools for non-data scientists to be able to intuitively perform various 
