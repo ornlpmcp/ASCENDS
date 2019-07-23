@@ -1,0 +1,14 @@
+Metadata-Version: 1.2
+Name: ascends-toolkit
+Version: 0.3.2
+Summary: ASCENDS: Advanced data SCiENce toolkit for Non-Data Scientists
+Home-page: https://github.com/liza183/ascends-toolkit
+Author: Matt Sangkeun Lee, Dongwon Shin, Jian Peng
+Author-email: lees4@ornl.gov
+License: MIT License
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Requires-Python: >=3.2

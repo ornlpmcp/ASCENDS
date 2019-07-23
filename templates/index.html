@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <link rel="shortcut icon" href="#">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <title>ASCENDS: Advanced data SCiENce toolkit for Non-Data Scientists</title>
+
+  <!-- Bootstrap -->
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+    crossorigin="anonymous">
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+  <script type="text/javascript" language="javascript" src="http://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.12/css/dataTables.jqueryui.min.css">
+
+  <script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.css" />
+
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <!--script src="static/jquery.redirect.js"></script-->
+  <script type="text/javascript" src="static/common.js"></script>
+
+  <script type="text/javascript">
+    var chart_rows = null;
+    
+    google.charts.load("current", {packages:['corechart']});
+    
+    function selectTopK(rows, col_idx, topk){
+      key_val_list = [];      
+      for(i=0;i<rows.length;i++){
+          if(i!=0){
+            row = rows[i];
+            key_val_obj = {};
+            key = row[0];
+            val = row[col_idx];
+            key_val_obj['key'] = key;
+            key_val_obj['val'] = val;
+            key_val_list.push(key_val_obj);
+          }
+      }
+
+      function sortResults(prop, asc) {
+          key_val_list = key_val_list.sort(function(a, b) {
+              if (asc) {
+                  return (a[prop] > b[prop]) ? 1 : ((a[prop] < b[prop]) ? -1 : 0);
+              } else {
+                  return (b[prop] > a[prop]) ? 1 : ((b[prop] < a[prop]) ? -1 : 0);
+              }
+          });
+      };
+
+      sortResults('val', false);
+
+      input_cols = [];
+      add_size = 0;
+      for(i=0;i<key_val_list.length;i++){
+        input_cols.push(key_val_list[i]['key']);
+        add_size++;
+        if(add_size==topk){
+          break;
+        }
+      }
+
+      $("#input-cols-list li").each(function (index) {
+        $(this).remove();
+      });
+
+      if (input_cols.length > 0) {
+        for (i in input_cols) {
+          attr_content = `
+                        <li class="list-group-item"><p class="text-right"><b>`+ input_cols[i] + `</b> <span class="label label-primary">Number</span></p></li>
+                      `;
+          $('#input-cols-list').append(attr_content);
+          $('#input-cols').html('');
+        }
+      }
+      
+    };
+
+    function drawCorrChart(rows, col_idx) {
+      chart_rows = rows;
+      var data = new google.visualization.DataTable();
+      for(i=0;i<rows.length;i++){
+        row = rows[i];
+        if(i==0){
+          for(j=0;j<row.length;j++){
+            if(j==0)
+              {
+                data.addColumn('string',row[j]);
+              }
+            else if (j==col_idx)
+              {
+                data.addColumn('number',row[j]);
+                graph_title = row[j];
+              }
+          }
+        }
+        else {
+          new_row = [row[0],row[col_idx]];
+          data.addRow(new_row);
+        }
+      }
+
+      data.sort({column: 1, desc: true}); 
+      var view = new google.visualization.DataView(data);
+      
+      var options = {
+        title: graph_title,
+        width: 700,
+        height: 524,
+        bar: {groupWidth: "30%"},
+        legend: { position: "none" },
+        chartArea:{width:"80%",height:"80%"}
+      };
+      var chart = new google.visualization.ColumnChart(document.getElementById("corr-chart"));
+      chart.draw(view, options);
+  }
+  </script>
+
+  <script>
+
+    table_loaded = false; 
+    input_cols = [];
+    target_col = null;
+    path_to_data = '';
+    cols_type = {};
+    corr_chart_rows = null;
+    
+    $(document).ready(function () {
+
+       $('[data-toggle="tooltip"]').tooltip(); 
+       
+      clear_table();
+      
+      var text = '{{data}}';
+      var obj = JSON.parse(text.unescapeHtml());
+      
+      path_to_data = obj['path_to_data'];
+      input_cols = obj['input_cols'];
+      if(input_cols==''){
+        input_cols = [];
+      }
+      else {
+        try {
+          input_cols = input_cols.split(",");
+        } catch(err){
+          input_cols = [];
+        }
+      }
+      target_col = obj['target_col'];
+
+      if(path_to_data!=null&&path_to_data!=''){
+        load_data_to_table();
+      }
+      
+      $('#go-predict').click(function (event) {
+          // changing this to POST may be required for better security
+          window.location = "/predict_page";
+      });
+
+      $('#go-ml-analysis').click(function (event) {
+          // changing this to POST may be required for better security
+          window.location = "/ml_analysis?path_to_data="+path_to_data+"&target_col="+target_col+"&input_cols="+input_cols;
+      });
+
+      $('#go-ml').click(function (event) {
+          // changing this to POST may be required for better security
+          window.location = "/ml_analysis?path_to_data="+path_to_data+"&target_col="+target_col+"&input_cols="+input_cols;
+      });
+
+      $('#select-x').click(function (event) {
+          if(chart_rows!=null){
+            var val = $("#avail-chart-list option:selected").val();
+            var topx = $('#top-k-val').val();
+
+            selectTopK(chart_rows, val, topx);
+            set_selectable();
+          } 
+          else {
+            $('#modal-title').html('Error');
+            $('#modal-content').html('<div class="alert alert-danger" role="alert"> '+'Please perform correlation analysis first.' + '</div>');
+            $('#my-modal').modal('show') ;
+          }
+      });
+
+      $('#select-15').click(function (event) {
+          if(chart_rows!=null){
+            var val = $("#avail-chart-list option:selected").val();
+            selectTopK(chart_rows, val, 15);
+            set_selectable();
+          } 
+          else {
+            $('#modal-title').html('Error');
+            $('#modal-content').html('<div class="alert alert-danger" role="alert"> '+'Please perform correlation analysis first.' + '</div>');
+            $('#my-modal').modal('show') ;
+          }
+      });
+
+      $('#select-10').click(function (event) {
+        if(chart_rows!=null){
+            var val = $("#avail-chart-list option:selected").val();
+            selectTopK(chart_rows, val, 10);
+            set_selectable();
+          } 
+          else {
+            $('#modal-title').html('Error');
+            $('#modal-content').html('<div class="alert alert-danger" role="alert"> '+'Please perform correlation analysis first.' + '</div>');
+            $('#my-modal').modal('show') ;
+          }
+      });
+
+      $('#select-5').click(function (event) {
+          if(chart_rows!=null){
+            var val = $("#avail-chart-list option:selected").val();
+            selectTopK(chart_rows, val, 5);
+            set_selectable();
+          } 
+          else {
+            $('#modal-title').html('Error');
+            $('#modal-content').html('<div class="alert alert-danger" role="alert"> '+'Please perform correlation analysis first.' + '</div>');
+            $('#my-modal').modal('show') ;
+          }
+      });
+
+      $('#cols-analysis').click(function (event) {
+      
+        if(input_cols.length>0&&target_col!=null){
+
+          var data =
+            {
+                input_cols: input_cols,
+                target_col : target_col,
+                path_to_data: path_to_data
+
+            };
+
+          var dataToSend = JSON.stringify(data);
+
+          $("body").find("*").attr("disabled", "disabled");
+          $("body").css("cursor", "progress");
+
+          $.ajax( {
+            url: '/feature_analysis',
+            type: 'POST',
+            data: dataToSend,
+            
+            success: function(jsonResponse){
+              var objresponse = JSON.parse(jsonResponse);
+              rows = objresponse['rows'];
+              select_html = ``
+              $('#avail-chart-list').html(select_html);
+
+              for(i in rows){
+                row = rows[i];
+                for (j=0;j<row.length;j++){
+                  if(j==0){
+
+                  }
+                  else {
+                    select_html+='<option value="'+j+'">'+row[j]+'</option>'
+                  }
+                }
+                break;
+              }
+
+              $('#avail-chart-list').append(select_html);
+
+              $('#avail-chart-list').change(function() {
+                  var val = $("#avail-chart-list option:selected").val();
+                  drawCorrChart(corr_chart_rows, val);
+              });
+              
+              corr_chart_rows = rows;
+              drawCorrChart(corr_chart_rows, 1);
+
+
+            $("body").css("cursor", "default");
+            $("body").find("*").removeAttr("disabled");
+            
+            },
+            error: function(jsonResponse){
+              alert('Something went wrong! Please check if the selected target feature is included in the input feature list.');
+            }
+          } );
+
+        }
+        else{
+          $('#modal-title').html('Warning');
+          $('#modal-content').html('<div class="alert alert-danger" role="alert"> '+'Please select input/target columns properly.' + '</div>');
+          $('#my-modal').modal('show') ;
+        }
+
+      });
+
+      $('#remove-input-cols').click(function (event) {
+       remove_input_cols();
+      });
+
+      $('#add-to-target').click(function (event) {
+        add_to_target();
+      });
+
+      $('#add-to-input').click(function (event) {
+        add_to_input();
+      });
+
+       $('#select-all-input-cols').click(function (event) {
+
+        select_all_input_cols();
+
+      });
+
+      $('#unselect-all-input-cols').click(function (event) {
+        unselect_all_input_cols();
+
+      });
+
+      $('#select-all').click(function (event) {
+
+        select_all();
+
+      });
+
+      $('#unselect-all').click(function (event) {
+        unselect_all();
+
+      });
+
+      $('#load-data').click(function (event) {
+        $('#open-file-modal').modal('show')  ;
+      });
+
+      $( '#load-file-form' )
+        .submit( function( e ) {
+          clear_table();
+          $('#open-file-modal').modal('hide'); 
+          $("body").css("cursor", "progress");
+          $.ajax( {
+            url: '/open_file',
+            type: 'POST',
+            data: new FormData( this ),
+            processData: false,
+            contentType: false,
+            
+            success: function(jsonResponse){
+              var objresponse = JSON.parse(jsonResponse);
+              table_loaded = objresponse;
+
+              path_to_data  = objresponse['path_to_data'];
+              //alert('hi');
+
+              if(objresponse['msg']=='success'){
+                
+                header_html = ''
+                for(i=0;i<objresponse['header'].length;i++){
+                  header_html+='<th>'+objresponse['header'][i]+'</th>'
+                }                
+
+                table_html = `
+                  <table id="csv-table" class="display" cellspacing="0" width="100%" height="100%">
+                  <thead>
+                    <tr>
+                      `+header_html+`
+                    </tr>
+                  </thead>
+                </table>
+                `
+
+                $('#table-content').html(table_html);
+
+                try {
+                  $('#csv-table').dataTable().fnDestroy();
+                }
+                catch (err) {
+                  alert(err);
+                }
+
+                $('#csv-table').DataTable( {
+                   "scrollX": true,
+                   "scrollY": "200px",
+                   "scrollCollapse": true,
+                   "paging": true
+                 });
+
+                $('#csv-table').dataTable().fnClearTable();
+                //alert('hey');
+                
+
+                
+                for(i=0;i<objresponse['rows'].length;i++) {
+                  row = objresponse['rows'][i];
+                  if(i==objresponse['rows'].length-1) redraw=true;
+                  else redraw=false;
+                  $('#csv-table').dataTable().fnAddData(row,redraw);
+                  
+                }
+                $("body").css("cursor", "default");
+                $("body").find("*").removeAttr("disabled");
+
+                //alert('hi');
+
+                var if_number = objresponse['if_number'];
+                
+                attr_content = '<ul class="list-group" id="table-attrs-list">'
+                for(var key in if_number)
+                {
+                    if(if_number[key]==true){
+                      attr_content+=`
+                      <li class="list-group-item"><p class="text-right"><b>`+key+`</b> <span class="label label-primary">Number</span></p></li>
+                    `;
+                    cols_type[key] ='Number';
+                    }
+                    else {
+                      attr_content+=`
+                      <li class="list-group-item"><p class="text-right"><b>`+key+`</b> <span class="label label-danger">String</span></p></li>
+                    `;
+                    cols_type[key] ='String';
+                    }
+                
+                }
+                attr_content+= '</ul>'
+                $('#table-attrs').html(attr_content);
+
+                $(function(){
+                    console.log('ready');
+                    
+                    $('#table-attrs-list li').click(function(e) {
+                        e.preventDefault()
+                        
+                        $that = $(this);
+                        
+                        if ( $(this).hasClass('active') ) {
+                          $(this).removeClass('active');
+                        }
+                        else { 
+                          $that.addClass('active');
+                        }
+                    });
+                });
+
+              }
+
+              else {
+                $('#modal-title').html('Error');
+                $('#modal-content').html('<div class="alert alert-danger" role="alert"> Something went wrong. Error code='+objresponse['msg']+ '</div>');
+                $('#my-modal').modal('show')  ;
+
+              }
+
+            },
+            error: function(jsonResponse){
+              $('#modal-title').html('Error');
+                $('#modal-content').html('<div class="alert alert-danger" role="alert"> Something went wrong. Error code=unknown </div>');
+                $('#my-modal').modal('show')  ;
+            }
+
+
+          } );
+          e.preventDefault();
+        } );
+        $("body").css("cursor", "default");
+      
+      
+  
+    });
+
+  </script>
+</head>
+
+<body>
+
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+      </div>
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">File <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li><a href="#" id="load-data"><span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>  Open a file (.csv)</a></li>
+            </ul>
+          </li>
+        </ul>
+        <ul class="nav nav-tabs">
+          <li role="presentation" id="go-corr" class="active"><a href="#">Feature Selection</a></li>
+          <li role="presentation" id="go-ml"><a href="#">ML Performance Training & Test</a></li>
+          <li role="presentation" id="go-predict"><a href="#">ML Prediction</a></li>
+        </ul>
+      </div>
+
+      <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container-fluid -->
+  </nav>
+
+
+  <div class="row">
+    <div class="col-md-1"></div>
+    <div class="col-md-10">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Data Table</h3>
+        </div>
+        <div class="panel-body" style="min-height: 450px; max-height: 350px;">
+          <div id="table-content">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-1"></div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-1"></div>
+
+    <div class="col-md-2">
+
+      <div class="panel panel-default">
+
+        <div class="panel-heading">
+          <h3 class="panel-title">All Columns</h3>
+        </div>
+
+        <div class="panel-body" style="min-height: 624px; max-height: 624px;">
+
+          <div class="panel panel-default vertical-align: middle">
+            <div class="panel-body">
+              <div id="buttons">
+                <button id="select-all" data-toggle="tooltip" title="Select all" type="button" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-asterisk" aria-hidden="true"></span>
+                  </button>
+                <button id="unselect-all" data-toggle="tooltip" title="Unselect all" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                  </button>
+                <button id="add-to-input" data-toggle="tooltip" title="Add to input columns" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                </button>
+                <button id="add-to-target" data-toggle="tooltip" title="Add to target column" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-screenshot" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-default">
+            <div class="panel-body" style="min-height: 504px; max-height: 504px; overflow-y: scroll;">
+              <div id="table-attrs">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-md-2">
+
+      <div class="panel panel-default">
+
+        <div class="panel-heading">
+          <h3 class="panel-title">Input/Target Columns</h3>
+        </div>
+
+        <div class="panel-body" style="min-height: 624px; max-height: 624px;">
+
+          <div class="panel panel-default vertical-align: middle">
+            <div class="panel-body">
+              <div id="buttons">
+                <button id="select-all-input-cols" data-toggle="tooltip" title="Select all" type="button" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-asterisk" aria-hidden="true"></span>
+                  </button>
+                <button id="unselect-all-input-cols" data-toggle="tooltip" title="Unselect all" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                  </button>
+                <button id="remove-input-cols" data-toggle="tooltip" title="Remove from the list" type="button" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+                  </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-default vertical-align: middle">
+            <div class="panel-body" style="min-height: 370px; max-height: 370px; overflow-y: scroll;">
+              <ul class="list-group" id="input-cols-list">
+              </ul>
+              <div id="input-cols"></div>
+            </div>
+          </div>
+
+          <div class="panel panel-default vertical-align: middle">
+            <div class="panel-body" style="min-height: 100px; max-height: 100px;">
+              <div id="target-col" class="vcenter">
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+
+
+    </div>
+
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Correlation Analysis</h3>
+        </div>
+        <div class="panel-body" style="min-height: 624px; max-height: 624px; overflow-x: scroll;">
+          <form class="form-inline">
+            <div class="form-group">
+              <button id="cols-analysis" data-toggle="tooltip" title="Correlation Analysis" type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-stats" aria-hidden="true"></span> Perform</button>
+              <div class="input-group">
+                <span class="input-group-btn">
+                  <button id="select-x" class="btn btn-default" type="button">Top X</button>
+                </span>
+                <input type="text" class="form-control" id="top-k-val" placeholder="X = ?">
+              </div>
+              <button id="select-15" data-toggle="tooltip" title="Select top 15 columns as input columns" type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-list" aria-hidden="true"></span> Top 15</button>
+              <button id="select-10" data-toggle="tooltip" title="Select top 10 columns as input columns" type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-list" aria-hidden="true"></span> Top 10</button>
+              <button id="select-5" data-toggle="tooltip" title="Select top 5 columns as input columns" type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-list" aria-hidden="true"></span> Top 5</button>
+              <button id="go-ml-analysis" data-toggle="tooltip" title="Go to Machine Learning tab" type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-star" aria-hidden="true"></span> Go to ML</button>
+              <select id="avail-chart-list" class="form-control">
+                <option>Chart not available.</option>
+              </select>
+            </div>
+          </form>
+          <div id="corr-chart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-1"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="open-file-modal" role="dialog">
+    <div class="modal-dialog">
+
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">
+            <div id="modal-title">Open a CSV file</div>
+          </h4>
+        </div>
+        <div class="modal-body">
+          <form id="load-file-form">
+            <div class="form-group">
+              <label for="load-csv">File input</label>
+              <input type="file" name="input-csv"></input>
+              <p class="help-block">Please select a CSV file.</p>
+              <button id="load-button" class="btn btn-default" type="submit">OK</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal fade" id="my-modal" role="dialog">
+    <div class="modal-dialog">
+
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">
+            <div id="modal-title"></div>
+          </h4>
+        </div>
+        <div class="modal-body">
+          <div id="modal-content"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+
+</body>
+
+</html>

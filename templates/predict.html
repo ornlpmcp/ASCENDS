@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="shortcut icon" href="#">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>ASCENDS: Advanced data SCiENce toolkit for Non-Data Scientists</title>
+
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+        crossorigin="anonymous">
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+    <script type="text/javascript" language="javascript" src="http://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.13/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.2.4/css/buttons.dataTables.min.css">
+    <script src="https://cdn.datatables.net/buttons/1.2.4/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.2.4/js/buttons.flash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.min.js"></script>
+    <script src="https://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/pdfmake.min.js"></script>
+    <script src="https://cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.2.4/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.2.4/js/buttons.print.min.js"></script>
+    
+    <link rel="stylesheet" href="https://cdn.datatables.net/select/1.2.1/css/select.dataTables.min.css">
+    <script src="https://cdn.datatables.net/select/1.2.1/js/dataTables.select.min.js"></script>
+
+    <script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.css" />
+
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript" src="static/common.js"></script>
+    <link rel="stylesheet" href="static/custom.css">
+
+    <script>
+
+        current_model = null;
+        input_table_loaded = false;
+        output_table_initialized = false;
+
+        header_str = [];
+        function get_model_info(file_name) {
+
+            var data =
+                {
+                    model_file: file_name
+                };
+
+            var dataToSend = JSON.stringify(data);
+
+            $("body").find("*").attr("disabled", "disabled");
+            $("body").css("cursor", "progress");
+
+            $.ajax({
+
+                url: '/get_model_info',
+                type: 'POST',
+                data: dataToSend,
+                processData: false,
+                contentType: false,
+
+                success: function (jsonResponse) {
+                    var objresponse = JSON.parse(jsonResponse);
+
+                    info = `
+              <div class="alert alert-info" role="alert">
+                        Algorithm = `+ objresponse['model_abbr'] + `<br>
+                        Input Columns = `+ objresponse['input_cols'] + `<br>
+                        Target Column = `+ objresponse['target_col'] + `<br>
+                        MAE = `+ objresponse['MAE'] + `<br>
+                        R2 = `+ objresponse['R2'] + `<br>
+
+                      </div>        
+              `
+                    input_cols = objresponse['input_cols'];
+                    target_col = objresponse['target_col'];
+                    $('#model-info').html(info);
+
+                    $("body").css("cursor", "default");
+                    $("body").find("*").removeAttr("disabled");
+
+                },
+
+                error: function (jsonResponse) {
+                    alert('Something went wrong.');
+                }
+
+            });
+        };
+
+
+        function clear_input_table() {
+            $('#input-data-table').html(`
+                <div class="alert alert-info" role="alert">
+                    Please open a CSV file.
+                </div>
+                `);
+            input_table_loaded = false;
+        }
+
+        function refresh_model_file_list() {
+
+            $("#model-files-list li").each(function (index) {
+                $(this).remove();
+            });
+
+            var data =
+                {
+                };
+
+            var dataToSend = JSON.stringify(data);
+
+            $("body").find("*").attr("disabled", "disabled");
+            $("body").css("cursor", "progress");
+
+            $.ajax({
+
+                url: '/get_model_file_list',
+                type: 'POST',
+                data: dataToSend,
+                processData: false,
+                contentType: false,
+
+                success: function (jsonResponse) {
+                    var objresponse = JSON.parse(jsonResponse);
+                    var model_files = objresponse["model_files"];
+
+                    for (let item of model_files) {
+                        attr_content = `
+                    <li class="list-group-item"><p class="text-right"><b>`+ item + `</b> </li>
+                  `;
+                        $('#model-files-list').append(attr_content);
+                    }
+
+                    $('#model-files-list li').click(function (e) {
+                        e.preventDefault()
+
+                        $that = $(this);
+
+                        $("#model-files-list li").each(function (index) {
+                            if ($(this).hasClass('active')) {
+                                $(this).removeClass('active');
+                            }
+                        });
+
+                        if ($(this).hasClass('active')) {
+                            $(this).removeClass('active');
+                        }
+                        else {
+                            $that.addClass('active');
+                            get_model_info($(this).text());
+                            current_model = $(this).text();
+
+                        }
+                    });
+
+                    $("body").css("cursor", "default");
+                    $("body").find("*").removeAttr("disabled");
+
+                },
+
+                error: function (jsonResponse) {
+                    alert('Something went wrong.');
+                }
+
+            });
+        }
+        table_loaded = false;
+        input_cols = [];
+        target_col = null;
+        path_to_data = '';
+        cols_type = {};
+        corr_chart_rows = null;
+
+        $(document).ready(function () {
+
+            $('#predict-target').click(function (event) {
+                var table = $('#csv-table').DataTable();
+                if (table.rows('.selected').data().length == 0 || current_model == null) {
+                    $('#modal-title').html('Warning');
+                    $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please select 1 or more rows to generate predictions. Please select a model to use.' + '</div>');
+                    $('#my-modal').modal('show');
+                }
+                else {
+                    selected_data = table.rows('.selected').data();
+                    rows = []
+                    selected_data.each(function (value, index) {
+                        rows.push(value);
+                    });
+                    non_exist = false;
+                    for (let item of input_cols) {
+                        if ($.inArray(item, header_str) == -1) {
+                            non_exist = true;
+                        };
+                    }
+                    if (non_exist == true) {
+                        $('#modal-title').html('Warning');
+                        $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Input Data Mismatches the Model. 1 or more of input columns do not exist.' + '</div>');
+                        $('#my-modal').modal('show');
+                    }
+                    else {
+                        var data =
+                            {
+                                current_model: current_model,
+                                rows: rows,
+                                target_col: target_col,
+                                input_cols: input_cols,
+                                header_str: header_str
+                            };
+
+                        var dataToSend = JSON.stringify(data);
+                        $("body").find("*").attr("disabled", "disabled");
+                        $("body").css("cursor", "progress");
+
+                        $.ajax({
+                            url: '/get_predicted_target',
+                            type: 'POST',
+                            data: dataToSend,
+                            processData: false,
+                            contentType: false,
+
+                            success: function (jsonResponse) {
+                                var objresponse = JSON.parse(jsonResponse);
+                                new_rows = objresponse['new_rows']
+
+                                if (output_table_initialized == false) {
+                                    header_html = '<th> model </th>'
+                                    
+                                    for (i = 0; i < objresponse['header'].length; i++) {
+                                        header_html += '<th>' + objresponse['header'][i] + '</th>'
+                                    }
+
+                                    table_html = `
+                                    <table id="csv-table-output" class="display nowrap" cellspacing="0" width="100%" height="300px">
+                                    <thead>
+                                        <tr>
+                                        `+ header_html + `
+                                        </tr>
+                                    </thead>
+                                    </table>
+                                    `
+
+                                    $('#output-data-table').html(table_html);
+
+                                    try {
+                                        $('#csv-table-output').dataTable().fnDestroy();
+                                    }
+                                    catch (err) {
+                                        alert(err);
+                                    }
+
+                                    $('#csv-table-output').DataTable({
+                                        dom: 'Bfrtip',
+                                        select: {
+                                            style: 'multi'
+                                        },
+
+                                        buttons: [
+                                            'copy', 'csv', 'excel', 'pdf', 'print',
+                                            {
+                                                text: 'Delete Selected',
+                                                action: function ( e, dt, node, config ) {
+                                                    dt
+                                                    .rows( '.selected' )
+                                                    .remove()
+                                                    .draw();
+                                                }
+                                            }
+                                        ],
+
+                                        
+                                        "scrollX": true,
+                                        "scrollY": "300px",
+                                        "scrollCollapse": true,
+                                        "paging": true
+                                    });
+
+                                    $('#csv-table-output').dataTable().fnClearTable();
+                                    output_table_initialized = true;
+                                }
+
+                                for (i = 0; i < objresponse['new_rows'].length; i++) {
+                                    row = objresponse['new_rows'][i];
+                                    row.unshift(current_model);
+                                    $('#csv-table-output').dataTable().fnAddData(row);
+                                }
+
+                                $("body").css("cursor", "default");
+                                $("body").find("*").removeAttr("disabled");
+
+                            },
+
+                            error: function (jsonResponse) {
+                                alert('Something went wrong.');
+                            }
+
+                        });
+                    }
+
+                }
+            });
+
+            clear_input_table();
+            refresh_model_file_list();
+            $('#load-open-data').click(function (event) {
+                $('#open-input-data-modal').modal('show');
+            });
+
+
+            $('#load-file-form')
+                .submit(function (e) {
+                    clear_input_table();
+                    $('#open-input-data-modal').modal('hide');
+                    $.ajax({
+                        url: '/open_file',
+                        type: 'POST',
+                        data: new FormData(this),
+                        processData: false,
+                        contentType: false,
+
+                        success: function (jsonResponse) {
+                            var objresponse = JSON.parse(jsonResponse);
+                            table_loaded = objresponse;
+
+                            path_to_data = objresponse['path_to_data'];
+                            if (objresponse['msg'] == 'success') {
+                                header_str = [];
+                                header_html = ''
+                                for (i = 0; i < objresponse['header'].length; i++) {
+                                    header_html += '<th>' + objresponse['header'][i] + '</th>'
+                                    header_str.push(objresponse['header'][i]);
+                                }
+
+                                table_html = `
+                                    <table id="csv-table" class="display" cellspacing="0" width="100%" height="300px">
+                                    <thead>
+                                        <tr>
+                                        `+ header_html + `
+                                        </tr>
+                                    </thead>
+                                    </table>
+                                    `
+
+                                $('#input-data-table').html(table_html);
+
+                                try {
+                                    $('#csv-table').dataTable().fnDestroy();
+                                }
+                                catch (err) {
+                                    alert(err);
+                                }
+
+                                $('#csv-table').DataTable({
+                                    "scrollX": true,
+                                    "scrollY": "300px",
+                                    "scrollCollapse": true,
+                                    "paging": true
+                                });
+
+                                $('#csv-table').dataTable().fnClearTable();
+
+                                for (i = 0; i < objresponse['rows'].length; i++) {
+                                    row = objresponse['rows'][i];
+                                    $('#csv-table').dataTable().fnAddData(row);
+                                }
+
+                                var table = $('#csv-table').DataTable();
+
+                                $('#csv-table tbody').on('click', 'tr', function () {
+                                    $(this).toggleClass('selected');
+                                });
+
+                                $('#select-all-input').click(function (event) {
+                                    table.rows().select();
+                                });
+
+                                $('#unselect-all-input').click(function (event) {
+                                    table.rows().deselect();
+                                });
+
+                                $('#predict-target').click(function (event) {
+                                    var table = $('#csv-table').DataTable();
+                                    if (table.rows('.selected').data().length == 0 || current_model == null) {
+                                        $('#modal-title').html('Warning');
+                                        $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please select 1 or more rows to generate predictions. Please select a model to use.' + '</div>');
+                                        $('#my-modal').modal('show');
+                                    }
+                                });
+
+
+                            }
+
+                            else {
+                                $('#modal-title').html('Error');
+                                $('#modal-content').html('<div class="alert alert-danger" role="alert"> Something went wrong. Error code=' + objresponse['msg'] + '</div>');
+                                $('#my-modal').modal('show');
+
+                            }
+
+                        },
+                        error: function (jsonResponse) {
+                            $('#modal-title').html('Error');
+                            $('#modal-content').html('<div class="alert alert-danger" role="alert"> Something went wrong. Error code=unknown </div>');
+                            $('#my-modal').modal('show');
+                        }
+
+
+                    });
+                    e.preventDefault();
+                });
+
+            $('#load-data').click(function (event) {
+                $('#modal-title').html('Warning');
+                $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please open a file in the feature selection tab.' + '</div>');
+                $('#my-modal').modal('show');
+            });
+
+            $('#go-corr').click(function (event) {
+                // changing this to POST may be required for better security
+                window.location = "/corr_analysis?path_to_data=" + path_to_data + "&target_col=" + target_col + "&input_cols=" + input_cols;
+            });
+
+            $('#go-ml-analysis').click(function (event) {
+                // changing this to POST may be required for better security
+                window.location = "/ml_analysis?path_to_data=" + path_to_data + "&target_col=" + target_col + "&input_cols=" + input_cols;
+            });
+
+            $('#go-ml').click(function (event) {
+                // changing this to POST may be required for better security
+                window.location = "/ml_analysis?path_to_data=" + path_to_data + "&target_col=" + target_col + "&input_cols=" + input_cols;
+            });
+        });
+
+    </script>
+</head>
+
+
+<body>
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <a class="navbar-brand" href="/">ASCEND</a>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">File <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#" id="load-data"><span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>  Open a file (.csv)</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="nav nav-tabs">
+                    <li role="presentation" id="go-corr"><a href="#">Feature Selection</a></li>
+                    <li role="presentation" id="go-ml"><a href="#">ML Performance Training & Test</a></li>
+                    <li role="presentation" id="go-predict" class="active"><a href="#">ML Prediction</a></li>
+                </ul>
+            </div>
+
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container-fluid -->
+    </nav>
+
+
+    <div class="row">
+        <div class="col-md-1"></div>
+
+        <div class="col-md-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Trained Models</h3>
+                </div>
+                <div class="panel-body" style="min-height: 524px; max-height: 524px;">
+<div class="panel panel-default">
+    <div class="panel-body" style="min-height: 300px; max-height: 300px; overflow-y: scroll;">
+<ul class="list-group" id="model-files-list">
+</ul>
+</div>
+</div>
+<div class="panel-body" style="min-height: 100px; max-height: 100px;">
+<div id="model-info">
+    <div class="alert alert-info" role="alert">
+        This is a box to show model-info.
+    </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="col-md-7">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">Input Data Table</h3>
+        </div>
+        <div class="panel-body" style="min-height: 50px; max-height: 50px;">
+<button id="load-open-data" data-toggle="tooltip" title="Select all" type="button" class="btn btn-default btn-sm">
+                Load Input File
+            </button>
+            
+<button id="select-all-input" data-toggle="tooltip" title="Select all" type="button" class="btn btn-default btn-sm">
+                Select All
+            </button>
+            <button id="unselect-all-input" data-toggle="tooltip" title="Select all" type="button" class="btn btn-default btn-sm">
+                Unselect All
+            </button>
+<button id="predict-target" data-toggle="tooltip" title="Select all" type="button" class="btn btn-default btn-sm">
+                Predict Selected
+            </button>
+</div>
+<div class="panel-body" style="min-height: 474px; max-height: 474px;">
+<div id="input-data-table"></div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="row">
+    <div class="col-md-1"></div>
+    <div class="col-md-3"></div>
+    <div class="col-md-7">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Output Data Table</h3>
+            </div>
+            <div class="panel-body" style="min-height: 474px; max-height: 474px;">
+<div id="output-data-table"></div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div class="modal fade" id="open-input-data-modal" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <div id="modal-title">Open a CSV file</div>
+                </h4>
+            </div>
+
+            <div class="modal-body">
+                <form id="load-file-form">
+                    <div class="form-group">
+                        <label for="load-csv">File input</label>
+                        <input type="file" name="input-csv"></input>
+                        <p class="help-block">Please select a CSV file.</p>
+                        <button id="load-button" class="btn btn-default" type="submit">OK</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="my-modal" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <div id="modal-title"></div>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div id="modal-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+
+</html>

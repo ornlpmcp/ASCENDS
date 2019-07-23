@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <link rel="shortcut icon" href="#">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+  <title>ASCENDS: Advanced data SCiENce toolkit for Non-Data Scientists</title>
+
+  <!-- Bootstrap -->
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+    integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
+  <script type="text/javascript" language="javascript"
+    src="http://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.12/css/dataTables.jqueryui.min.css">
+
+  <script type="text/javascript" language="javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.css" />
+
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type="text/javascript" src="static/common.js"></script>
+  <link rel="stylesheet" href="static/custom.css">
+
+  <script>
+
+    table_loaded = false;
+    target_col = null;
+    path_to_data = '';
+    cols_type = {};
+    corr_chart_rows = null;
+    hist_chart_rows = [];
+    global_MAE = -1;
+    global_R2 = -1;
+    // Load the Visualization API and the corechart package.
+    google.charts.load('current', { 'packages': ['corechart'] });
+
+    // Set a callback to run when the Google Visualization API is loaded.
+    google.charts.setOnLoadCallback(drawHistoryChart);
+
+    function drawHistoryChart() {
+      // Create the data table.
+      var data = new google.visualization.DataTable();
+
+      data.addColumn('string', 'Tag');
+      data.addColumn('number', 'MAE');
+
+      data.addRows(hist_chart_rows);
+      // Set chart options
+      var options = {
+        'width': 800,
+        'height': 380,
+        legend: { position: 'top', maxLines: 3 }
+      };
+
+      // Instantiate and draw our chart, passing in some options.
+      var chart = new google.visualization.ColumnChart(document.getElementById('history-chart'));
+      chart.draw(data, options);
+    }
+
+    function get_model_info(file_name) {
+
+      var data =
+      {
+        model_file: file_name
+      };
+
+      var dataToSend = JSON.stringify(data);
+
+      $("body").find("*").attr("disabled", "disabled");
+      $("body").css("cursor", "progress");
+
+      $.ajax({
+
+        url: '/get_model_info',
+        type: 'POST',
+        data: dataToSend,
+        processData: false,
+        contentType: false,
+
+        success: function (jsonResponse) {
+          var objresponse = JSON.parse(jsonResponse);
+
+          info = `
+              <div class="alert alert-info" role="alert">
+                        Algorithm = `+ objresponse['model_abbr'] + `<br>
+                        Input Columns = `+ objresponse['input_cols'] + `<br>
+                        Target Column = `+ objresponse['target_col'] + `<br>
+                        MAE = `+ objresponse['MAE'] + `<br>
+                        R2 = `+ objresponse['R2'] + `<br>
+                      </div>        
+              `
+          $('#model-info').html(info);
+
+          $("body").css("cursor", "default");
+          $("body").find("*").removeAttr("disabled");
+
+        },
+
+        error: function (jsonResponse) {
+          alert('Something went wrong.');
+        }
+
+      });
+    };
+
+
+    function refresh_model_file_list() {
+
+      $("#model-files-list li").each(function (index) {
+        $(this).remove();
+      });
+
+      var data =
+      {
+      };
+
+      var dataToSend = JSON.stringify(data);
+
+      $("body").find("*").attr("disabled", "disabled");
+      $("body").css("cursor", "progress");
+
+      $.ajax({
+
+        url: '/get_model_file_list',
+        type: 'POST',
+        data: dataToSend,
+        processData: false,
+        contentType: false,
+
+        success: function (jsonResponse) {
+          var objresponse = JSON.parse(jsonResponse);
+          var model_files = objresponse["model_files"];
+
+          for (let item of model_files) {
+            attr_content = `
+                    <li class="list-group-item"><p class="text-right"><b>`+ item + `</b> </li>
+                  `;
+            $('#model-files-list').append(attr_content);
+          }
+
+          $('#model-files-list li').click(function (e) {
+            e.preventDefault()
+
+            $that = $(this);
+
+            $("#model-files-list li").each(function (index) {
+              if ($(this).hasClass('active')) {
+                $(this).removeClass('active');
+              }
+            });
+
+            if ($(this).hasClass('active')) {
+              $(this).removeClass('active');
+            }
+            else {
+              $that.addClass('active');
+              get_model_info($(this).text());
+            }
+          });
+
+          $("body").css("cursor", "default");
+          $("body").find("*").removeAttr("disabled");
+
+        },
+
+        error: function (jsonResponse) {
+          alert('Something went wrong.');
+        }
+
+      });
+    }
+    function refresh_pred_input() {
+      $("#pred-input-cols").html('');
+      for (var key in input_cols) {
+
+        //alert(input_cols[key]);
+        form_str = `
+        <div class="form-group" id="form-`+ input_cols[key] + `">
+                  <label for="`+ input_cols[key] + `" class="col-sm-2 control-label">` + input_cols[key] + `</label>
+                  <div class="col-sm-10">
+                    <input type="number" class="form-control" id="input-`+ input_cols[key] + `">
+                  </div>
+                </div>`;
+
+        $("#pred-input-cols").append(form_str);
+      }
+    }
+
+    function load_preset_options() {
+
+      $("body").find("*").attr("disabled", "disabled");
+      $("body").css("cursor", "progress");
+      var data =
+      {
+      };
+
+      var dataToSend = JSON.stringify(data);
+      $.ajax({
+
+        url: '/get_preset_file_list',
+        type: 'POST',
+        data: dataToSend,
+        processData: false,
+        contentType: false,
+
+        success: function (jsonResponse) {
+          var objresponse = JSON.parse(jsonResponse);
+          var preset_files = objresponse["preset_files"];
+
+          $("#preset-picker").html('<option value="default">Default Hyper Parameters</option>');
+          for (let item of preset_files) {
+
+            $("#preset-picker").append(new Option(item, item));
+
+          }
+          $("body").css("cursor", "default");
+          $("body").find("*").removeAttr("disabled");
+
+        },
+
+        error: function (jsonResponse) {
+          alert('Something went wrong.');
+        }
+
+      });
+    }
+
+    $(document).ready(function () {
+
+      load_preset_options();
+
+      refresh_model_file_list();
+
+      $('#delete-model').click(function (event) {
+
+        data = {}
+        $("#model-files-list li").each(function (index) {
+          if ($(this).hasClass('active')) {
+            data['model_to_delete'] = $(this).text();
+
+          }
+        });
+
+        var dataToSend = JSON.stringify(data);
+
+        $("body").find("*").attr("disabled", "disabled");
+        $("body").css("cursor", "progress");
+
+        $.ajax({
+
+          url: '/delete_model',
+          type: 'POST',
+          data: dataToSend,
+          processData: false,
+          contentType: false,
+
+          success: function (jsonResponse) {
+            var objresponse = JSON.parse(jsonResponse);
+            refresh_model_file_list();
+
+            $("body").css("cursor", "default");
+            $("body").find("*").removeAttr("disabled");
+
+          },
+
+          error: function (jsonResponse) {
+            alert('Something went wrong.');
+          }
+
+        });
+      });
+
+
+      $('#add-to-history').click(function (event) {
+        if (global_MAE != -1) {
+          var tag = $("#tag-name").val();
+          hist_chart_rows.push([tag, Number(global_MAE.toFixed(3))]);
+          drawHistoryChart();
+          //global_MAE = -1;
+        }
+        else {
+          $('#modal-title').html('Warning');
+          $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please perform test first.' + '</div>');
+          $('#my-modal').modal('show');
+        }
+
+      });
+
+      $('#load-data').click(function (event) {
+        $('#modal-title').html('Warning');
+        $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please open a file in the feature selection tab.' + '</div>');
+        $('#my-modal').modal('show');
+      });
+
+      $('[data-toggle="tooltip"]').tooltip();
+      clear_table();
+
+      var text = '{{data}}';
+      var obj = JSON.parse(text.unescapeHtml());
+      path_to_data = obj['path_to_data'];
+      input_cols = obj['input_cols'];
+      if (input_cols == '') {
+        input_cols = [];
+      }
+      else {
+        try {
+          input_cols = input_cols.split(",");
+        } catch (err) {
+          input_cols = [];
+        }
+      }
+      target_col = obj['target_col'];
+
+      if (path_to_data != null && path_to_data != '') {
+        load_data();
+      }
+
+      refresh_pred_input();
+
+      $('#pred-button').click(function (event) {
+        var input_vals = [];
+        $("#pred-input-cols div").each(function (index) {
+          form_id = this.id;
+
+          if (form_id != "") {
+            form_id = form_id.split("-")[1];
+            input_id = "input-" + form_id;
+            var value = $("#" + input_id).val();
+
+            if (value.trim() == "" || isNaN(value) || value == undefined) {
+              $('#modal-title').html('Error');
+              $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please give proper numbers.' + '</div>');
+              $('#my-modal').modal('show');
+              return;
+            }
+            else {
+              input_vals.push(value);
+            }
+          }
+        });
+
+        var val = $("#algorithm-picker option:selected").val();
+        var scaler = $("#scaler-picker option:selected").val();
+        var data =
+        {
+          input_cols: input_cols,
+          input_vals: input_vals,
+          target_col: target_col,
+          path_to_data: path_to_data,
+          model_abbr: val,
+          scaler: scaler
+        };
+
+        var dataToSend = JSON.stringify(data);
+
+        $("body").find("*").attr("disabled", "disabled");
+        $("body").css("cursor", "progress");
+
+        $.ajax({
+
+          url: '/predict_ml',
+          type: 'POST',
+          data: dataToSend,
+          processData: false,
+          contentType: false,
+
+          success: function (jsonResponse) {
+            var objresponse = JSON.parse(jsonResponse);
+            var date_time_str = new Date().getTime()
+            alert(objresponse['prediction_result']);
+
+            info = `
+              <div class="alert alert-info" role="alert">
+                        Algorithm = `+ objresponse['model_abbr'] + `<br>
+                        Scaler = `+ objresponse['scaler'] + `<br>
+                        Input Columns = `+ objresponse['input_cols'] + `<br>
+                        Target Column = `+ objresponse['target_col'] + `<br>
+                        Input Values = `+ objresponse['input_vals'] + `<br>
+                        Predicted Value = `+ objresponse['prediction_result'] + `<br>
+                      </div>        
+              `
+            $('#pred-result').html(info);
+
+            $("body").css("cursor", "default");
+            $("body").find("*").removeAttr("disabled");
+
+          },
+
+          error: function (jsonResponse) {
+            alert('Something went wrong.');
+          }
+
+        });
+      });
+
+      $('#save-model').click(function (event) {
+
+        if (global_MAE != -1) {
+
+          var val = $("#algorithm-picker option:selected").val();
+          var preset = $("#preset-picker option:selected").val();
+          var scaler = $("#scaler-picker option:selected").val();
+          var num_fold = $("#num-fold").val();
+          var tag = $("#tag-name").val();
+          var num_fold_test = Number(num_fold);
+
+          if (num_fold_test > 10 || num_fold_test <= 1 || isNaN(num_fold_test)) {
+            $('#modal-title').html('Error');
+            $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please set k-folds (2-10) and # of test (1-10) properly.' + '</div>');
+            $('#my-modal').modal('show');
+            return;
+          }
+
+          var data =
+          {
+            input_cols: input_cols,
+            target_col: target_col,
+            path_to_data: path_to_data,
+            model_abbr: val,
+            scaler: scaler,
+            num_fold: num_fold,
+            tag: tag,
+            MAE: global_MAE,
+            R2: global_R2,
+            preset: preset
+          };
+
+          var dataToSend = JSON.stringify(data);
+
+          $("body").find("*").attr("disabled", "disabled");
+
+          $("body").css("cursor", "progress");
+          $.ajax({
+
+            url: '/save_model',
+            type: 'POST',
+            data: dataToSend,
+            processData: false,
+            contentType: false,
+
+            success: function (jsonResponse) {
+              var objresponse = JSON.parse(jsonResponse);
+
+              refresh_model_file_list();
+
+            },
+
+            error: function (jsonResponse) {
+              alert('Something went wrong.');
+            }
+
+          });
+
+          $("body").css("cursor", "default");
+          $("body").find("*").removeAttr("disabled");
+        }
+        else {
+          $('#modal-title').html('Warning');
+          $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please perform test first.' + '</div>');
+          $('#my-modal').modal('show');
+        }
+
+      }
+      );
+
+
+      $('#ml-analysis').click(function (event) {
+
+        var val = $("#algorithm-picker option:selected").val();
+        var preset = $("#preset-picker option:selected").val();
+        var scaler = $("#scaler-picker option:selected").val();
+
+        var num_fold = $("#num-fold").val();
+
+        var num_fold_test = Number(num_fold);
+
+        if (num_fold_test > 10 || num_fold_test <= 1 || isNaN(num_fold_test)) {
+          $('#modal-title').html('Error');
+          $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please set k-folds (2-10) and # of test (1-10) properly.' + '</div>');
+          $('#my-modal').modal('show');
+          return;
+        }
+
+        var data =
+        {
+          input_cols: input_cols,
+          target_col: target_col,
+          path_to_data: path_to_data,
+          model_abbr: val,
+          scaler: scaler,
+          num_fold: num_fold,
+          preset: preset
+        };
+
+        var dataToSend = JSON.stringify(data);
+
+        $("body").find("*").attr("disabled", "disabled");
+
+        $("body").css("cursor", "progress");
+        $.ajax({
+
+          url: '/execute_ml_analysis',
+          type: 'POST',
+          data: dataToSend,
+          processData: false,
+          contentType: false,
+
+          success: function (jsonResponse) {
+            var objresponse = JSON.parse(jsonResponse);
+            var date_time_str = new Date().getTime()
+
+            var MAE = objresponse["MAE"];
+            var R2 = objresponse["R2"];
+            var input_cols = objresponse["input_cols"];
+            var target_col = objresponse["target_col"];
+            var model_abbr = objresponse["model_abbr"];
+            var num_fold = objresponse["num_fold"];
+            var scaler = objresponse["scaler"];
+
+            if (MAE == -1) {
+              info = `
+              <br><br>
+              <div class="alert alert-info" role="alert">
+              Please select a correct hyperparameter file for the selected model.
+              </div>
+              `
+            } else {
+              info = `
+              <br><br>
+              <div class="alert alert-info" role="alert">
+                        MAE = <strong>`+ MAE.toFixed(3) + `</strong><br>
+                        R2 = <strong>`+ R2.toFixed(3) + `</strong><br>
+                        Algorithm = `+ model_abbr + `<br>
+                        Scaler = `+ scaler + `<br>
+                        Input Columns = `+ input_cols + `<br>
+                        Target Column = `+ target_col + `<br>
+                        Number of folds = `+ num_fold + `<br>
+                      </div>        
+              `
+            }
+
+            global_MAE = MAE;
+            global_R2 = R2;
+
+            $('#MAE').html(info);
+            $('#tag-name').val(model_abbr + "-" + date_time_str);
+            if (MAE != -1) {
+              $("#mae-chart").attr("src", "static/output/ml/ml_result.png?" + date_time_str);
+            } else {
+              $("#mae-chart").attr("src", "static/img/error.png");
+            }
+            $("body").css("cursor", "default");
+            $("body").find("*").removeAttr("disabled");
+
+          },
+
+          error: function (jsonResponse) {
+            alert('Something went wrong.');
+          }
+
+        });
+      });
+
+      $('#ml-tuning').click(function (event) {
+        
+        var val = $("#algorithm-picker option:selected").val();
+        if(val=='LR'){
+          alert('No Tuning required for linear regression');
+          return;
+        }
+        var preset = $("#preset-picker option:selected").val();
+        var scaler = $("#scaler-picker option:selected").val();
+
+        var num_fold = $("#num-fold").val();
+
+        var num_fold_test = Number(num_fold);
+
+        if (num_fold_test > 10 || num_fold_test <= 1 || isNaN(num_fold_test)) {
+          $('#modal-title').html('Error');
+          $('#modal-content').html('<div class="alert alert-danger" role="alert"> ' + 'Please set k-folds (2-10) and # of test (1-10) properly.' + '</div>');
+          $('#my-modal').modal('show');
+          return;
+        }
+
+        var data =
+        {
+          input_cols: input_cols,
+          target_col: target_col,
+          path_to_data: path_to_data,
+          model_abbr: val,
+          scaler: scaler,
+          num_fold: num_fold,
+          preset: preset
+        };
+
+        var dataToSend = JSON.stringify(data);
+
+        $("body").find("*").attr("disabled", "disabled");
+
+        $("body").css("cursor", "progress");
+        $.ajax({
+
+          url: '/execute_ml_tuning',
+          type: 'POST',
+          data: dataToSend,
+          processData: false,
+          contentType: false,
+
+          success: function (jsonResponse) {
+            var objresponse = JSON.parse(jsonResponse);
+            alert('Tuning Completed. Please select the parameter file: '+objresponse['output']);
+            load_preset_options();
+            $("body").css("cursor", "default");
+            $("body").find("*").removeAttr("disabled");
+
+          },
+
+          error: function (jsonResponse) {
+            alert('Something went wrong.');
+          }
+
+        });
+      });
+
+      $('#proceed-to-predict').click(function (event) {
+        // changing this to POST may be required for better security
+        window.location = "/predict_page";
+      });
+
+      $('#go-predict').click(function (event) {
+        // changing this to POST may be required for better security
+        window.location = "/predict_page";
+      });
+
+      $('#go-corr').click(function (event) {
+        // changing this to POST may be required for better security
+        window.location = "/feature_analysis?path_to_data=" + path_to_data + "&target_col=" + target_col + "&input_cols=" + input_cols;
+      });
+
+      $('#add-to-target').click(function (event) {
+        add_to_target();
+      });
+
+      $('#remove-input-cols').click(function (event) {
+        remove_input_cols();
+      });
+
+      $('#add-to-input').click(function (event) {
+        add_to_input();
+        refresh_pred_input();
+      });
+
+      $('#select-all-input-cols').click(function (event) {
+
+        select_all_input_cols();
+
+      });
+
+      $('#unselect-all-input-cols').click(function (event) {
+        unselect_all_input_cols();
+
+      });
+
+      $('#select-all').click(function (event) {
+
+        select_all();
+
+      });
+
+      $('#unselect-all').click(function (event) {
+        unselect_all();
+
+      });
+    });
+
+  </script>
+</head>
+
+<body>
+
+  <nav class="navbar navbar-default">
+    <div class="container-fluid">
+      <!-- Brand and toggle get grouped for better mobile display -->
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">ASCENDS</a>
+      </div>
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true"
+              aria-expanded="false">File
+              <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+              <li><a href="#" id="load-data"><span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+                  Open a file (.csv)</a></li>
+            </ul>
+          </li>
+        </ul>
+        <ul class="nav nav-tabs">
+          <li role="presentation" id="go-corr"><a href="#">Feature Selection</a></li>
+          <li role="presentation" id="go-ml" class="active"><a href="#">ML Performance Training & Test</a></li>
+          <li role="presentation" id="go-predict"><a href="#">ML Prediction</a></li>
+        </ul>
+      </div>
+
+      <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container-fluid -->
+  </nav>
+
+  <div class="row">
+    <div class="col-md-1"></div>
+
+    <div class="col-md-2">
+
+      <div class="panel panel-default">
+
+        <div class="panel-heading">
+          <h3 class="panel-title">All Columns</h3>
+        </div>
+
+        <div class="panel-body" style="min-height: 624px; max-height: 624px;">
+
+          <div class="panel panel-default vertical-align: middle">
+            <div class="panel-body">
+              <div id="buttons">
+                <button id="select-all" data-toggle="tooltip" title="Select all" type="button"
+                  class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-asterisk" aria-hidden="true"></span>
+                </button>
+                <button id="unselect-all" data-toggle="tooltip" title="Unselect all" class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                </button>
+                <button id="add-to-input" data-toggle="tooltip" title="Add to input columns"
+                  class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                </button>
+                <button id="add-to-target" data-toggle="tooltip" title="Add to target column"
+                  class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-screenshot" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-default">
+            <div class="panel-body" style="min-height: 504px; max-height: 504px; overflow-y: scroll;">
+              <div id="table-attrs">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-md-2">
+
+      <div class="panel panel-default">
+
+        <div class="panel-heading">
+          <h3 class="panel-title">Input/Target Columns</h3>
+        </div>
+
+        <div class="panel-body" style="min-height: 624px; max-height: 624px;">
+
+          <div class="panel panel-default vertical-align: middle">
+            <div class="panel-body">
+              <div id="buttons">
+                <button id="select-all-input-cols" data-toggle="tooltip" title="Select all" type="button"
+                  class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-asterisk" aria-hidden="true"></span>
+                </button>
+                <button id="unselect-all-input-cols" data-toggle="tooltip" title="Unselect all"
+                  class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                </button>
+                <button id="remove-input-cols" data-toggle="tooltip" title="Remove from the list" type="button"
+                  class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel-default">
+            <div class="panel-body" style="min-height: 370px; max-height: 370px; overflow-y: scroll;">
+              <ul class="list-group" id="input-cols-list">
+              </ul>
+              <div id="input-cols"></div>
+            </div>
+          </div>
+
+          <div class="panel panel-default">
+            <div class="panel-body" style="min-height: 100px; max-height: 100px; ">
+              <div id="target-col">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Accuracy Test</h3>
+        </div>
+        <div class="panel-body" style="min-height: 624px; max-height: 624px;">
+
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <form class="form-inline">
+                <div class="form-group">
+                  <label for="algorithm-picker">Algorithm</label>
+                  <select id="algorithm-picker" class="form-control">
+                    <option value="RF">Random Forest</option>
+                    <option value="LR">Linear Regression</option>
+                    <option value="NN">Nearest Neighbor</option>
+                    <option value="KR">Kernel Ridge Regression</option>
+                    <option value="BR">Bayesian Ridge Regression</option>
+                    <option value="NET">Neural Network</option>
+                    <option value="SVM">Support Vector Machine</option>
+                  </select>
+                  <label for="scaler-picker">Scaler</label>
+                  <select id="scaler-picker" class="form-control">
+                    <option value="AutoLoad">AutoLoad</option>
+                    <option value="False">False</option>
+                    <option value="StandardScaler">StandardScaler</option>
+                    <option value="MinMaxScaler">MinMaxScaler</option>
+                    <option value="Normalizer">Normalizer</option>
+                    <option value="RobustScaler">RobustScaler</option>
+                  </select>
+                  <label for="num-fold"> k-folds</label>
+                  <input type="number" class="form-control" id="num-fold" value="5">
+
+                </div>
+                <button id="ml-analysis" data-toggle="tooltip" title="Machine Learning Performance Test & Prediction"
+                  type="button" class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-stats" aria-hidden="true"></span> Perform Test
+                </button>
+
+                <button id="ml-tuning" data-toggle="tooltip" title="Machine Learning Hyperparameter Tuning"
+                  type="button" class="btn btn-default btn-sm">
+                  <span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span> Tuning
+                </button>
+
+                <br><br>
+                <label for="preset-picker">Hyper Parameter Preset</label>
+                <select id="preset-picker" class="form-control">
+                  <option value="default">Default Hyper Parameters</option>
+                </select>
+
+              </form>
+            </div>
+          </div>
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <form class="form-inline">
+                <div class="form-group">
+                  <label for="tag-name">Tag</label>
+                  <input type="text" class="form-control" id="tag-name" value="Test"></input>
+                  <button id="add-to-history" data-toggle="tooltip" title="Add Result to the History Chart"
+                    type="button" class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Add to History
+                  </button>
+                  <button id="save-model" data-toggle="tooltip" title="Save Model" type="button"
+                    class="btn btn-default btn-sm">
+                    <span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Save Model
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="panel panel-default">
+            <div class="panel-body">
+              <div class="row">
+                <div class="col-sm-12">
+                  <div class="col-sm-6">
+                    <img id="mae-chart" height="380">
+                  </div>
+                  <div class="col-sm-6">
+                    <div id="MAE">
+                      <div class="alert alert-info" role="alert">
+                        Please perform test to see the chart.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="col-md-1"></div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-1"></div>
+    <div class="col-md-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Test History</h3>
+        </div>
+        <div class="panel-body" style="min-height: 400px; max-height: 400px;">
+          <div id="history-chart">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="panel panel-default vertical-align: middle">
+        <div class="panel-heading">
+          <h3 class="panel-title">ML Models</h3>
+        </div>
+        <div class="panel-body" style="min-height: 400px; max-height: 400px;">
+          <div class="col-md-6">
+            <div class="panel panel-default">
+              <div class="panel-body" style="min-height: 370px; max-height: 370px; overflow-y: scroll;">
+                <ul class="list-group" id="model-files-list">
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+
+            <button id="delete-model" data-toggle="tooltip" title="Remove selected model" type="button"
+              class="btn btn-default btn-sm">
+              Delete
+            </button>
+            <button id="proceed-to-predict" data-toggle="tooltip" title="Proceed to prediction using the selected model"
+              type="button" class="btn btn-default btn-sm">
+              Proceed
+            </button>
+
+            <div id="model-info">
+              <div class="alert alert-info" role="alert">
+                This is a box to show model-info.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!--
+    <div class="col-md-4">
+      <div class="panel panel-default vertical-align: middle">
+        <div class="panel-heading">
+          <h3 class="panel-title">Prediction</h3>
+        </div>
+        <div class="panel-body" style="min-height: 400px; max-height: 400px;">
+          <div class="col-md-6">
+            <div class="panel panel-default vertical-align: middle">
+              <div class="panel-body" style="min-height: 370px; max-height: 370px; overflow-y: scroll;">
+                <form class="form-horizontal" id="pred-input-cols">
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="panel panel-default vertical-align: middle">
+              <div class="panel-body">
+                <button id="pred-button" class="btn btn-default" type="submit">Predict</button>
+              </div>
+            </div>
+            <div class="panel panel-default vertical-align: middle">
+              <div class="panel-body" style="min-height: 200px; max-height: 200px;">
+                <div id="pred-result">
+                  <div class="alert alert-info" role="alert">
+                    Please perform test to see the chart.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    !-->
+
+    <div class="col-md-1"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="open-file-modal" role="dialog">
+    <div class="modal-dialog">
+
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">
+            <div id="modal-title"></div>
+          </h4>
+        </div>
+        <div class="modal-body">
+          <form id="load-file-form">
+            <div class="form-group">
+              <label for="load-csv">File input</label>
+              <input type="file" name="input-csv"></input>
+              <p class="help-block">Please select a CSV file.</p>
+              <button id="load-button" class="btn btn-default" type="submit">OK</button>
+            </div>
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="modal fade" id="my-modal" role="dialog">
+    <div class="modal-dialog">
+
+      <!-- Modal content-->
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">
+            <div id="modal-title"></div>
+          </h4>
+        </div>
+        <div class="modal-body">
+          <div id="modal-content"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+
+</html>

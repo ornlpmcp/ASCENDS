@@ -1,0 +1,10 @@
+[HYPERPARAMETERS]
+
+nn_weights = distance
+nn_p = 2
+nn_n_neighbors = 2
+nn_metric_params = None
+nn_metric = minkowski
+nn_leaf_size = 2
+nn_algorithm = ball_tree
+scaler_option = False

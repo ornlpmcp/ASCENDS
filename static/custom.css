@@ -1,0 +1,21 @@
+.vcenter {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.vertical-center {
+  min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+  min-height: 100vh; /* These two lines are counted as one :-)       */
+
+  display: flex;
+  align-items: center;
+}
+
+.panel.noborder {
+    border: none;
+    box-shadow: none;
+}
+.panel.noborder > .panel-heading {
+    border: 1px solid #dddddd;
+    border-radius: 0;
+}

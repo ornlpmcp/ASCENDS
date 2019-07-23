@@ -1,0 +1,8 @@
+[HYPERPARAMETERS]
+
+kr_kernel = linear
+kr_gamma = sigmoid
+kr_degree = 2
+kr_coef0 = 1
+kr_alpha = 0.0
+scaler_option = False

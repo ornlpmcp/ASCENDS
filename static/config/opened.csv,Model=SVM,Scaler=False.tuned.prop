@@ -1,0 +1,10 @@
+[HYPERPARAMETERS]
+
+svm_tol = 0.0017163265306122451
+svm_kernel = poly
+svm_gamma = 1
+svm_epsilon = 0.3
+svm_degree = 2
+svm_coef0 = 1
+svm_c = 10
+scaler_option = False
