@@ -6,7 +6,7 @@ tags:
   - neural network
 authors:
  - name: Sangkeun Lee
-   orcid: orcid.org/0000-0002-1317-5112
+   orcid: 0000-0002-1317-5112
    affiliation: "1"
 - name: Andrew Williams
    affiliation: "2"
