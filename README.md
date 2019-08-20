@@ -84,6 +84,8 @@ Then, install ascends-toolkit by doing:
 (ascends) $ pip install ascends-toolkit
 ```
 
+(Note: you may encounter 'failed building wheel for minepy' error, but you can ignore as long as you see the 'Successfully installed minepy' message)
+
 Now you're ready to use ascends. Please see the next section for a quick start guide.
 To check if you properly installed ascends-toolkit, run 
 ```
