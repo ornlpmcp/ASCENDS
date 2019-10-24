@@ -1,19 +1,130 @@
 
 
-```python
+```
 import numpy as np
 import ascends as asc
 import keras
 import ast
+from sklearn.metrics import classification_report
+import pickle
 ```
 
 
-```python
-# Ascends-toolkit was developed to be used via command-line interface or web-based interface; however, if needed,
+```
+# 1. Regression API reference
+
+# * NOTE: Ascends-toolkit was developed to be used via command-line interface or web-based interface; however, if needed,
+# users may use ascends-toolkit's API. The following shows an example of performing a classification task using 
+# the core ascends-toolkit APIs. 
+
+# You need to download the example data file from https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv
+# and save it under data folder
+
+csv_file = 'data/iris.csv'
+cols_to_remove = []
+target_col = 'Name'
+input_col = None
+
+# Classifier will need a mapping between categorical values to numerical values
+mapping = {'Name': {'Iris-setosa':0, 'Iris-versicolor':1, 'Iris-virginica':2}}
+
+# Load data from csv file
+# A standard csv file can be loaded and shuffled as follows
+
+data_df, x_train, y_train, header_x, header_y = asc.data_load_shuffle(csv_file, input_col, cols_to_remove, target_col, map_all = mapping, random_state = 0)
+```
+
+
+```
+# check if data is loaded
+data_df[:10]
+```
+
+
+```
+# Generating a default model parameters
+model_parameters = asc.default_model_parameters_classifier() 
+```
+
+
+```
+model_type = 'RF'
+scaler_option = 'StandardScaler' # scaler option can be 'False','StandardScaler','Normalizer','MinMaxScaler','RobustScaler'
+num_of_folds = 5
+model = asc.define_model_classifier(model_type, model_parameters, x_header_size = x_train.shape[1])   
+```
+
+
+```
+# scikit-learn's classification report can be used to understand the accuracy of the trained model
+predictions, actual_values = asc.train_and_predict(model, x_train, y_train, scaler_option=scaler_option, num_of_folds=num_of_folds)
+accuracy = asc.evaluate_classifier(predictions, actual_values)
+print("")
+print("* Classification Report")
+print(classification_report(actual_values, predictions))
+```
+
+    
+    * Classification Report
+                  precision    recall  f1-score   support
+    
+             0.0       1.00      1.00      1.00        50
+             1.0       0.94      0.92      0.93        50
+             2.0       0.92      0.94      0.93        50
+    
+       micro avg       0.95      0.95      0.95       150
+       macro avg       0.95      0.95      0.95       150
+    weighted avg       0.95      0.95      0.95       150
+    
+
+
+
+```
+asc.train_and_save_classifier(model, "model.pkl", model_type
+                            , input_cols=header_x, target_col=header_y
+                            , x_train=x_train, y_train=y_train, scaler_option=scaler_option, path_to_save = '.', accuracy=accuracy)
+```
+
+    * Training initiated ..
+    * Training done.
+    * Trained model saved to file: model.pkl
+
+
+
+```
+# You can load the saved model by using pickle package
+model_dict = pickle.load(open('model.pkl', 'rb'))
+
+# Let's assume that we have a input as follows
+x_to_predict = [[4.5, 2.4, 1.2, 4.2]]
+
+# You can scale the data using the loaded scaler
+scaler = model_dict['fitted_scaler_x']
+x_to_predict = scaler.transform(x_to_predict)
+print("Scaled x_to_predict = ", x_to_predict)
+
+# Making prediction can be done as follows
+predicted_y = model.predict(x_to_predict)
+
+# Original prediction value will not be a class name, so you need to find out the class name by doing:
+for key in mapping['Name'].keys():
+    if mapping['Name'][key]==predicted_y[0]:
+        print("* Your model thinks that it's a ", key)
+```
+
+    Scaled x_to_predict =  [[-1.62768837 -1.51337555 -1.45500383  3.94594202]]
+    * Your model thinks that it's a  Iris-setosa
+
+
+
+```
+# 2. Regression API reference
+
+# * NOTE: Ascends-toolkit was developed to be used via command-line interface or web-based interface; however, if needed,
 # users may use ascends-toolkit's API. The following shows an example of performing a regression task using 
 # the core ascends-toolkit APIs
 
-csv_file = 'BostonHousing.csv'
+csv_file = 'data/BostonHousing.csv'
 cols_to_remove = []
 target_col = 'medv'
 
@@ -24,7 +135,7 @@ data_df, x_train, y_train, header_x, header_y = asc.data_load_shuffle(csv_file, 
 ```
 
 
-```python
+```
 # Performing correlation analysis
 # Correlation analysis can be performed as follows
 # fs_dict will only contain the top-k features for each criteria (e.g., PCC)
@@ -45,9 +156,9 @@ input_col = fs_dict['PCC']
 
 # We need to load the file again
 data_df, x_train, y_train, header_x, header_y = asc.data_load_shuffle(csv_file, input_col, cols_to_remove, target_col)
-
 ```
 
+    * correlation_analysis_all
     Top-k features for each criteria
     {'PCC': ['rm', 'zn', 'b', 'dis', 'chas', 'age', 'rad', 'crim', 'nox', 'tax'], 'PCC_SQRT': ['lstat', 'rm', 'ptratio', 'indus', 'tax', 'nox', 'crim', 'rad', 'age', 'zn'], 'MIC': ['lstat', 'rm', 'nox', 'age', 'indus', 'ptratio', 'crim', 'tax', 'dis', 'zn'], 'MAS': ['chas', 'b', 'age', 'zn', 'rad', 'dis', 'nox', 'ptratio', 'crim', 'tax'], 'MEV': ['lstat', 'rm', 'nox', 'age', 'indus', 'ptratio', 'crim', 'tax', 'dis', 'zn'], 'MCN': ['zn', 'indus', 'chas', 'nox', 'rm', 'age', 'dis', 'rad', 'tax', 'ptratio'], 'MCN_general': ['crim', 'zn', 'indus', 'chas', 'nox', 'rm', 'age', 'dis', 'rad', 'tax'], 'GMIC': ['lstat', 'rm', 'nox', 'age', 'indus', 'ptratio', 'crim', 'tax', 'dis', 'rad'], 'TIC': ['lstat', 'rm', 'nox', 'indus', 'ptratio', 'age', 'crim', 'tax', 'dis', 'rad']}
     
@@ -84,7 +195,7 @@ data_df, x_train, y_train, header_x, header_y = asc.data_load_shuffle(csv_file, 
 
 
 
-```python
+```
 # Generating a default model parameters
 model_parameters = asc.default_model_parameters() 
 
@@ -98,14 +209,13 @@ MAE, R2 = asc.evaluate(predictions, actual_values)
 
 # Printing the performance of regression task
 print("MAE = ", MAE,", R2 = ", R2)
-
 ```
 
-    MAE =  2.814968381964642 , R2 =  0.6958314131579451
+    MAE =  2.793895239226903 , R2 =  0.6994175646013248
 
 
 
-```python
+```
 # tuning hyper parameters
 tuned_parameters = asc.hyperparameter_tuning(model_type, x_train, y_train
                                              , num_of_folds, scaler_option
@@ -116,23 +226,23 @@ tuned_parameters = asc.hyperparameter_tuning(model_type, x_train, y_train
 
 
     [Parallel(n_jobs=-1)]: Using backend LokyBackend with 8 concurrent workers.
-    [Parallel(n_jobs=-1)]: Done  34 tasks      | elapsed:    5.5s
-    [Parallel(n_jobs=-1)]: Done 184 tasks      | elapsed:   16.5s
-    [Parallel(n_jobs=-1)]: Done 434 tasks      | elapsed:   41.4s
+    [Parallel(n_jobs=-1)]: Done  34 tasks      | elapsed:    6.1s
+    [Parallel(n_jobs=-1)]: Done 184 tasks      | elapsed:   18.6s
+    [Parallel(n_jobs=-1)]: Done 434 tasks      | elapsed:   41.6s
     [Parallel(n_jobs=-1)]: Done 784 tasks      | elapsed:  1.2min
-    [Parallel(n_jobs=-1)]: Done 1234 tasks      | elapsed:  2.0min
+    [Parallel(n_jobs=-1)]: Done 1234 tasks      | elapsed:  1.9min
     [Parallel(n_jobs=-1)]: Done 1784 tasks      | elapsed:  2.8min
-    [Parallel(n_jobs=-1)]: Done 2434 tasks      | elapsed:  3.8min
-    [Parallel(n_jobs=-1)]: Done 3184 tasks      | elapsed:  5.0min
-    [Parallel(n_jobs=-1)]: Done 4034 tasks      | elapsed:  6.7min
-    [Parallel(n_jobs=-1)]: Done 4984 tasks      | elapsed:  8.4min
-    [Parallel(n_jobs=-1)]: Done 5000 out of 5000 | elapsed:  8.4min finished
+    [Parallel(n_jobs=-1)]: Done 2434 tasks      | elapsed:  3.7min
+    [Parallel(n_jobs=-1)]: Done 3184 tasks      | elapsed:  4.8min
+    [Parallel(n_jobs=-1)]: Done 4034 tasks      | elapsed:  6.2min
+    [Parallel(n_jobs=-1)]: Done 4984 tasks      | elapsed:  7.7min
+    [Parallel(n_jobs=-1)]: Done 5000 out of 5000 | elapsed:  7.7min finished
     /anaconda3/lib/python3.7/site-packages/sklearn/model_selection/_search.py:841: DeprecationWarning: The default of the `iid` parameter will change from True to False in version 0.22 and will be removed in 0.24. This will change numeric results when test-set sizes are unequal.
       DeprecationWarning)
 
 
 
-```python
+```
 # Model Training
 model_type = 'RF' # model type can be 'LR','RF','NN','KR','BR','SVM'
 scaler_option = 'StandardScaler' # scaler option can be 'False','StandardScaler','Normalizer','MinMaxScaler','RobustScaler'
@@ -143,26 +253,19 @@ MAE, R2 = asc.evaluate(predictions, actual_values)
 
 # Printing the performance of regression task
 print("MAE = ", MAE,", R2 = ", R2)
-
 ```
 
-    MAE =  2.793541478026997 , R2 =  0.702740528877592
+    MAE =  2.8167252676854493 , R2 =  0.7039443187462722
 
 
 
-```python
-# save prediction-actual comparison chart
-asc.save_comparison_chart(predictions, actual_values, "comparison_chart.png")
 ```
-
-
-```python
 # save prediction-actual result in a csv file
 asc.save_test_data(predictions, actual_values, "result.csv")
 ```
 
 
-```python
+```
 # saving the trained model in a file
 asc.train_and_save(model, "trained_model", model_type
                         , input_cols=header_x, target_col=header_y
@@ -171,5 +274,10 @@ asc.train_and_save(model, "trained_model", model_type
 
     * Training initiated ..
     * Training done.
-    * Trained model saved to file: ./trained_model.pkl
+    * Trained model saved to file: trained_model
 
+
+
+```
+# Model file loading and making a prediction can be done in the same way as the classification example
+```
