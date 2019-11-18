@@ -57,7 +57,7 @@ Please download Anaconda from https://www.anaconda.com/download/ and install fir
 Once you installed Anaconda (with Python 3.X), you can create a new Python environment for ascends by doing:
 
 ```
-conda create --name ascends
+conda create --name ascends python=3.6
 ```
 
 To activate an environment:
