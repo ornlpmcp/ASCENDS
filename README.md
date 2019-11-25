@@ -302,9 +302,12 @@ Note that we specified the trained model file we achieved ealier via ```train.py
 
 # Using Web-based GUI: Regression
 
-The current version of ascends-toolkit provides a web-based GUI (graphic user interface) for regression tasks. To start the ascends-server, you need to download the source code from the repository. With ascends Anaconda environment activated, go to the ascends-toolkit repository. Then, run the command as follows.
+The current version of ascends-toolkit provides a web-based GUI (graphic user interface) for regression tasks. To start the ascends-server, you need to download the source code from the repository. With ascends **Anaconda environment activated**, go to the ascends-toolkit repository. (If you run the ASCENDS server without activating the Anaconda environment with required packages installed, 
+it will not run properly. Please see conda_requirements.txt and pip_requirements.txt to see the list of required packages.)
 
-(ascends-test) slzmbpro:ascends-toolkit slz$ python ascends_server.py 
+Then, run the command as follows.
+
+(ascends) slzmbpro:ascends-toolkit slz$ python ascends_server.py 
 Using TensorFlow backend.
 
 ```
