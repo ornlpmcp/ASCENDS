@@ -334,11 +334,13 @@ Within the ML tab, you can test various ML algorithms such as random forest, neu
 ![](./logo/prediction.png)
 Prediction tab allows you to load a file (which must have the input columns that you used for training the model you selected) and predict target column values. You can export the prediction results in various formats including csv.
 
-# API Reference
+# Jupyter Notebook/API Reference/Testing
 
 Ascends-toolkit is intended to be used via command-line interface or web-based interface; however, if needed,
 users may still be able to use ascends-toolkit's APIs. The following shows an example of performing a regression task using 
 the core ascends-toolkit APIs. Please see [API reference](api_reference.md) for more details.
+
+Please take a look at the Jupyter notebook file (notebook/reference.ipynb) to understand the usage of ASCENDS APIs and test if installation was done properly.
 
 # License
 
