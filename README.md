@@ -76,12 +76,12 @@ You will see the active environment in parentheses at the beginning of your comm
 ```
 Please install pip in your local conda environment by doing:
 ```
-(ascends) $ conda install --yes pip
+conda install --yes pip
 ```
 
 Then, install ascends-toolkit by doing:
 ```
-(ascends) $ pip install ascends-toolkit
+pip install ascends-toolkit
 ```
 
 (Note: you may encounter 'failed building wheel for minepy' error, but you can ignore as long as you see the 'Successfully installed minepy' message)
@@ -89,7 +89,7 @@ Then, install ascends-toolkit by doing:
 Now you're ready to use ascends. Please see the next section for a quick start guide.
 To check if you properly installed ascends-toolkit, run 
 ```
-(ascends) $ python train.py -h
+python train.py -h
 ```
 
 If you encounter tensorflow error, please install tensorflow manually by doing
@@ -201,7 +201,7 @@ with unknown (data that has not been used for training) input data.
 
 (Note: the accuracy can slightly differ because the tool randomly shuffle the data set when creating folds and we used a 'Random' Forest model.)
 
-Copy the following text into a new file and save it to `data\iris_test_input.csv`.
+Copy the following text into a new file and save it to `data/iris_test_input.csv`.
 
 ```
 SepalLength,SepalWidth,PetalLength,PetalWidth
