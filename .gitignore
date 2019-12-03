@@ -80,7 +80,7 @@ target/
 # IPython
 profile_default/
 ipython_config.py
-
+notebook/.ipynb_checkpoints
 # pyenv
 .python-version
 
