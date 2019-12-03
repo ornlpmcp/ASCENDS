@@ -54,10 +54,14 @@ List of ORNL contributors
 ASCENDS requires Python version 3.X, and using Anaconda is recommended.
 Please download Anaconda from https://www.anaconda.com/download/ and install first.
 
-Once you installed Anaconda (with Python 3.X), you can create a new Python environment for ascends by doing:
-
+Once you installed Anaconda (with Python 3.X), clone the repository by doing 
+``` 
+git clone https://github.com/ornlpmcp/ASCENDS.git
 ```
-conda create --name ascends python=3.6
+
+Go to the ASCENDS directory and create a new Python environment for ascends by doing:
+```
+conda env create -f environment.yml --name ascends
 ```
 
 To activate an environment:
@@ -74,27 +78,11 @@ You will see the active environment in parentheses at the beginning of your comm
 ```
 (ascends) $
 ```
-Please install pip in your local conda environment by doing:
-```
-conda install --yes pip
-```
-
-Then, install ascends-toolkit by doing:
-```
-pip install ascends-toolkit
-```
-
-(Note: you may encounter 'failed building wheel for minepy' error, but you can ignore as long as you see the 'Successfully installed minepy' message)
 
 Now you're ready to use ascends. Please see the next section for a quick start guide.
 To check if you properly installed ascends-toolkit, run 
 ```
 python train.py -h
-```
-
-If you encounter tensorflow error, please install tensorflow manually by doing
-```
-conda install tensorflow
 ```
 
 If you see the usage help of regression trainer, you're ready to go.

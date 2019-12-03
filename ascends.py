@@ -44,7 +44,6 @@ from sklearn.preprocessing import StandardScaler
 from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import LabelEncoder
-import np_utils
 import configparser
 import csv
 import datetime
