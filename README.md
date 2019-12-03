@@ -57,7 +57,7 @@ Please download Anaconda from https://www.anaconda.com/download/ and install fir
 Once you installed Anaconda (with Python 3.X), you can create a new Python environment for ascends by doing:
 
 ```
-conda create --name ascends
+conda create --name ascends python=3.6
 ```
 
 To activate an environment:
@@ -76,12 +76,12 @@ You will see the active environment in parentheses at the beginning of your comm
 ```
 Please install pip in your local conda environment by doing:
 ```
-(ascends) $ conda install --yes pip
+conda install --yes pip
 ```
 
 Then, install ascends-toolkit by doing:
 ```
-(ascends) $ pip install ascends-toolkit
+pip install ascends-toolkit
 ```
 
 (Note: you may encounter 'failed building wheel for minepy' error, but you can ignore as long as you see the 'Successfully installed minepy' message)
@@ -89,7 +89,7 @@ Then, install ascends-toolkit by doing:
 Now you're ready to use ascends. Please see the next section for a quick start guide.
 To check if you properly installed ascends-toolkit, run 
 ```
-(ascends) $ python train.py -h
+python train.py -h
 ```
 
 If you encounter tensorflow error, please install tensorflow manually by doing
@@ -201,7 +201,7 @@ with unknown (data that has not been used for training) input data.
 
 (Note: the accuracy can slightly differ because the tool randomly shuffle the data set when creating folds and we used a 'Random' Forest model.)
 
-Copy the following text into a new file and save it to `data\iris_test_input.csv`.
+Copy the following text into a new file and save it to `data/iris_test_input.csv`.
 
 ```
 SepalLength,SepalWidth,PetalLength,PetalWidth
@@ -302,9 +302,12 @@ Note that we specified the trained model file we achieved ealier via ```train.py
 
 # Using Web-based GUI: Regression
 
-The current version of ascends-toolkit provides a web-based GUI (graphic user interface) for regression tasks. To start the ascends-server, you need to download the source code from the repository. With ascends Anaconda environment activated, go to the ascends-toolkit repository. Then, run the command as follows.
+The current version of ascends-toolkit provides a web-based GUI (graphic user interface) for regression tasks. To start the ascends-server, you need to download the source code from the repository. With ascends **Anaconda environment activated**, go to the ascends-toolkit repository. (If you run the ASCENDS server without activating the Anaconda environment with required packages installed, 
+it will not run properly. Please see conda_requirements.txt and pip_requirements.txt to see the list of required packages.)
 
-(ascends-test) slzmbpro:ascends-toolkit slz$ python ascends_server.py 
+Then, run the command as follows.
+
+(ascends) slzmbpro:ascends-toolkit slz$ python ascends_server.py 
 Using TensorFlow backend.
 
 ```
@@ -331,11 +334,13 @@ Within the ML tab, you can test various ML algorithms such as random forest, neu
 ![](./logo/prediction.png)
 Prediction tab allows you to load a file (which must have the input columns that you used for training the model you selected) and predict target column values. You can export the prediction results in various formats including csv.
 
-# API Reference
+# Jupyter Notebook/API Reference/Testing
 
 Ascends-toolkit is intended to be used via command-line interface or web-based interface; however, if needed,
 users may still be able to use ascends-toolkit's APIs. The following shows an example of performing a regression task using 
 the core ascends-toolkit APIs. Please see [API reference](api_reference.md) for more details.
+
+Please take a look at the Jupyter notebook file (notebook/reference.ipynb) to understand the usage of ASCENDS APIs and test if installation was done properly.
 
 # License
 
