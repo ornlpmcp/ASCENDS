@@ -63,6 +63,7 @@ Go to the ASCENDS directory and create a new Python environment for ascends by d
 ```
 conda env create -f environment.yml --name ascends
 ```
+Please refer to the environent.yml for dependencies.
 
 To activate an environment:
 - On Windows, in your Anaconda Prompt, run 
@@ -290,8 +291,8 @@ Note that we specified the trained model file we achieved ealier via ```train.py
 
 # Using Web-based GUI: Regression
 
-The current version of ascends-toolkit provides a web-based GUI (graphic user interface) for regression tasks. To start the ascends-server, you need to download the source code from the repository. With ascends **Anaconda environment activated**, go to the ascends-toolkit repository. (If you run the ASCENDS server without activating the Anaconda environment with required packages installed, 
-it will not run properly. Please see conda_requirements.txt and pip_requirements.txt to see the list of required packages.)
+The current version of ascends-toolkit provides a web-based GUI (graphic user interface) for regression tasks. To start the ascends-server, you need to download the source code from the repository. With ascends **Anaconda environment activated**, go to the ASCENDS directory. (If you run the ASCENDS server without activating the Anaconda environment with required packages installed, 
+it will not run properly.)
 
 Then, run the command as follows.
 
