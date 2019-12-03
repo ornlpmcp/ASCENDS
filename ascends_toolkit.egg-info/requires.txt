@@ -1,9 +1,0 @@
-matplotlib
-numpy
-pandas
-tensorflow
-keras
-tornado
-scikit-learn
-minepy
-np_utils
