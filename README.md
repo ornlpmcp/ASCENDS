@@ -83,7 +83,7 @@ You will see the active environment in parentheses at the beginning of your comm
 Now you're ready to use ascends. Please see the next section for a quick start guide.
 To check if you properly installed ascends-toolkit, run 
 ```
-python train.py -h
+python train.py --help
 ```
 
 If you see the usage help of regression trainer, you're ready to go.
@@ -330,6 +330,9 @@ users may still be able to use ascends-toolkit's APIs. The following shows an ex
 the core ascends-toolkit APIs. Please see [API reference](api_reference.md) for more details.
 
 Please take a look at the Jupyter notebook file (notebook/reference.ipynb) to understand the usage of ASCENDS APIs and test if installation was done properly.
+
+# Community Guidelines
+If you have a question or encounter a problem, we recommend you use GitHub's issue tracker. If you want to propose a change to the source code, please use a pull request.
 
 # License
 
