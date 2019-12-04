@@ -25,6 +25,10 @@ date: 23 Jul 2019
 bibliography: paper.bib
 ---
 
+# Acknowledgements
+
+This manuscript has been authored by UT-Battelle, LLC under Contract No. DE-AC05-00OR22725 with the U.S. Department of Energy. The United States Government retains and the publisher, by accepting the article for publication, acknowledges that the United States Government retains a non- exclusive, paid-up, irrevocable, world-wide license to publish or reproduce the published form of this manuscript, or allow others to do so, for United States Government purposes. The Department of Energy will provide public access to these results of federally sponsored research in accordance with the DOE Public Access Plan (http://energy.gov/downloads/doe-public-access-plan).
+
 # Summary
 
 Recently, advances in machine learning and artificial intelligence have been playing more and more critical roles in a wide range of areas. For the last several years, industries have shown that how learning from data, identifying patterns and making decisions with minimal human intervention can be extremely useful to their business (e.g., image classification, recommending a product to a customer, finding friends in a social network, predicting customers actions, etc.). These success stories have been motivating scientists who study physics, chemistry, materials, medicine, and many other subjects, to explore a new pathway of utilizing machine learning techniques like regression and classification for their scientific activities. However, most existing machine learning tools, systems, and methodologies have been developed for programming experts but not for scientists (or any users) who have no or little knowledge of programming. 
@@ -43,3 +47,4 @@ ASCENDS provides three capabilities as follows.
 Earlier versions of Ascends have been used for scientific research such as [@shin2019modern] [@shin2017petascale] [@wang2019machine]. 
 
 # References
+
