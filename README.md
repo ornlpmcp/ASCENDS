@@ -337,4 +337,4 @@ If you have a question or encounter a problem, we recommend you use GitHub's iss
 # License
 
 MIT License
-Please contact us at lees4@ornl.gov, shind@ornl.gov for more details
+Please contact us at lees4@ornl.gov (Matt Sangkeun Lee) for more details
