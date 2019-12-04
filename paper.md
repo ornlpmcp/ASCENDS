@@ -7,15 +7,15 @@ tags:
 authors:
  - name: Sangkeun Lee
    orcid: 0000-0002-1317-5112
-   affiliation: "1"
+   affiliation: 1
 - name: Andrew Williams
-   affiliation: "2"
+   affiliation: 2
  - name: Jian Peng
    orcid: 0000-0002-9763-4741
-   affiliation: "1"
+   affiliation: 1
  - name: Dongwon Shin
    orcid: 0000-0002-5797-3423
-   affiliation: "1"
+   affiliation: 1
 affiliations:
  - name: Oak Ridge National Laboratory
    index: 1

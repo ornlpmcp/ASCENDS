@@ -354,7 +354,7 @@ def fix_value(val, val_type):
         else:
             return val
 
-def define_model_classifier(model_type, model_parameters, x_header_size):
+def define_model_classifier(model_type, model_parameters, x_header_size, random_state = None):
 
     if model_type == "LRC":
         model = Pipeline([
@@ -369,6 +369,7 @@ def define_model_classifier(model_type, model_parameters, x_header_size):
                                                    min_samples_leaf = int(model_parameters['rf_min_samples_leaf']), 
                                                    bootstrap = str2bool(model_parameters['rf_bootstrap']), 
                                                    criterion = model_parameters['rf_criterion'], 
+                                                   random_state = random_state,
                                                    min_weight_fraction_leaf = float(model_parameters['rf_min_weight_fraction_leaf']), 
                                                    max_leaf_nodes = fix_value(model_parameters['rf_max_leaf_nodes'],'int'),
                                                    min_impurity_decrease = float(model_parameters['rf_min_impurity_decrease']), 
@@ -408,7 +409,7 @@ def define_model_classifier(model_type, model_parameters, x_header_size):
         
     return model
 
-def define_model_regression(model_type, model_parameters, x_header_size):
+def define_model_regression(model_type, model_parameters, x_header_size, random_state = None):
 
     if model_type == "LR":
         model = Pipeline([
@@ -422,7 +423,7 @@ def define_model_regression(model_type, model_parameters, x_header_size):
                                                    min_samples_split = int(model_parameters['rf_min_samples_split']), 
                                                    min_samples_leaf = int(model_parameters['rf_min_samples_leaf']), 
                                                    bootstrap = str2bool(model_parameters['rf_bootstrap']), 
-                                                   criterion = model_parameters['rf_criterion'], 
+                                                   criterion = model_parameters['rf_criterion'], random_state = random_state,
                                                    min_weight_fraction_leaf = float(model_parameters['rf_min_weight_fraction_leaf']), 
                                                    max_leaf_nodes = fix_value(model_parameters['rf_max_leaf_nodes'],'int'),
                                                    min_impurity_decrease = float(model_parameters['rf_min_impurity_decrease']), 
