@@ -129,6 +129,7 @@ def main(args):
         scaler_option = args.scaler
         save_corr_chart = args.save_corr_chart
         only_pcc = args.only_pcc
+        fast_NET_tune = args.fast_NET_tune
         save_corr_report = args.save_corr_report
 
         net_structure = args.net_structure
@@ -224,14 +225,19 @@ def main(args):
             net_neuron_max, net_structure, net_l_2, net_learning_rate, net_epochs, net_dropout, net_layer_n, net_batch_size = \
             clean_up_net_params(net_neuron_max, net_structure, net_l_2, net_learning_rate, net_epochs, net_dropout, net_layer_n, net_batch_size)
             
+            if fast_NET_tune == 'True':
+                fast_tune = True
+            else:
+                fast_tune = False
+
             if train_type=='r':
                 model_parameters = asc.net_tuning(tries = auto_tune_iter, lr = net_learning_rate, x_train = x_train, y_train = y_train, layer = net_layer_n, \
                 params=net_structure, epochs=net_epochs, batch_size=net_batch_size, dropout=net_dropout, l_2 = net_l_2, neuron_max=net_neuron_max, batch_size_max=net_batch_size_max, \
-                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds)
+                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds, fast_tune = fast_tune)
             else:
                 model_parameters = asc.net_tuning_classifier(num_of_class = num_of_class, tries = auto_tune_iter, lr = net_learning_rate, x_train = x_train, y_train = y_train, layer = net_layer_n, \
                 params=net_structure, epochs=net_epochs, batch_size=net_batch_size, dropout=net_dropout, l_2 = net_l_2, neuron_max=net_neuron_max, batch_size_max=net_batch_size_max, \
-                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds)
+                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds, fast_tune = fast_tune)
             
 
         else:
@@ -465,6 +471,7 @@ if __name__=="__main__":
     parser.add_argument("--save_corr_report", default='False', choices=['True','False'])
     parser.add_argument("--save_corr_chart", default='False', choices=['True','False'])
     parser.add_argument("--only_pcc", default='False', choices=['True','False'])
+    parser.add_argument("--fast_NET_tune", default='True', choices=['True','False'])
     
     # neural net parameters
     parser.add_argument("--net_layer_n", default='Tune', help='Number of layers for neural network for hyperparameter tuning')

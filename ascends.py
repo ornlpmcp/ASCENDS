@@ -546,7 +546,7 @@ def str2bool(v):
   return v.lower() in ("yes", "true", "t", "1")
 
 
-def cross_val_predict_net_classifier(model, x_train, y_train, epochs=1000, batch_size=8, verbose = 0, scaler_option='StandardScaler', num_of_folds = 5, num_of_class = 2, force_to_proceed = False, accuracy_threshold = 0.5):
+def cross_val_predict_net_classifier(model, x_train, y_train, epochs=1000, batch_size=8, verbose = 0, scaler_option='StandardScaler', num_of_folds = 5, num_of_class = 2, force_to_proceed = False, accuracy_threshold = 0.5, fast_tune = True):
     
     x_trains, y_trains, x_tests, y_tests = split_data(x_train, y_train, num_of_folds=num_of_folds)
     
@@ -586,11 +586,14 @@ def cross_val_predict_net_classifier(model, x_train, y_train, epochs=1000, batch
 
         predictions_total+=list(predictions)
         actual_values_total+=list(actual_values)
+        if fast_tune==True:
+            print("* Fast tuning enabled. so we only test 1 fold, and move on ..")
+            break
 
     return np.array(predictions_total), np.array(actual_values_total)
 
 
-def cross_val_predict_net(model, x_train, y_train, epochs=1000, batch_size=8, verbose = 0, scaler_option='StandardScaler', num_of_folds = 5, force_to_proceed= False):
+def cross_val_predict_net(model, x_train, y_train, epochs=1000, batch_size=8, verbose = 0, scaler_option='StandardScaler', num_of_folds = 5, force_to_proceed= False, fast_tune=True):
     
     x_trains, y_trains, x_tests, y_tests = split_data(x_train, y_train, num_of_folds=num_of_folds)
     
@@ -626,6 +629,9 @@ def cross_val_predict_net(model, x_train, y_train, epochs=1000, batch_size=8, ve
 
         predictions_total+=list(predictions)
         actual_values_total+=list(actual_values)
+        if fast_tune==True:
+            print("* Fast tuning enabled. so we only test 1 fold, and move on ..")
+            break
 
     return np.array(predictions_total), np.array(actual_values_total)
 
@@ -678,7 +684,7 @@ def train_and_save_net_classifier(model, tag, input_cols, target_col, x_train, y
         
         print('* Model has not been evaluated. Evaluation initiated via %d-fold cross validation'%(num_of_folds))
         
-        predictions, actual_values = cross_val_predict_net_classifier(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, num_of_class = num_of_class)
+        predictions, actual_values = cross_val_predict_net_classifier(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, num_of_class = num_of_class, fast_tune = False)
         accuracy = evaluate_classifier(predictions, actual_values)
 
     x_train_, scale = rescale_x(scaler_option, x_train)
@@ -712,7 +718,7 @@ def train_and_save_net(model, tag, input_cols, target_col, x_train, y_train, sca
         
         print('* Model has not been evaluated. Evaluation initiated via %d-fold cross validation'%(num_of_folds))
         
-        predictions, actual_values = cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option)
+        predictions, actual_values = cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, fast_tune = False)
         MAE, R2 = evaluate(predictions, actual_values)
 
     x_train_, scale = rescale_x(scaler_option, x_train)
@@ -1196,7 +1202,7 @@ def evaluate_net(model, x_train, y_train, x_test, y_test, epochs=1000, batch_siz
     
     return score, history
 
-def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5):
+def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5, fast_tune = True):
     tuned_parameters = {}
 
     if layer is not None:
@@ -1260,7 +1266,7 @@ def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = N
         
         print("\n Cross-validation (iteration=%d): [layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%(i, layer, params, epochs, dropout, l_2, batch_size, lr))
         start_time = time.time()
-        predictions, actual_values = cross_val_predict_net_classifier(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, num_of_class = num_of_class)
+        predictions, actual_values = cross_val_predict_net_classifier(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, num_of_class = num_of_class, fast_tune = fast_tune)
         
         if predictions == []:
             print(" Validation stopped early with the setting:","[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%(layer, params, epochs, dropout, l_2, batch_size, lr))
@@ -1308,9 +1314,8 @@ def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = N
 
     print(" -- DONE --")
 
-def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5):
+def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5, fast_tune = True):
     tuned_parameters = {}
-
     if layer is not None:
         
         if layer<1:
@@ -1371,7 +1376,7 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
         model = net_define(params=params, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer)
         print("\n Cross-validation (iteration=%d): [layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%(i, layer, params, epochs, dropout, l_2, batch_size, lr))
         start_time = time.time()
-        predictions, actual_values = cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option)
+        predictions, actual_values = cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, fast_tune = fast_tune)
         
         if predictions == []:
             print(" Validation stopped early with the setting:","[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%(layer, params, epochs, dropout, l_2, batch_size, lr))
