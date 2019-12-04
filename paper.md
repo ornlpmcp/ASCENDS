@@ -5,22 +5,22 @@ tags:
   - artificial intelligence
   - neural network
 authors:
- - name: Sangkeun Lee
-   orcid: 0000-0002-1317-5112
-   affiliation: 1
-- name: Andrew Williams
-   affiliation: 2
- - name: Jian Peng
-   orcid: 0000-0002-9763-4741
-   affiliation: 1
- - name: Dongwon Shin
-   orcid: 0000-0002-5797-3423
-   affiliation: 1
+  - name: Sangkeun Lee
+    orcid: 0000-0002-1317-5112
+    affiliation: 1
+  - name: Jian Peng
+    orcid: 0000-0002-9763-4741
+    affiliation: 1
+  - name: Andrew Williams
+    affiliation: 2
+  - name: Dongwon Shin
+    orcid: 0000-0002-5797-3423
+    affiliation: 1
 affiliations:
- - name: Oak Ridge National Laboratory
-   index: 1
- - name: Cornell University
-   index: 2
+  - name: Oak Ridge National Laboratory
+    index: 1
+  - name: Cornell University
+    index: 2
 date: 23 Jul 2019
 bibliography: paper.bib
 ---
