@@ -1,10 +1,11 @@
 # coding: utf-8
-
 from __future__ import print_function
 # In[1]:
 import warnings
 warnings.filterwarnings('ignore')
 warnings.simplefilter("ignore")
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 from keras import regularizers
 from keras.datasets import mnist
@@ -65,6 +66,8 @@ from minepy import MINE
 from sklearn.linear_model import LogisticRegression
 from os import path
 from pathlib import PurePath
+from tensorflow.python.util import deprecation
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 def save_test_data(predictions, actual_values, filename):
     df_predictions = pd.DataFrame(predictions, columns=['predictions'])
@@ -188,75 +191,111 @@ def data_load_shuffle(csv_file, input_col, cols_to_remove, target_col, random_st
     
     return data_df, x_train, y_train, header_x, header_y
 
-def correlation_analysis_all(data_df, target_col, top_k=10, file_to_save = None, save_chart = None):
-    print("* correlation_analysis_all")
-    pcc = data_df.corr()[target_col]
+def correlation_analysis_all(data_df, target_col, top_k=10, file_to_save = None, save_chart = None, only_pcc= False, feature_selection_file = None):
+    
+    if feature_selection_file == None:
+        print("* correlation_analysis_all")
+        pcc = data_df.corr()[target_col]
 
-    if(len(pcc)<top_k):
-        top_k=len(pcc)
+        if(len(pcc)<top_k):
+            top_k=len(pcc)
+        print("Computing PCC, PCC_SQRT ..")
+        pcc = pcc.sort_values(ascending = False).dropna()
+        pcc = pcc.rename("PCC")
+        try:
+            del pcc[target_col]
+        except:
+            pass
+        pcc_sqrt = pcc.apply(lambda x: np.sqrt(x* x))
+        pcc_sqrt = pcc_sqrt.sort_values(ascending = False).dropna()
+        pcc_sqrt = pcc_sqrt.rename("PCC_SQRT")
+        MICs = []
+        MASs = []
+        MEVs = []
+        MCNs = []
+        MCN_generals = []
+        GMICs = []
+        TICs = []
+        print("Computing all other metrics ..")
+        if only_pcc==False or only_pcc=='False':
+            for col in data_df.columns:
+                print(" - computing for ", col, "...")
+                if col!=target_col:
+                    x = data_df[col].values
+                    y = data_df[target_col].values
+                    mine = MINE()
+                    mine.compute_score(x,y)
+                    MICs.append((col,mine.mic()))
+                    MASs.append((col,mine.mas()))
+                    MEVs.append((col,mine.mev()))
+                    MCNs.append((col,mine.mcn(0)))
+                    MCN_generals.append((col,mine.mcn_general()))
+                    GMICs.append((col,mine.gmic()))
+                    TICs.append((col,mine.tic())) 
+                
+        top_k_pcc = list(pcc.keys())[:top_k]
+        top_k_pcc_sqrt = list(pcc_sqrt.keys())[:top_k]
+        top_k_mic = [tup[0] for tup in sorted(MICs, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        top_k_mas = [tup[0] for tup in sorted(MASs, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        top_k_mev = [tup[0] for tup in sorted(MEVs, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        top_k_mcn = [tup[0] for tup in sorted(MCNs, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        top_k_mcn_general = [tup[0] for tup in sorted(MCN_generals, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        top_k_gmic = [tup[0] for tup in sorted(GMICs, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        top_k_tic = [tup[0] for tup in sorted(TICs, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        
+        mic_df = pd.DataFrame([tup[1] for tup in MICs],columns=['MIC'],index=[tup[0] for tup in MICs])
+        mas_df = pd.DataFrame([tup[1] for tup in MASs],columns=['MAS'],index=[tup[0] for tup in MASs])
+        mev_df = pd.DataFrame([tup[1] for tup in MEVs],columns=['MEV'],index=[tup[0] for tup in MEVs])
+        mcn_df = pd.DataFrame([tup[1] for tup in MCNs],columns=['MCN'],index=[tup[0] for tup in MCNs])
+        mcn_general_df = pd.DataFrame([tup[1] for tup in MCN_generals],columns=['MCN_general'],index=[tup[0] for tup in MCN_generals])
+        gmic_df = pd.DataFrame([tup[1] for tup in GMICs],columns=['GMIC'],index=[tup[0] for tup in GMICs])
+        tic_df = pd.DataFrame([tup[1] for tup in TICs],columns=['TIC'],index=[tup[0] for tup in TICs])       
+        
+        if only_pcc==False or only_pcc=='False':
+            final_report = mic_df.join(mas_df).join(mev_df).join(mcn_df).join(mcn_general_df).join(gmic_df).join(tic_df).sort_index().join(pcc_sqrt).join(pcc)
+        else:
+            pcc_sqrt = pd.DataFrame(pcc_sqrt)
+            final_report = pcc_sqrt.join(pcc)
+        
+        if file_to_save is not None:
+            # save to correlation report
+            final_report.to_csv(file_to_save)
 
-    pcc = pcc.sort_values(ascending = False).dropna()
-    pcc = pcc.rename("PCC")
-    try:
-        del pcc[target_col]
-    except:
-        pass
-    pcc_sqrt = pcc.apply(lambda x: np.sqrt(x* x))
-    pcc_sqrt = pcc_sqrt.sort_values(ascending = False).dropna()
-    pcc_sqrt = pcc_sqrt.rename("PCC_SQRT")
-    MICs = []
-    MASs = []
-    MEVs = []
-    MCNs = []
-    MCN_generals = []
-    GMICs = []
-    TICs = []
-    for col in data_df.columns:
-        if col!=target_col:
-            x = data_df[col].values
-            y = data_df[target_col].values
-            mine = MINE()
-            mine.compute_score(x,y)
-            MICs.append((col,mine.mic()))
-            MASs.append((col,mine.mas()))
-            MEVs.append((col,mine.mev()))
-            MCNs.append((col,mine.mcn(0)))
-            MCN_generals.append((col,mine.mcn_general()))
-            GMICs.append((col,mine.gmic()))
-            TICs.append((col,mine.tic())) 
+        if save_chart is not None:
+            for col in final_report.keys():
+                ax = final_report[col].sort_values(ascending=False).plot(kind='bar',alpha=0.8)
+                ax.set_ylabel(col+" (target_col = '"+target_col+"')", fontsize=12)
+                plt.axhline(0, color='k')
+                plt.savefig(save_chart)
+                plt.close()
 
-    top_k_pcc = list(pcc.keys())[:top_k]
-    top_k_pcc_sqrt = list(pcc_sqrt.keys())[:top_k]
-    top_k_mic = [tup[0] for tup in sorted(MICs, key=lambda tup: tup[1], reverse = True)[:top_k]]
-    top_k_mas = [tup[0] for tup in sorted(MASs, key=lambda tup: tup[1], reverse = True)[:top_k]]
-    top_k_mev = [tup[0] for tup in sorted(MEVs, key=lambda tup: tup[1], reverse = True)[:top_k]]
-    top_k_mcn = [tup[0] for tup in sorted(MCNs, key=lambda tup: tup[1], reverse = True)[:top_k]]
-    top_k_mcn_general = [tup[0] for tup in sorted(MCN_generals, key=lambda tup: tup[1], reverse = True)[:top_k]]
-    top_k_gmic = [tup[0] for tup in sorted(GMICs, key=lambda tup: tup[1], reverse = True)[:top_k]]
-    top_k_tic = [tup[0] for tup in sorted(TICs, key=lambda tup: tup[1], reverse = True)[:top_k]]
+        fs_dict = {'PCC':top_k_pcc,'PCC_SQRT':top_k_pcc_sqrt,'MIC':top_k_mic,'MAS':top_k_mas,'MEV':top_k_mev,'MCN':top_k_mcn,'MCN_general':top_k_mcn_general,'GMIC':top_k_gmic,'TIC':top_k_tic}
+    
+    else:
+        final_report = pd.read_csv(feature_selection_file)
+        top_k_pcc = list(final_report.sort_values(by=['PCC'], ascending=False).T.values[0])[:top_k]
+        top_k_pcc_sqrt = list(final_report.sort_values(by=['PCC_SQRT'], ascending=False).T.values[0])[:top_k]
+        top_k_mic = list(final_report.sort_values(by=['MIC'], ascending=False).T.values[0])[:top_k]
+        top_k_mas = list(final_report.sort_values(by=['MAS'], ascending=False).T.values[0])[:top_k]
+        top_k_mev = list(final_report.sort_values(by=['MEV'], ascending=False).T.values[0])[:top_k]
+        top_k_mcn = list(final_report.sort_values(by=['MCN'], ascending=False).T.values[0])[:top_k]
+        top_k_mcn_general = list(final_report.sort_values(by=['MCN_general'], ascending=False).T.values[0])[:top_k]
+        top_k_gmic = list(final_report.sort_values(by=['GMIC'], ascending=False).T.values[0])[:top_k]
+        top_k_tic = list(final_report.sort_values(by=['TIC'], ascending=False).T.values[0])[:top_k]
+        fs_dict = {'PCC':top_k_pcc,'PCC_SQRT':top_k_pcc_sqrt,'MIC':top_k_mic,'MAS':top_k_mas,'MEV':top_k_mev,'MCN':top_k_mcn,'MCN_general':top_k_mcn_general,'GMIC':top_k_gmic,'TIC':top_k_tic}
+        
+        if file_to_save is not None:
+            # save to correlation report
+            final_report.to_csv(file_to_save)
 
-    mic_df = pd.DataFrame([tup[1] for tup in MICs],columns=['MIC'],index=[tup[0] for tup in MICs])
-    mas_df = pd.DataFrame([tup[1] for tup in MASs],columns=['MAS'],index=[tup[0] for tup in MASs])
-    mev_df = pd.DataFrame([tup[1] for tup in MEVs],columns=['MEV'],index=[tup[0] for tup in MEVs])
-    mcn_df = pd.DataFrame([tup[1] for tup in MCNs],columns=['MCN'],index=[tup[0] for tup in MCNs])
-    mcn_general_df = pd.DataFrame([tup[1] for tup in MCN_generals],columns=['MCN_general'],index=[tup[0] for tup in MCN_generals])
-    gmic_df = pd.DataFrame([tup[1] for tup in GMICs],columns=['GMIC'],index=[tup[0] for tup in GMICs])
-    tic_df = pd.DataFrame([tup[1] for tup in TICs],columns=['TIC'],index=[tup[0] for tup in TICs])       
-    final_report = mic_df.join(mas_df).join(mev_df).join(mcn_df).join(mcn_general_df).join(gmic_df).join(tic_df).sort_index().join(pcc_sqrt).join(pcc)
+        if save_chart is not None:
+            for col in final_report.keys()[1:]:
+                ax = final_report[col].sort_values(ascending=False).plot(kind='bar',alpha=0.8)
+                ax.set_ylabel(col+" (target_col = '"+target_col+"')", fontsize=12)
+                plt.axhline(0, color='k')
+                plt.savefig(save_chart)
+                plt.close()
 
-    if file_to_save is not None:
-        # save to correlation report
-        final_report.to_csv(file_to_save)
-
-    if save_chart is not None:
-        for col in final_report.keys():
-            ax = final_report[col].sort_values(ascending=False).plot(kind='bar',alpha=0.8)
-            ax.set_ylabel(col+" (target_col = '"+target_col+"')", fontsize=12)
-            plt.axhline(0, color='k')
-            plt.savefig(save_chart)
-            plt.close()
-
-    fs_dict = {'PCC':top_k_pcc,'PCC_SQRT':top_k_pcc_sqrt,'MIC':top_k_mic,'MAS':top_k_mas,'MEV':top_k_mev,'MCN':top_k_mcn,'MCN_general':top_k_mcn_general,'GMIC':top_k_gmic,'TIC':top_k_tic}
     return fs_dict, final_report
 
 # In[6]:
@@ -807,6 +846,8 @@ def save_comparison_chart(predictions, actual_values, filename):
     plt.scatter(predictions,actual_values)
     t = np.arange(min_val, max_val, 0.01)
     line, = plt.plot(t, t, lw=1)
+    if type(filename)==str:
+        PurePath(filename)
 
     if not os.path.exists(filename.parent): os.makedirs(filename.parent)
     plt.savefig(filename)
@@ -1242,8 +1283,8 @@ def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = N
             "net_learning_rate": best_params[6]}
 
             if checkpoint is not None:
-                print("Best so far parameters stored :", checkpoint+",Model=NET,Scaler="+scaler_option+",accuracy="+str(accuracy)+".tuned.checkpoint.prop")
-                save_parameters(tuned_parameters, checkpoint+",Model=NET,Scaler="+scaler_option+",accuracy="+str(accuracy)+".tuned.checkpoint.prop")
+                print("Best so far parameters stored :", str(checkpoint)+",Model=NET,Scaler="+str(scaler_option)+",accuracy="+str(accuracy)+".tuned.checkpoint.prop")
+                save_parameters(tuned_parameters, str(checkpoint)+",Model=NET,Scaler="+str(scaler_option)+",accuracy="+str(accuracy)+".tuned.checkpoint.prop")
         
         if(best_score!=0):
             print("Best accuracy = %8.3f"%(best_score),"[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%best_params)
@@ -1355,14 +1396,14 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
             "net_learning_rate": best_params[6]}
 
             if checkpoint is not None:
-                print("Best so far parameters stored :", checkpoint+",Model=NET,Scaler="+scaler_option+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.prop")
-                save_parameters(tuned_parameters, checkpoint+",Model=NET,Scaler="+scaler_option+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.prop")
+                print("Best so far parameters stored :", str(checkpoint)+",Model=NET,Scaler="+str(scaler_option)+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.prop")
+                save_parameters(tuned_parameters, str(checkpoint)+",Model=NET,Scaler="+str(scaler_option)+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.prop")
                 
-                print(" Saving test charts to : ", checkpoint+",Model=NET,Scaler="+scaler_option+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.png")
-                try:    
-                    save_comparison_chart(predictions, actual_values, checkpoint+",Model=NET,Scaler="+scaler_option+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.png")
-                except:
-                    print(" * Warning: couldn't generate a chart - please make sure the model is properly trained .. ")
+                print(" Saving test charts to : ", str(checkpoint)+",Model=NET,Scaler="+str(scaler_option)+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.png")
+                #try:    
+                save_comparison_chart(predictions, actual_values, str(checkpoint)+",Model=NET,Scaler="+str(scaler_option)+",MAE="+str(MAE)+",R2="+str(R2)+".tuned.checkpoint.png")
+                #except:
+                #    print(" * Warning: couldn't generate a chart - please make sure the model is properly trained .. ")
         
         if(best_score!=0):
             print("Best MAE = %8.3f"%(best_score),"[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%best_params)

@@ -125,8 +125,10 @@ def main(args):
         auto_tune_iter = int(args.auto_tune_iter)
         random_state = asc.fix_value(args.random_state,'int')
         feature_selection = args.feature_selection
+        feature_selection_file = args.feature_selection_file
         scaler_option = args.scaler
         save_corr_chart = args.save_corr_chart
+        only_pcc = args.only_pcc
         save_corr_report = args.save_corr_report
 
         net_structure = args.net_structure
@@ -182,8 +184,14 @@ def main(args):
             else:
                 save_corr_chart = None
 
-        fs_dict, final_report = asc.correlation_analysis_all(data_df, target_col, num_of_features, file_to_save = save_corr_report, save_chart = save_corr_chart)
+        fs_dict, final_report = asc.correlation_analysis_all(data_df, target_col, num_of_features, file_to_save = save_corr_report, save_chart = save_corr_chart, only_pcc = only_pcc, feature_selection_file = feature_selection_file)
+        
+        if (feature_selection!="PCC") and (feature_selection!="PCC_SQRT") and only_pcc=='True':
+            print("!! Error: you need to use PCC or PCC_SQRT for feature selection when only_pcc is set to True.")
+            sys.exit()
+
         input_col = fs_dict[feature_selection]
+
         print("\n [ Feature Selection ]")
         
         print(" Reloading the data using the selected features : ", input_col," by criteron ", feature_selection, "top_k=", num_of_features)
@@ -296,11 +304,11 @@ def main(args):
 
             if model_type!='NET':
                 if train_type=='r':
-                    model = asc.define_model_regression(model_type, model_parameters, x_header_size = x_train.shape[1])
+                    model = asc.define_model_regression(model_type, model_parameters, x_header_size = x_train.shape[1], random_state = random_state)
                     predictions, actual_values = asc.train_and_predict(model, x_train, y_train, scaler_option=scaler_option, num_of_folds=num_of_folds)
                     MAE, R2 = asc.evaluate(predictions, actual_values)
                 else:
-                    model = asc.define_model_classifier(model_type, model_parameters, x_header_size = x_train.shape[1])
+                    model = asc.define_model_classifier(model_type, model_parameters, x_header_size = x_train.shape[1], random_state = random_state)
                     predictions, actual_values = asc.train_and_predict(model, x_train, y_train, scaler_option=scaler_option, num_of_folds=num_of_folds)
                     accuracy = asc.evaluate_classifier(predictions, actual_values)
                     print("")
@@ -318,8 +326,11 @@ def main(args):
                 l_2 = float(model_parameters['net_l_2'])
                 epochs = int(model_parameters['net_epochs'])
                 batch_size = int(model_parameters['net_batch_size'])
-                net_structure = [int(x) for x in model_parameters['net_structure'].split(" ")]
-
+                if ((type(net_structure)==list)==False):
+                    net_structure = [int(x) for x in model_parameters['net_structure'].split(" ")]
+                else:
+                    net_structure = [int(x) for x in net_structure]
+                
                 optimizer = keras.optimizers.Adam(lr=lr)
                 if train_type=='r':
                     model = asc.net_define(params=net_structure, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer)
@@ -380,12 +391,12 @@ def main(args):
         
         if model_type!='NET':
             if train_type=='r':
-                model = asc.define_model_regression(model_type, model_parameters, x_header_size = x_train.shape[1])
+                model = asc.define_model_regression(model_type, model_parameters, x_header_size = x_train.shape[1], random_state = random_state)
                 asc.train_and_save(model, project_file / "models" / ("session"+str(session_number)+train_type+"_"+input_name+"_"+model_type+".pkl"), model_type
                             , input_cols=header_x, target_col=header_y
                             , x_train=x_train, y_train=y_train, scaler_option=scaler_option, path_to_save = '.', MAE=MAE, R2=R2)
             else:
-                model = asc.define_model_classifier(model_type, model_parameters, x_header_size = x_train.shape[1])
+                model = asc.define_model_classifier(model_type, model_parameters, x_header_size = x_train.shape[1], random_state = random_state)
                 asc.train_and_save_classifier(model, project_file / "models" / ("session"+str(session_number)+train_type+"_"+input_name+"_"+model_type+".pkl"), model_type
                             , input_cols=header_x, target_col=header_y
                             , x_train=x_train, y_train=y_train, scaler_option=scaler_option, path_to_save = '.', accuracy=accuracy)
@@ -397,7 +408,10 @@ def main(args):
             l_2 = float(model_parameters['net_l_2'])
             epochs = int(model_parameters['net_epochs'])
             batch_size = int(model_parameters['net_batch_size'])
-            net_structure = [int(x) for x in model_parameters['net_structure'].split(" ")]
+            if ((type(net_structure)==list)==False):
+                    net_structure = [int(x) for x in model_parameters['net_structure'].split(" ")]
+            else:
+                net_structure = [int(x) for x in net_structure]
 
             optimizer = keras.optimizers.Adam(lr=lr)
 
@@ -447,8 +461,10 @@ if __name__=="__main__":
     parser.add_argument( "--hyperparameter_file", help="Specify a hyperparameter file in case you want to \
     use specific hyper parameters")
     parser.add_argument("--feature_selection", default=None, choices=['PCC','PCC_SQRT','MIC','MAS','MEV','MCN','MCN_general','GMIC','TIC'])
+    parser.add_argument("--feature_selection_file", default=None)
     parser.add_argument("--save_corr_report", default='False', choices=['True','False'])
     parser.add_argument("--save_corr_chart", default='False', choices=['True','False'])
+    parser.add_argument("--only_pcc", default='False', choices=['True','False'])
     
     # neural net parameters
     parser.add_argument("--net_layer_n", default='Tune', help='Number of layers for neural network for hyperparameter tuning')
