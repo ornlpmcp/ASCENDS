@@ -846,8 +846,9 @@ def save_comparison_chart(predictions, actual_values, filename):
     plt.scatter(predictions,actual_values)
     t = np.arange(min_val, max_val, 0.01)
     line, = plt.plot(t, t, lw=1)
+    
     if type(filename)==str:
-        PurePath(filename)
+        filename = PurePath(filename)
 
     if not os.path.exists(filename.parent): os.makedirs(filename.parent)
     plt.savefig(filename)
