@@ -129,7 +129,7 @@ def main(args):
         scaler_option = args.scaler
         save_corr_chart = args.save_corr_chart
         only_pcc = args.only_pcc
-        fast_NET_tune = args.fast_NET_tune
+        net_fast_tune = args.net_fast_tune
         save_corr_report = args.save_corr_report
 
         net_structure = args.net_structure
@@ -225,7 +225,7 @@ def main(args):
             net_neuron_max, net_structure, net_l_2, net_learning_rate, net_epochs, net_dropout, net_layer_n, net_batch_size = \
             clean_up_net_params(net_neuron_max, net_structure, net_l_2, net_learning_rate, net_epochs, net_dropout, net_layer_n, net_batch_size)
             
-            if fast_NET_tune == 'True':
+            if net_fast_tune == 'True':
                 fast_tune = True
             else:
                 fast_tune = False
@@ -471,7 +471,7 @@ if __name__=="__main__":
     parser.add_argument("--save_corr_report", default='False', choices=['True','False'])
     parser.add_argument("--save_corr_chart", default='False', choices=['True','False'])
     parser.add_argument("--only_pcc", default='False', choices=['True','False'])
-    parser.add_argument("--fast_NET_tune", default='True', choices=['True','False'])
+    parser.add_argument("--net_fast_tune", default='False', choices=['True','False'])
     
     # neural net parameters
     parser.add_argument("--net_layer_n", default='Tune', help='Number of layers for neural network for hyperparameter tuning')
