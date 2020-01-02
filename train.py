@@ -84,7 +84,7 @@ def clean_up_net_params(net_neuron_max, net_structure, net_l_2, net_learning_rat
             net_batch_size = int(net_batch_size)
         except:
             net_batch_size = None
-
+   
     return net_neuron_max, net_structure, net_l_2, net_learning_rate, net_epochs, net_dropout, net_layer_n, net_batch_size
 
 
@@ -290,6 +290,9 @@ def main(args):
             if net_batch_size !='Tune':
                 print(" net_batch_size is set to ", net_batch_size)
                 model_parameters['net_batch_size'] = net_batch_size
+            if net_layer_n !='Tune':
+                print(" net_layer_n is set to ", net_layer_n)
+                model_parameters['net_layer_n'] = net_layer_n
 
     
     if train_type=='r': model_parameters['scaler_option'] = scaler_option
@@ -307,7 +310,7 @@ def main(args):
         try:
             
             print("\n [ Model Evaluation ]")
-
+            
             if model_type!='NET':
                 if train_type=='r':
                     model = asc.define_model_regression(model_type, model_parameters, x_header_size = x_train.shape[1], random_state = random_state)

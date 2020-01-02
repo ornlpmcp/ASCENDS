@@ -1149,7 +1149,7 @@ def split_data(x_train, y_train, num_of_folds=5):
     return x_trains, y_trains, x_tests, y_tests
 
 def net_define(params = [8, 8, 8], layer_n = 3, input_size = 16, dropout=0, l_2=0.01, optimizer='adam'):
-    
+        
     if len(params)!=layer_n or layer_n<1:
         return None
     
