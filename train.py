@@ -233,11 +233,11 @@ def main(args):
             if train_type=='r':
                 model_parameters = asc.net_tuning(tries = auto_tune_iter, lr = net_learning_rate, x_train = x_train, y_train = y_train, layer = net_layer_n, \
                 params=net_structure, epochs=net_epochs, batch_size=net_batch_size, dropout=net_dropout, l_2 = net_l_2, neuron_max=net_neuron_max, batch_size_max=net_batch_size_max, \
-                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds, fast_tune = fast_tune)
+                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds, fast_tune = fast_tune, random_state = random_state)
             else:
                 model_parameters = asc.net_tuning_classifier(num_of_class = num_of_class, tries = auto_tune_iter, lr = net_learning_rate, x_train = x_train, y_train = y_train, layer = net_layer_n, \
                 params=net_structure, epochs=net_epochs, batch_size=net_batch_size, dropout=net_dropout, l_2 = net_l_2, neuron_max=net_neuron_max, batch_size_max=net_batch_size_max, \
-                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds, fast_tune = fast_tune)
+                layer_min = net_layer_min, layer_max=net_layer_max, dropout_max=net_dropout_max, default_neuron_max=net_default_neuron_max, checkpoint = checkpoint, num_of_folds=num_of_folds, fast_tune = fast_tune, random_state = random_state)
             
 
         else:
@@ -341,11 +341,13 @@ def main(args):
                     net_structure = [int(x) for x in net_structure]
                 
                 optimizer = keras.optimizers.Adam(lr=lr)
+                
                 if train_type=='r':
-                    model = asc.net_define(params=net_structure, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer)
+                    model = asc.net_define(params=net_structure, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer, random_state = random_state)
                 else:
-                    model = asc.net_define_classifier(params=net_structure, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer, num_of_class = num_of_class)
-                predictions, actual_values = asc.cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds)
+                    model = asc.net_define_classifier(params=net_structure, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer, num_of_class = num_of_class, random_state=random_state)
+                
+                predictions, actual_values = asc.cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, fast_tune = net_fast_tune)
                 if train_type=='r':
                     MAE, R2 = asc.evaluate(predictions, actual_values)
                     print("* (%s)\t MAE = %8.3f, R2 = %8.3f via %d-fold cross validation "%(model_type, MAE, R2, num_of_folds))

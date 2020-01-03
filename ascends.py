@@ -5,6 +5,9 @@ import warnings
 warnings.filterwarnings('ignore')
 warnings.simplefilter("ignore")
 import os
+import numpy as np
+import tensorflow as tf
+import random as rn
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 from keras import regularizers
@@ -54,7 +57,6 @@ import math
 import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
-import numpy as np
 import os
 import pandas as pd
 import pickle
@@ -67,6 +69,7 @@ from sklearn.linear_model import LogisticRegression
 from os import path
 from pathlib import PurePath
 from tensorflow.python.util import deprecation
+
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 def save_test_data(predictions, actual_values, filename):
@@ -586,6 +589,7 @@ def cross_val_predict_net_classifier(model, x_train, y_train, epochs=1000, batch
 
         predictions_total+=list(predictions)
         actual_values_total+=list(actual_values)
+        
         if fast_tune==True:
             print("* Fast tuning enabled. so we only test 1 fold, and move on ..")
             break
@@ -1148,8 +1152,20 @@ def split_data(x_train, y_train, num_of_folds=5):
         
     return x_trains, y_trains, x_tests, y_tests
 
-def net_define(params = [8, 8, 8], layer_n = 3, input_size = 16, dropout=0, l_2=0.01, optimizer='adam'):
-        
+def net_define(params = [8, 8, 8], layer_n = 3, input_size = 16, dropout=0, l_2=0.01, optimizer='adam', random_state = 0):
+    
+    os.environ['PYTHONHASHSEED'] = str(random_state)
+
+    # Setting the seed for numpy-generated random numbers
+    np.random.seed(random_state)
+
+    # Setting the seed for python random numbers
+    rn.seed(random_state)
+
+    # Setting the graph-level random seed.
+    tf.set_random_seed(random_state)
+
+    
     if len(params)!=layer_n or layer_n<1:
         return None
     
@@ -1168,7 +1184,18 @@ def net_define(params = [8, 8, 8], layer_n = 3, input_size = 16, dropout=0, l_2=
     
     return model
 
-def net_define_classifier(params = [8, 8, 8], layer_n = 3, num_of_class = 2, input_size = 16, dropout=0, l_2=0.01, optimizer='adam'):
+def net_define_classifier(params = [8, 8, 8], layer_n = 3, num_of_class = 2, input_size = 16, dropout=0, l_2=0.01, optimizer='adam', random_state = 0):
+    
+    os.environ['PYTHONHASHSEED'] = str(random_state)
+
+    # Setting the seed for numpy-generated random numbers
+    np.random.seed(random_state)
+
+    # Setting the seed for python random numbers
+    rn.seed(random_state)
+
+    # Setting the graph-level random seed.
+    tf.set_random_seed(random_state)
     
     if len(params)!=layer_n or layer_n<1:
         return None
@@ -1202,7 +1229,7 @@ def evaluate_net(model, x_train, y_train, x_test, y_test, epochs=1000, batch_siz
     
     return score, history
 
-def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5, fast_tune = True):
+def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5, fast_tune = True, random_state = 0):
     tuned_parameters = {}
 
     if layer is not None:
@@ -1262,7 +1289,7 @@ def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = N
         if l_2 is None:
             l_2 = 10**np.random.uniform(-3,-1)
 
-        model = net_define_classifier(params=params, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer, num_of_class = num_of_class)  
+        model = net_define_classifier(params=params, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer, num_of_class = num_of_class, random_state = random_state)  
         
         print("\n Cross-validation (iteration=%d): [layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%(i, layer, params, epochs, dropout, l_2, batch_size, lr))
         start_time = time.time()
@@ -1314,7 +1341,8 @@ def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = N
 
     print(" -- DONE --")
 
-def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5, fast_tune = True):
+def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=None, epochs=None, batch_size=None, dropout=None, l_2 = None, neuron_max=[64, 64, 64], batch_size_max=32, layer_min=1, layer_max=3, dropout_max=0.2, scaler_option='StandardScaler', default_neuron_max=32, checkpoint = None, num_of_folds=5, fast_tune = True, random_state = 0):
+    
     tuned_parameters = {}
     if layer is not None:
         
@@ -1345,7 +1373,9 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
         if lr is None:
             lr = 10**np.random.uniform(-5,-3)
             optimizer = keras.optimizers.Adam(lr=lr)
-                              
+        else:
+            optimizer = keras.optimizers.Adam(lr=lr)
+
         if layer is None:
             layer = random.sample(range(layer_min, layer_max+1), 1)[0]
 
@@ -1373,7 +1403,8 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
         if l_2 is None:
             l_2 = 10**np.random.uniform(-3,-1)
 
-        model = net_define(params=params, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer)
+        model = net_define(params=params, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer, random_state = random_state)
+        
         print("\n Cross-validation (iteration=%d): [layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%(i, layer, params, epochs, dropout, l_2, batch_size, lr))
         start_time = time.time()
         predictions, actual_values = cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, fast_tune = fast_tune)
@@ -1389,9 +1420,9 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
 
         print("Cross validation result - MAE = %8.3f R2 = %8.3f, took %ss "%(MAE, R2, time.time()-start_time))
 
-        if(MAE<best_score and MAE!=-1) or (best_score==0 and MAE!=-1):          
+        if(R2>best_score and R2!=-1) or (best_score==0 and R2!=-1):          
         
-            best_score = MAE
+            best_score = R2
             best_params = (layer, params, epochs, dropout, l_2, batch_size, lr)
             tuned_parameters = {"net_layer_n":best_params[0], \
             "net_structure":str(best_params[1])[1:-1].replace(",",""), \
@@ -1412,7 +1443,7 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
                 #    print(" * Warning: couldn't generate a chart - please make sure the model is properly trained .. ")
         
         if(best_score!=0):
-            print("Best MAE = %8.3f"%(best_score),"[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%best_params)
+            print("Best R2 = %8.3f"%(best_score),"[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%best_params)
 
         # set to original values
         layer = _layer
