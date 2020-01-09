@@ -1154,18 +1154,6 @@ def split_data(x_train, y_train, num_of_folds=5):
 
 def net_define(params = [8, 8, 8], layer_n = 3, input_size = 16, dropout=0, l_2=0.01, optimizer='adam', random_state = 0):
     
-    os.environ['PYTHONHASHSEED'] = str(random_state)
-
-    # Setting the seed for numpy-generated random numbers
-    np.random.seed(random_state)
-
-    # Setting the seed for python random numbers
-    rn.seed(random_state)
-
-    # Setting the graph-level random seed.
-    tf.set_random_seed(random_state)
-
-    
     if len(params)!=layer_n or layer_n<1:
         return None
     
@@ -1182,20 +1170,11 @@ def net_define(params = [8, 8, 8], layer_n = 3, input_size = 16, dropout=0, l_2=
     model.compile(loss='mse',
                   optimizer=optimizer, metrics=['mape'])
     
+    print(params, layer_n, dropout, l_2, optimizer)
+    
     return model
 
 def net_define_classifier(params = [8, 8, 8], layer_n = 3, num_of_class = 2, input_size = 16, dropout=0, l_2=0.01, optimizer='adam', random_state = 0):
-    
-    os.environ['PYTHONHASHSEED'] = str(random_state)
-
-    # Setting the seed for numpy-generated random numbers
-    np.random.seed(random_state)
-
-    # Setting the seed for python random numbers
-    rn.seed(random_state)
-
-    # Setting the graph-level random seed.
-    tf.set_random_seed(random_state)
     
     if len(params)!=layer_n or layer_n<1:
         return None
@@ -1259,9 +1238,11 @@ def net_tuning_classifier(x_train, y_train, num_of_class = 2, tries = 10, lr = N
         optimizer = 'adam'
         
         if lr is None:
-            lr = 10**np.random.uniform(-5,-3)
+            lr = 10**np.random.uniform(-4,-3)
             optimizer = keras.optimizers.Adam(lr=lr)
-                              
+        else:
+            optimizer = keras.optimizers.Adam(lr=lr)
+
         if layer is None:
             layer = random.sample(range(layer_min, layer_max+1), 1)[0]
 
@@ -1371,14 +1352,15 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
         optimizer = 'adam'
         
         if lr is None:
-            lr = 10**np.random.uniform(-5,-3)
+            lr = 10**np.random.uniform(-4,-3)
             optimizer = keras.optimizers.Adam(lr=lr)
         else:
             optimizer = keras.optimizers.Adam(lr=lr)
 
         if layer is None:
             layer = random.sample(range(layer_min, layer_max+1), 1)[0]
-
+        
+        params = _params
         if params is None:
             params = []
             for j in range(0, layer):

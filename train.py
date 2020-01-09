@@ -13,6 +13,9 @@ import os
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from pathlib import PurePath
+import numpy as np
+import tensorflow as tf
+import random as rn
 
 # This is a tool for training machine learning models for a regression (value prediction) task
 
@@ -148,6 +151,17 @@ def main(args):
         net_checkpoint = args.net_checkpoint
         num_of_class = int(args.num_of_class)
 
+        #os.environ['PYTHONHASHSEED'] = str(random_state)
+
+        # Setting the seed for numpy-generated random numbers
+        #np.random.seed(random_state)
+
+        # Setting the seed for python random numbers
+        #rn.seed(random_state)
+
+        # Setting the graph-level random seed.
+        tf.set_random_seed(random_state)
+        
         print(" Loading data from :%s"%(csv_file))
         print(" Columns to ignore :%s"%(cols_to_remove))
                 
