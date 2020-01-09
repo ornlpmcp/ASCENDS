@@ -69,8 +69,19 @@ from sklearn.linear_model import LogisticRegression
 from os import path
 from pathlib import PurePath
 from tensorflow.python.util import deprecation
+import tensorflow as tf
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
+
+config = tf.ConfigProto()
+#config.gpu_options.per_process_gpu_memory_fraction = 0.5 # maximun alloc gpu50% of MEM
+#config.gpu_options.allow_growth = True #allocate dynamically
+
+#config = tf.ConfigProto( device_count = {'GPU': 2 , 'CPU':4 } ) 
+sess = tf.Session(config=config)
+keras.backend.set_session(sess)
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '2'
 
 def save_test_data(predictions, actual_values, filename):
     df_predictions = pd.DataFrame(predictions, columns=['predictions'])
