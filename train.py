@@ -356,7 +356,6 @@ def main(args):
                     print(confusion_matrix(actual_values, predictions))
                     print("")
             else:
-                
                 lr = float(model_parameters['net_learning_rate'])
                 layer = int(model_parameters['net_layer_n'])
                 dropout = float(model_parameters['net_dropout'])
@@ -375,7 +374,11 @@ def main(args):
                 else:
                     model = asc.net_define_classifier(params=net_structure, layer_n = layer, input_size = x_train.shape[1], dropout=dropout, l_2=l_2, optimizer=optimizer, num_of_class = num_of_class, random_state=random_state)
                 
-                predictions, actual_values = asc.cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, fast_tune = net_fast_tune)
+                if train_type=='r':
+                    predictions, actual_values = asc.cross_val_predict_net(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, fast_tune = net_fast_tune)
+                else:
+                    predictions, actual_values = asc.cross_val_predict_net_classifier(model, epochs=epochs, batch_size=batch_size, x_train = x_train, y_train = y_train, verbose = 0, scaler_option = scaler_option, num_of_folds = num_of_folds, num_of_class = num_of_class, fast_tune = net_fast_tune)      
+                
                 if train_type=='r':
                     MAE, R2 = asc.evaluate(predictions, actual_values)
                     print("* (%s)\t MAE = %8.3f, R2 = %8.3f via %d-fold cross validation "%(model_type, MAE, R2, num_of_folds))
