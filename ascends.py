@@ -1346,6 +1346,7 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
     
     best_score = 0
     best_params = None
+    best_mae = 0
 
     _layer = layer
     _params = params
@@ -1416,6 +1417,7 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
         if(R2>best_score and R2!=-1) or (best_score==0 and R2!=-1):          
         
             best_score = R2
+            best_mae = MAE
             best_params = (layer, params, epochs, dropout, l_2, batch_size, lr)
             tuned_parameters = {"net_layer_n":best_params[0], \
             "net_structure":str(best_params[1])[1:-1].replace(",",""), \
@@ -1436,7 +1438,7 @@ def net_tuning(x_train, y_train, tries = 10, lr = None, layer = None, params=Non
                 #    print(" * Warning: couldn't generate a chart - please make sure the model is properly trained .. ")
         
         if(best_score!=0):
-            print("Best R2 = %8.3f"%(best_score),"[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%best_params)
+            print("Best R2 = %8.3f"%(best_score),"MAE=",best_mae, "[layer=%d, structure=[%s], epochs=%d, dropout=%8.4f, l_2=%8.7f, batch_size=%d, lr=%8.7f]"%best_params)
 
         # set to original values
         layer = _layer
