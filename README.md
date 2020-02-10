@@ -35,12 +35,17 @@ the tool can be also used for many other applications.
 
 We encourage you to cite using the following BibTex citation, if you have used our tool:
 ```
-@misc{snapnets,
-  author       = {Sangkeun Lee and Dongwon Shin and Jian Peng and Andrew Williams},
-  title        = {{ASCENDS}: Advanced data SCiENce toolkit for Non-Data Scientists},
-  howpublished = {\url{https://github.com/ornlpmcp/ASCENDS}},
-  month        = Jan,
-  year         = 2019
+@article{Lee2020,
+  doi = {10.21105/joss.01656},
+  url = {https://doi.org/10.21105/joss.01656},
+  year = {2020},
+  publisher = {The Open Journal},
+  volume = {5},
+  number = {46},
+  pages = {1656},
+  author = {Sangkeun Lee and Jian Peng and Andrew Williams and Dongwon Shin},
+  title = {ASCENDS: Advanced data SCiENce toolkit for Non-Data Scientists},
+  journal = {Journal of Open Source Software}
 }
 ```
 List of ORNL contributors
