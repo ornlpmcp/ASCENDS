@@ -33,7 +33,18 @@ ASCENDS principles
 Although ASCENDS has been originally developed for material scientists' research on high temperature alloy design,
 the tool can be also used for many other applications.
 
-We encourage you to cite using the following BibTex citation, if you have used our tool:
+# List of ORNL contributors
+* Sangkeun Lee, Core Developer (lees4@ornl.gov, leesangkeun@gmail.com)
+* Dongwon Shin, (shind@ornl.gov)
+* Jian Peng (pengj@ornl.gov)
+* Andrew Williams (Intern, 2019 Summer) (atw54@cornell.edu)
+
+# Citation
+We encourage you to cite the two papers below, if you have used our tool:
+[1]	S. Lee, J. Peng, A. William, D. Shin, ASCENDS: Advanced data science toolkit for non-data scientists, Journal of Open Source Software, 5 (2020) 1656. https://doi.org/10.21105/joss.01656
+[2]	J. Peng, S. Lee, A. William, J.A. Haynes, D. Shin, Advanced data science toolkit for non-data scientists – A user guide, CALPHAD, 68 (2020) 101733. https://doi.org/10.1016/j.calphad.2019.101733
+
+The corresponding BibTex citations are as follows  
 ```
 @article{Lee2020,
   doi = {10.21105/joss.01656},
@@ -47,12 +58,26 @@ We encourage you to cite using the following BibTex citation, if you have used o
   title = {ASCENDS: Advanced data SCiENce toolkit for Non-Data Scientists},
   journal = {Journal of Open Source Software}
 }
+@article{PENG2020101733,
+  doi = {https://doi.org/10.1016/j.calphad.2019.101733},
+  url = {http://www.sciencedirect.com/science/article/pii/S0364591619302949},
+  year = {2020},
+  volume = {68},
+  title = {Advanced data science toolkit for non-data scientists – A user guide},
+  journal = {Calphad},
+  issn = {0364-5916},
+  publisher = {Elsevier},
 ```
-List of ORNL contributors
-* Sangkeun Lee, Core Developer (lees4@ornl.gov, leesangkeun@gmail.com)
-* Dongwon Shin, (shind@ornl.gov)
-* Jian Peng (pengj@ornl.gov)
-* Andrew Williams (Intern, 2019 Summer) (atw54@cornell.edu)
+
+ASCENDS has been used in the following research (last updated Feb. 14, 2014):
+[1]	S. Lee, J. Peng, D. Shin, Y.S. Choi, Data analytics approach for melt-pool geometries in metal additive manufacturing, Science and Technology of Advanced Materials, 20 (2019) 972-978. https://doi.org/10.1080/14686996.2019.1671140
+
+Earlier versions of ASCENDS have been used for the following research:
+[1] D. Shin, Y. Yamamoto, M.P. Brady, S. Lee, J.A. Haynes, Modern data analytics approach to predict creep of high-temperature alloys, Acta Materialia 168 (2019) 321-330. https://doi.org/10.1016/j.actamat.2019.02.017
+[2] D. Shin, S. Lee, A. Shyam, A., J.A. Haynes, Petascale supercomputing to accelerate the design of high-temperature alloys, Science and Technology of Advanced Materials, 18 (2017) 828–838. 
+[3] J. Wang  A. Y. Nobakht  J. D. Blanks  D. Shin  S. Lee,  A. Shyam, H. Rezayat,  S. Shin, Machine Learning for Thermal Transport Analysis of Aluminum Alloys with Precipitate Morphology, Adv. Theory Simul. 2 (2019) 1800196. https://doi.org/10.1002/adts.201800196
+
+
 
 # Installation (With Anaconda)
 
