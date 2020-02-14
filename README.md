@@ -82,7 +82,7 @@ Earlier versions of ASCENDS have been used for the following research:
 
 [1] D. Shin, Y. Yamamoto, M.P. Brady, S. Lee, J.A. Haynes, Modern data analytics approach to predict creep of high-temperature alloys, Acta Materialia 168 (2019) 321-330. https://doi.org/10.1016/j.actamat.2019.02.017.  
 [2] J. Wang  A. Y. Nobakht  J. D. Blanks  D. Shin  S. Lee,  A. Shyam, H. Rezayat,  S. Shin, Machine Learning for Thermal Transport Analysis of Aluminum Alloys with Precipitate Morphology, Adv. Theory Simul.(2019) 1800196. https://doi.org/10.1002/adts.201800196.  
-[3]	J. Wang, S. Shin, S. Lee, Interatomic Potential Model Development: Finite-Temperature Dynamics Machine Learning, Adv. Theory Simul. (2019) 1900210. https://doi.org/10.1002/adts.201900210. 
+[3]	J. Wang, S. Shin, S. Lee, Interatomic Potential Model Development: Finite-Temperature Dynamics Machine Learning, Adv. Theory Simul. (2019) 1900210. https://doi.org/10.1002/adts.201900210.   
 [4] D. Shin, S. Lee, A. Shyam, A., J.A. Haynes, Petascale supercomputing to accelerate the design of high-temperature alloys, Sci. Technol. Adv. Mater, 18 (2017) 828–838. https://doi.org/10.1080/14686996.2017.1371559.  
      
 
