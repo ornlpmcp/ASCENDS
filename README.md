@@ -60,6 +60,8 @@ The corresponding BibTex citations are as follows
   title = {ASCENDS: Advanced data SCiENce toolkit for Non-Data Scientists},
   journal = {Journal of Open Source Software}
 }
+```
+```
 @article{PENG2020101733,
   doi = {https://doi.org/10.1016/j.calphad.2019.101733},
   url = {http://www.sciencedirect.com/science/article/pii/S0364591619302949},
