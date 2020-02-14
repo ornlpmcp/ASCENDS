@@ -73,6 +73,7 @@ The corresponding BibTex citations are as follows:
 }
 ```
 
+# Publications with ASCENDS
 ASCENDS has been used in the following research (last updated Feb. 14, 2020): 
 
 [1]	S. Lee, J. Peng, D. Shin, Y.S. Choi, Data analytics approach for melt-pool geometries in metal additive manufacturing, Science and Technology of Advanced Materials, 20 (2019) 972-978. https://doi.org/10.1080/14686996.2019.1671140.
