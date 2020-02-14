@@ -84,6 +84,7 @@ Earlier versions of ASCENDS have been used for the following research:
 
 [3] J. Wang  A. Y. Nobakht  J. D. Blanks  D. Shin  S. Lee,  A. Shyam, H. Rezayat,  S. Shin, Machine Learning for Thermal Transport Analysis of Aluminum Alloys with Precipitate Morphology, Adv. Theory Simul. 2 (2019) 1800196. https://doi.org/10.1002/adts.201800196
 
+We will be glad to list your publications here, if ASCENDS have been used in your work. Please reprt to Jian Peng (pengj@ornl.gov). Thank you very much.
 
 
 # Installation (With Anaconda)
