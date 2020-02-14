@@ -40,7 +40,7 @@ the tool can be also used for many other applications.
 * Andrew Williams (Intern, 2019 Summer) (atw54@cornell.edu)
 
 # Citation
-We encourage you to cite the two papers below, if you have used our tool:
+* We encourage you to cite the two papers below, if you have used our tool:
 
 [1]	S. Lee, J. Peng, A. William, D. Shin, ASCENDS: Advanced data science toolkit for non-data scientists, Journal of Open Source Software, 5 (2020) 1656. https://doi.org/10.21105/joss.01656
 
@@ -74,15 +74,15 @@ The corresponding BibTex citations are as follows
 }
 ```
 
-ASCENDS has been used in the following research (last updated Feb. 14, 2014):
+* ASCENDS has been used in the following research (last updated Feb. 14, 2014):
 
 [1]	S. Lee, J. Peng, D. Shin, Y.S. Choi, Data analytics approach for melt-pool geometries in metal additive manufacturing, Science and Technology of Advanced Materials, 20 (2019) 972-978. https://doi.org/10.1080/14686996.2019.1671140
 
-Earlier versions of ASCENDS have been used for the following research:
+* Earlier versions of ASCENDS have been used for the following research:
 
 [1] D. Shin, Y. Yamamoto, M.P. Brady, S. Lee, J.A. Haynes, Modern data analytics approach to predict creep of high-temperature alloys, Acta Materialia 168 (2019) 321-330. https://doi.org/10.1016/j.actamat.2019.02.017
 
-[2] D. Shin, S. Lee, A. Shyam, A., J.A. Haynes, Petascale supercomputing to accelerate the design of high-temperature alloys, Science and Technology of Advanced Materials, 18 (2017) 828–838. 
+[2] D. Shin, S. Lee, A. Shyam, A., J.A. Haynes, Petascale supercomputing to accelerate the design of high-temperature alloys, Science and Technology of Advanced Materials, 18 (2017) 828–838. https://doi.org/10.1080/14686996.2017.1371559
 
 [3] J. Wang  A. Y. Nobakht  J. D. Blanks  D. Shin  S. Lee,  A. Shyam, H. Rezayat,  S. Shin, Machine Learning for Thermal Transport Analysis of Aluminum Alloys with Precipitate Morphology, Adv. Theory Simul. 2 (2019) 1800196. https://doi.org/10.1002/adts.201800196
 
