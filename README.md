@@ -49,7 +49,52 @@ List of ORNL contributors
 * Jian Peng (pengj@ornl.gov)
 * Andrew Williams (Intern, 2019 Summer) (atw54@cornell.edu)
 
-# Installation (With Anaconda)
+# Installation (With Docker - For Windows)
+
+For Windows users, we made Docker image for simple installation process.
+
+Please install Docker Desktop for Windows from the following link: https://hub.docker.com/search?q=&type=edition&offering=community&sort=updated_at&order=desc
+When installation is complete, open a terminal window, and run:
+```
+docker pull liza183/ascends
+```
+Then, run
+```
+docker run -it --volume={Your data directory}/:/data --p 7777:7777 liza183/ascends /bin/bash
+```
+to get inside the docker container. You need to specify your directory path to access data inside the container.
+For instance, run 
+```
+docker run -it --volume=~/Desktop:/data liza183/ascends /bin/bash
+```
+
+You will see a command line prompt.
+```
+(ascends) bash-4.2# 
+```
+
+Go to ASCENDS directory
+```
+cd ASCENDS
+```
+and run the following command to test if it is properly installed.
+```
+python train.py
+``` 
+Note that your data files will be located in /data within the container.
+Please read regression/classification tutorial to learn how to use command-line interface.
+
+To run GUI, please run
+```
+python ascends_server.py
+```
+
+Open a web-browser window and go to url: http://localhost:7777 then you will see the following:
+![](./logo/feature_selection.png)
+
+Please read later sections to learn how to use the GUI for ASCENDS.
+
+# Installation (With Anaconda - For OSX/Linux)
 
 ASCENDS requires Python version 3.X, and using Anaconda is recommended.
 Please download Anaconda from https://www.anaconda.com/download/ and install first.
