@@ -77,9 +77,7 @@ The corresponding BibTex citations are as follows:
 ASCENDS has been used in the following research (last updated August 17, 2020): 
 
 [1]	S. Lee, J. Peng, D. Shin, Y.S. Choi, Data analytics approach for melt-pool geometries in metal additive manufacturing, Science and Technology of Advanced Materials, 20 (2019) 972-978. https://doi.org/10.1080/14686996.2019.1671140.
-
 [2] C. Do, W.R. Chen, S. Lee, Small Angle Scattering Data Analysis Assisted by Machine Learning Methods, MRS Advance, 5 (2020) 1577-1584. https://doi.org/10.1557/adv.2020.130. 
-
 [3] J. Park, S. Jamil, A. Khan, S. Lee, Y. Kim, SCALEML: Machine Learning based Heap Memory Object Scaling Prediction, Accepted to IEEE NVMSA 2020, Korea, August 19-21, 2020.
 
 Earlier versions of ASCENDS have been used for the following research: 
