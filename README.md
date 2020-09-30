@@ -143,6 +143,9 @@ conda deactivate
 ```
 To make sure ascends-toolkit has been properly installed and lear how the tool can be used, please go over the following tutorials.
 
+# Installation (with Windows 10 + Ubuntu Terminal)
+
+[Please see the following document: ](How_to_Install_with_Windows10_Ubuntu_Terminal.pdf)
 
 # Installation (With Docker - For Windows, Experimental)
 
