@@ -145,7 +145,7 @@ To make sure ascends-toolkit has been properly installed and lear how the tool c
 
 # Installation (with Windows 10 + Ubuntu Terminal)
 
-[Please see the following document: ](How_to_Install_with_Windows10_Ubuntu_Terminal.pdf)
+[Please click to see more](How_to_Install_with_Windows10_Ubuntu_Terminal.pdf)
 
 # Installation (With Docker - For Windows, Experimental)
 
