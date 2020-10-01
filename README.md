@@ -145,7 +145,50 @@ To make sure ascends-toolkit has been properly installed and lear how the tool c
 
 # Installation (with Windows 10 + Ubuntu Terminal)
 
-[Please click to see more](How_to_Install_with_Windows10_Ubuntu_Terminal.pdf)
+First, install Ubuntu on Windows 10: https://www.microsoft.com/en-us/p/ubuntu/9nblggh4msv6?activetab=pivot:overviewtab
+More detailed instruction is provided here: https://ubuntu.com/tutorials/ubuntu-on-windows#1-overview
+Then, update and upgrade all the packages up-to-date by
+```
+$ sudo apt-get update $ sudo apt-get install
+```
+Next, install Anaconda on Windows 10 Ubuntu Terminal.
+Detailed instruction can be found here: https://gist.github.com/kauffmanes/5e74916617f9993bc3479f401dfec7da
+Once you successfully installed Anaconda on Windows 10 Ubuntu terminal, please follow the same procedure to install ASCENDS in MacOS/Linux.
+   
+Clone the repository by doing
+```
+git clone https://github.com/ornlpmcp/ASCENDS.git
+```
+
+Go to the ASCENDS directory and create a new Python environment for ascends by doing:
+```
+conda env create -f environment.yml --name ascends
+```
+
+Please refer to the environent.yml for dependencies.
+
+To activate an environment in your Terminal Window, run
+```
+conda activate ascends
+```
+
+You will see the active environment in parentheses at the beginning of your command prompt:
+```
+(ascends) $
+```
+
+Now you're ready to use ascends. Please see the next section for a quick start guide. To check if you properly installed ascends-toolkit, run
+```
+python train.py --help
+```
+
+If you see the usage help of regression trainer, you're ready to go. Now have fun with ascends-toolkit.
+To deactivate the current Anaconda environment, after using ascends in your Terminal Window, run
+```
+conda deactivate
+```
+
+To make sure ascends-toolkit has been properly installed and lear how the tool can be used, please go over the following tutorials.
 
 # Installation (With Docker - For Windows, Experimental)
 
