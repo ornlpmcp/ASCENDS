@@ -70,6 +70,7 @@ from os import path
 from pathlib import PurePath
 from tensorflow.python.util import deprecation
 import tensorflow as tf
+import multiprocessing
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -986,7 +987,7 @@ def hyperparameter_tuning_classifier(tag, x_train, y_train, num_of_folds, scaler
                 cv = num_of_folds, 
                 verbose=verbose, 
                 random_state=random_state, 
-                n_jobs = -1)
+                n_jobs = multiprocessing.cpu_count())
         x_train_, scale = rescale_x(scaler_option, x_train)
         y_train_ = y_train.reshape(y_train.shape[0],)
 
@@ -1115,7 +1116,7 @@ def hyperparameter_tuning(tag, x_train, y_train, num_of_folds, scaler_option, n_
                 cv = num_of_folds, 
                 verbose=verbose, 
                 random_state=random_state, 
-                n_jobs = -1)
+                n_jobs = multiprocessing.cpu_count())
         x_train_, scale = rescale_x(scaler_option, x_train)
         y_train_ = y_train.reshape(y_train.shape[0],)
 
