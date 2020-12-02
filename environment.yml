@@ -3,7 +3,7 @@ channels:
   - bioconda
 dependencies:
  - python=3.6
- - matplotlib=3.0.3
+ - matplotlib=3.3.2
  - numpy=1.16.4
  - pandas=0.24.2
  - tensorflow=1.13.1  
