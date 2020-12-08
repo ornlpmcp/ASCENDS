@@ -42,8 +42,8 @@ the tool can be also used for many other applications.
 # Citation
 We encourage you to cite both papers below, if you have used our tool:
 
-[1]	S. Lee, J. Peng, A. William, D. Shin, ASCENDS: Advanced data science toolkit for non-data scientists, Journal of Open Source Software, 5 (2020) 1656. https://doi.org/10.21105/joss.01656.  
-[2]	J. Peng, S. Lee, A. William, J.A. Haynes, D. Shin, Advanced data science toolkit for non-data scientists – A user guide, CALPHAD, 68 (2020) 101733. https://doi.org/10.1016/j.calphad.2019.101733.
+[1]	S. Lee, J. Peng, A. Williams, D. Shin, ASCENDS: Advanced data science toolkit for non-data scientists, Journal of Open Source Software, 5 (2020) 1656. https://doi.org/10.21105/joss.01656.  
+[2]	J. Peng, S. Lee, A. Williams, J.A. Haynes, D. Shin, Advanced data science toolkit for non-data scientists – A user guide, CALPHAD, 68 (2020) 101733. https://doi.org/10.1016/j.calphad.2019.101733.
 
 The corresponding BibTex citations are as follows:  
 ```
