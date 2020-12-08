@@ -404,7 +404,7 @@ def fix_value(val, val_type):
         elif(val_type=='bool'):
             return str2bool(val)
         elif val_type=='PurePath':
-            return purePath(val)
+            return PurePath(val)
         else:
             return val
 
