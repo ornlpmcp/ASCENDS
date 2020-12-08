@@ -75,7 +75,7 @@ The corresponding BibTex citations are as follows:
 
 # Publications with ASCENDS
 ASCENDS has been used in the following research (last updated Dec. 05, 2020):  
-[1]J. Peng, Y. Yamamoto, J.A. Hawk, E. Lara-Curzio, D. Shin, Coupling Physics into Machine Learning for Predicting Properties of Materials, npj computational materials, 6 (2020) 141. https://doi.org/10.1038/s41524-020-00407-2
+[1]J. Peng, Y. Yamamoto, J.A. Hawk, E. Lara-Curzio, D. Shin, Coupling Physics into Machine Learning for Predicting Properties of Materials, npj computational materials, 6 (2020) 141. https://doi.org/10.1038/s41524-020-00407-2.
 [2] J. Park, S. Jamil, A. Khan, S. Lee, Y. Kim, SCALEML: Machine Learning based Heap Memory Object Scaling Prediction, Accepted to IEEE NVMSA 2020, Korea, August 19-21, 2020.  
 [3] C. Do, W.R. Chen, S. Lee, Small Angle Scattering Data Analysis Assisted by Machine Learning Methods, MRS Advance, 5 (2020) 1577-1584. https://doi.org/10.1557/adv.2020.130.  
 [4]	S. Lee, J. Peng, D. Shin, Y.S. Choi, Data analytics approach for melt-pool geometries in metal additive manufacturing, Science and Technology of Advanced Materials, 20 (2019) 972-978. https://doi.org/10.1080/14686996.2019.1671140.  
