@@ -12,4 +12,4 @@ dependencies:
  - tornado=6.0.2
  - jupyter=1.0.0
  pip:
-   - minepy=1.2.3
+  - minepy=1.2.3
