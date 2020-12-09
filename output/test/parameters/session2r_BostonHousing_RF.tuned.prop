@@ -1,0 +1,13 @@
+[HYPERPARAMETERS]
+
+rf_n_estimators = 583
+rf_min_weight_fraction_leaf = 8.88888888888889e-06
+rf_min_samples_split = 2
+rf_min_samples_leaf = 2
+rf_min_impurity_decrease = 2.2222222222222225e-06
+rf_max_leaf_nodes = 100
+rf_max_features = 5
+rf_max_depth = 20
+rf_criterion = mse
+rf_bootstrap = True
+scaler_option = StandardScaler
