@@ -126,10 +126,12 @@ class MainHandler(tornado.web.RequestHandler):
 
     def get(self):
         path_to_data =  self.get_argument("path_to_data", default=None, strip=False)
-	try:
+	    
+        try:
+            # fixing some windows issue
         	path_to_data = path_to_data.replace("\\","/")
-	except:
-		pass
+	    except:
+		    pass
 
         target_col =  self.get_argument("target_col", default=None, strip=False)
         input_cols =  self.get_argument("input_cols", default=None, strip=False)
