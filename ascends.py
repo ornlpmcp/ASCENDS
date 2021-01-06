@@ -55,7 +55,7 @@ import glob
 import keras
 import math
 import matplotlib
-matplotlib.use("TkAgg")
+#matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 import os
 import pandas as pd

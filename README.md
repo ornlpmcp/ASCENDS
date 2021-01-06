@@ -193,21 +193,27 @@ To make sure ascends-toolkit has been properly installed and lear how the tool c
 
 # Installation (With Docker - For Windows, Experimental)
 
-For Windows users, we made Docker image for simple installation process.
+For Windows users, we made a Docker script for simple installation process.
 
 Please install Docker Desktop for Windows from the following link: https://hub.docker.com/search?q=&type=edition&offering=community&sort=updated_at&order=desc
-When installation is complete, open a terminal window, and run:
+When installation is complete, open a terminal window, and go to Docker directory where Dockerfile is located:
 ```
-docker pull liza183/ascends
+cd Docker
 ```
+
+Then run the following commands to build ASCENDS docker images
+```
+docker build . -t ascends
+```
+
 Then, run
 ```
-docker run -it --volume={Your data directory}/:/data --p 7777:7777 liza183/ascends /bin/bash
+docker run -it --volume={Your data directory}/:/data -p 7777:7777 ascends /bin/bash
 ```
 to get inside the docker container. You need to specify your directory path to access data inside the container.
 For instance, run 
 ```
-docker run -it --volume=~/Desktop:/data liza183/ascends /bin/bash
+docker run -it --volume=~/Desktop:/data -p 7777:7777 ascends
 ```
 
 You will see a command line prompt.
