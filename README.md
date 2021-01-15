@@ -213,7 +213,7 @@ docker run -it --volume={Your data directory}/:/data -p 7777:7777 ascends /bin/b
 to get inside the docker container. You need to specify your directory path to access data inside the container.
 For instance, run 
 ```
-docker run -it --volume=~/Desktop:/data -p 7777:7777 ascends
+docker run -it --volume=C:\Users\test\Desktop:/data -p 7777:7777 ascends /bin/bash
 ```
 
 You will see a command line prompt.
