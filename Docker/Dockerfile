@@ -1,4 +1,5 @@
 # Matt Lee (lees4@ornl.gov)
+# Dongwon Shin (shind@ornl.gov)
 
 FROM ubuntu:latest
 
@@ -8,7 +9,6 @@ EXPOSE 7777
 RUN apt update && apt -y upgrade
 # Install necessary packages
 RUN apt install -y tar wget git curl bzip2 
-#tkinter tkinter-devel python-tk
 # Download and install anaconda
 RUN curl -O https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
 RUN bash Anaconda3-2020.11-Linux-x86_64.sh -b -p /anaconda
