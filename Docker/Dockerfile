@@ -1,19 +1,23 @@
 # Matt Lee (lees4@ornl.gov)
 
-FROM centos:centos7
+FROM ubuntu:latest
 
 EXPOSE 7777
 
-RUN yum -y update && yum -y install tar && yum -y install wget && yum clean all
-RUN yum -y install git
-RUN yum -y install curl
-RUN yum -y install bzip2
-RUN yum -y install tkinter tkinter-devl python-tk
-RUN curl -O https://repo.anaconda.com/archive/Anaconda3-5.3.1-Linux-x86_64.sh
-RUN bash Anaconda3-5.3.1-Linux-x86_64.sh -b -p /anaconda
+# Update packages
+RUN apt update && apt -y upgrade
+# Install necessary packages
+RUN apt install -y tar wget git curl bzip2 
+#tkinter tkinter-devel python-tk
+# Download and install anaconda
+RUN curl -O https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh
+RUN bash Anaconda3-2020.11-Linux-x86_64.sh -b -p /anaconda
+# Download ASCENDS
 RUN git clone https://github.com/ornlpmcp/ASCENDS.git
 RUN echo 'export PATH="/anaconda/bin:$PATH"' >> ~/.bashrc 
 RUN echo "source activate ascends" > ~/.bashrc
 ENV PATH /anaconda/bin:$PATH
+# Create ascends conda environment
 RUN /anaconda/bin/conda env create -f ASCENDS/environment.yml --name ascends 
+# Launch ascends conda environemtn
 SHELL ["/anaconda/bin/conda", "run", "-n", "ascends", "/bin/bash", "-c"]
