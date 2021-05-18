@@ -74,13 +74,14 @@ The corresponding BibTex citations are as follows:
 ```
 
 # Publications with ASCENDS
-ASCENDS has been used in the following research (last updated March 16, 2021):  
-[1] J. Peng, R. Pillai, M. Romedenne, B.A. Pint, G. Muralidharan, J.A. Haynes, D.Shin, Data Analytics Approach to Predict High-Temperature Cyclic Oxidation Kinetics of NiCr-based Alloys, preprint, 2021, https://arxiv.org/abs/2102.13261.  
-[2] J. Peng, Y. Yamamoto, M.P. Brady, S. Lee, J.A. Haynes, D. Shin, Uncertainty Quantification of Machine Learning Predicted Creep Property of Alumina-Forming Austenitic Alloys, JOM, 73 (2021) 164–173. https://doi.org/10.1007/s11837-020-04423-x.  
-[3] J. Peng, Y. Yamamoto, J.A. Hawk, E. Lara-Curzio, D. Shin, Coupling physics in machine learning to predict properties of high-temperatures alloys, npj computational materials, 6 (2020) 141. https://doi.org/10.1038/s41524-020-00407-2.  
-[4] J. Park, S. Jamil, A. Khan, S. Lee, Y. Kim, SCALEML: Machine Learning based Heap Memory Object Scaling Prediction,2020 9th Non-Volatile Memory Systems and Applications Symposium (NVMSA), Seoul, Korea (South), 2020, pp. 1-6, https://ieeexplore.ieee.org/abstract/document/9188162.  
-[5] C. Do, W.R. Chen, S. Lee, Small Angle Scattering Data Analysis Assisted by Machine Learning Methods, MRS Advance, 5 (2020) 1577-1584. https://doi.org/10.1557/adv.2020.130.  
-[6]	S. Lee, J. Peng, D. Shin, Y.S. Choi, Data analytics approach for melt-pool geometries in metal additive manufacturing, Science and Technology of Advanced Materials, 20 (2019) 972-978. https://doi.org/10.1080/14686996.2019.1671140.  
+ASCENDS has been used in the following research (last updated May 18, 2021):  
+[1] X. Chong, S. Shang, A.M. Krajewski, et al., Correlation analysis of materials properties by machine learning: Illustrated with stacking fault energy from first-principles calculations in dilute fcc-based alloys, J. Phys.: Condens. Matter., 2021, in press, https://doi.org/10.1088/1361-648X/ac0195.  
+[2] J. Peng, R. Pillai, M. Romedenne, B.A. Pint, G. Muralidharan, J.A. Haynes, D.Shin, Data Analytics Approach to Predict High-Temperature Cyclic Oxidation Kinetics of NiCr-based Alloys, preprint, 2021, https://arxiv.org/abs/2102.13261.  
+[3] J. Peng, Y. Yamamoto, M.P. Brady, S. Lee, J.A. Haynes, D. Shin, Uncertainty Quantification of Machine Learning Predicted Creep Property of Alumina-Forming Austenitic Alloys, JOM, 73 (2021) 164–173. https://doi.org/10.1007/s11837-020-04423-x.  
+[4] J. Peng, Y. Yamamoto, J.A. Hawk, E. Lara-Curzio, D. Shin, Coupling physics in machine learning to predict properties of high-temperatures alloys, npj computational materials, 6 (2020) 141. https://doi.org/10.1038/s41524-020-00407-2.  
+[5] J. Park, S. Jamil, A. Khan, S. Lee, Y. Kim, SCALEML: Machine Learning based Heap Memory Object Scaling Prediction,2020 9th Non-Volatile Memory Systems and Applications Symposium (NVMSA), Seoul, Korea (South), 2020, pp. 1-6, https://ieeexplore.ieee.org/abstract/document/9188162.  
+[6] C. Do, W.R. Chen, S. Lee, Small Angle Scattering Data Analysis Assisted by Machine Learning Methods, MRS Advance, 5 (2020) 1577-1584. https://doi.org/10.1557/adv.2020.130.  
+[7]	S. Lee, J. Peng, D. Shin, Y.S. Choi, Data analytics approach for melt-pool geometries in metal additive manufacturing, Science and Technology of Advanced Materials, 20 (2019) 972-978. https://doi.org/10.1080/14686996.2019.1671140.  
 
 
 Earlier versions of ASCENDS have been used for the following research: 
