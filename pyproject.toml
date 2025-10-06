@@ -1,0 +1,36 @@
+[project]
+name = "ascends"
+version = "0.2.0"
+description = "ASCENDS v0.2 with FastAPI backend and CLI"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy",
+  "pandas",
+  "scikit-learn",
+  "xgboost",
+  "shap",
+  "dcor",
+  "fastapi",
+  "uvicorn[standard]",
+  "joblib",
+  "matplotlib",
+  "typer>=0.19.2",
+  "rich>=14.1.0",
+  "jinja2>=3.1.6",
+  "python-multipart>=0.0.20",
+]
+
+[project.scripts]
+ascends = "ascends.cli:app"
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "ruff>=0.13.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

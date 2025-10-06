@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>Feature Selection</h2>
+
+  <!-- Upload form -->
+  <form class="toolbar" action="/correlation/upload" method="post" enctype="multipart/form-data">
+    <label>Upload CSV:</label>
+    <input type="file" name="csvfile" accept=".csv">
+    <button class="btn btn-sm" type="submit">Preview</button>
+    {% if csv_path %}
+      <span style="margin-left:8px;"><strong>Loaded:</strong> {{ csv_path }}</span>
+    {% endif %}
+  </form>
+
+  {% if error %}
+    <div class="card" style="border-color:#f99;background:#fff3f3;">
+      <div class="card-body"><strong>Error:</strong> {{ error }}</div>
+    </div>
+  {% endif %}
+
+  <!-- Row 1: Data Table (full width) -->
+  <div class="row no-gap">
+    <div class="col col-12">
+      <div class="card">
+        <div class="card-title">Data Table</div>
+        <div class="card-body" style="min-height:350px; max-height:350px; overflow:auto;">
+          {% if preview_headers %}
+            <table class="preview">
+              <thead>
+                <tr>
+                  {% for h in preview_headers %}
+                    <th>{{ h }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in preview_rows %}
+                  <tr>
+                    {% for cell in r %}
+                      <td>{{ cell }}</td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <em>Table preview will appear here…</em>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: All Columns | Input/Target Columns | Correlation Analysis -->
+  <div class="row no-gap">
+    <!-- All Columns -->
+    <div class="col col-10p">
+      <div class="card">
+        <div class="card-title">All Columns</div>
+<div class="card-body scroll-panel">
+  <form action="/correlation/select" method="post">
+    {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+    <div class="toolbar">
+      <button class="btn btn-sm" type="submit" name="action" value="select_all" {% if not ws_id %}disabled{% endif %}>Select all</button>
+      <button class="btn btn-sm" type="submit" name="action" value="select_none" {% if not ws_id %}disabled{% endif %}>Select none</button>
+      <button class="btn btn-sm" type="submit" name="action" value="add_inputs" {% if not ws_id %}disabled{% endif %}>➜ Inputs</button>
+      <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled{% endif %}>🎯 Set target</button>
+      {% if selected is defined %}
+        <span style="margin-left:8px;"><strong>Selected:</strong> {{ selected|length }}</span>
+      {% endif %}
+    </div>
+    <ul class="list" id="all-cols">
+      {% if all_columns %}
+        {% for c in all_columns %}
+          <li>
+            <label>
+              <input type="checkbox" name="cols" value="{{ c }}"
+                     {% if selected and (c in selected) %}checked{% endif %}
+                     {% if not ws_id %}disabled{% endif %}>
+              {{ c }}
+            </label>
+          </li>
+        {% endfor %}
+      {% else %}
+        <li><em>Upload a CSV to populate columns…</em></li>
+      {% endif %}
+    </ul>
+    {% if all_columns %}
+      <div style="margin-top:10px;">
+        <label for="target-choice"><strong>Target choice:</strong></label>
+        <select id="target-choice" name="target_choice" class="select" {% if not ws_id %}disabled{% endif %}>
+          {% if all_columns %}
+            {% for c in all_columns %}
+              <option value="{{ c }}" {% if target is defined and target == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+    {% endif %}
+  </form>
+</div>
+      </div>
+    </div>
+
+    <!-- Input/Target Columns -->
+    <div class="col col-10p">
+      <div class="card">
+        <div class="card-title">Input/Target Columns</div>
+        <div class="card-body scroll-panel">
+          <form action="/correlation/select" method="post">
+            {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+            <div class="subcard" style="min-height:370px; overflow:auto;">
+              <div class="toolbar">
+                <button class="btn btn-sm" type="submit" name="action" value="remove_inputs" {% if not ws_id %}disabled{% endif %}>Remove</button>
+              </div>
+              <ul class="list" id="input-cols-list">
+                {% if inputs %}
+                  {% for c in inputs %}
+                    <li><label><input type="checkbox" name="inputs" value="{{ c }}" {% if not ws_id %}disabled{% endif %}> {{ c }}</label></li>
+                  {% endfor %}
+                {% else %}
+                  <li><em>No inputs selected yet…</em></li>
+                {% endif %}
+              </ul>
+            </div>
+            <div class="subcard" style="min-height:100px;">
+              <div id="target-col"><strong>Target:</strong> {{ target if target else "(none)" }}</div>
+              <div class="toolbar" style="margin-top:8px;">
+                <button class="btn btn-sm" type="submit" name="action" value="clear_target" {% if not ws_id or not target %}disabled{% endif %}>Clear target</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Correlation Analysis -->
+    <div class="col col-80p">
+      <div class="card">
+        <div class="card-title">Correlation Analysis</div>
+        <div class="card-body no-limit correlation-body">
+          <form action="/correlation/view" method="post" class="toolbar inline" style="margin-top:8px;">
+            {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+            <label><strong>Metric:</strong></label>
+            <select class="select" name="metric" {% if not available_metrics %}disabled{% endif %}>
+              {% if available_metrics %}
+                {% if available_metrics %}
+                  {% for m in available_metrics %}
+                    <option value="{{ m }}" {% if active_metric==m %}selected{% endif %}>{{ m|upper }}</option>
+                  {% endfor %}
+                {% endif %}
+              {% else %}
+                <option>(none)</option>
+              {% endif %}
+            </select>
+            <button class="btn btn-sm" type="submit" {% if not available_metrics %}disabled{% endif %}>View</button>
+            {% if active_metric %}
+              <a class="btn btn-sm" href="/correlation/download?ws_id={{ ws_id }}&metric={{ active_metric }}&fmt=csv">Download CSV</a>
+              <a class="btn btn-sm" href="/correlation/download?ws_id={{ ws_id }}&metric={{ active_metric }}&fmt=json">Download JSON</a>
+            {% endif %}
+            {% if available_metrics %}
+              <a class="btn btn-sm" href="/correlation/download_all?ws_id={{ ws_id }}">Download All (CSV)</a>
+            {% endif %}
+          </form>
+          <form action="/correlation/run" method="post">
+            {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+            <div class="toolbar inline">
+              <label><strong>Metrics:</strong></label>
+              <label><input type="checkbox" name="metrics" value="pearson" checked> Pearson</label>
+              <label><input type="checkbox" name="metrics" value="spearman" checked> Spearman</label>
+              <label><input type="checkbox" name="metrics" value="mi" checked> MI</label>
+              <label><input type="checkbox" name="metrics" value="dcor" checked> dCor</label>
+            </div>
+            <div class="toolbar inline">
+              <label><strong>Top-K:</strong></label>
+              <input type="number" class="input" name="top_k" min="1" step="1" placeholder="(all)">
+              <label style="margin-left:16px;"><strong>Task:</strong></label>
+              <label><input type="radio" name="task" value="r" checked> Regression</label>
+              <label><input type="radio" name="task" value="c"> Classification</label>
+              <label style="margin-left:16px;"><strong>View:</strong></label>
+              <select class="select" name="view">
+                <option value="wide" selected>wide</option>
+                <option value="long">long</option>
+              </select>
+            </div>
+            <div class="toolbar inline">
+              <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled{% endif %}>Perform</button>
+              <button class="btn btn-sm" type="button" disabled>Use Top-K as Inputs</button>
+              <select class="select" id="avail-chart-list"><option>Charts appear after run.</option></select>
+            </div>
+          </form>
+          {% if notice %}<p style="margin-top:8px;"><em>{{ notice }}</em></p>{% endif %}
+          {% if chart_url %}
+          <div class="subcard" style="margin-top:12px;">
+            <strong>Metric:</strong> {{ active_metric|upper }}
+            <div class="chart-box chart-compact" style="margin-top:8px;">
+              <img src="{{ chart_url }}" alt="correlation chart {{ active_metric }}">
+            </div>
+          </div>
+          {% else %}
+          <div id="corr-chart" class="chart-placeholder" style="margin-top:12px;">
+            <em>Charts and tables will appear here after you run.</em>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}
