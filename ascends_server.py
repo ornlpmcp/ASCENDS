@@ -774,6 +774,30 @@ def _unique_preserve(seq: List[str]) -> List[str]:
 
 # Helper: pick a regressor by key
 def _make_regressor(key: str):
+    k = (key or "rf").lower()
+    if k == "rf":
+        return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
+    if k == "xgb" and xgb is not None:
+        return xgb.XGBRegressor(
+            n_estimators=500, learning_rate=0.05, max_depth=6,
+            subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.0,
+            random_state=42, tree_method="hist", n_jobs=0, verbosity=0
+        )
+    if k == "hgb":
+        return HistGradientBoostingRegressor(random_state=42)
+    if k == "svr":
+        return make_pipeline(StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1))
+    if k == "knn":
+        return make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
+    if k == "linear":
+        return LinearRegression()
+    if k == "ridge":
+        return make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+    if k == "lasso":
+        return make_pipeline(StandardScaler(), Lasso(alpha=0.001, max_iter=10000))
+    if k == "elastic":
+        return make_pipeline(StandardScaler(), ElasticNet(alpha=0.001, l1_ratio=0.5, max_iter=10000))
+    # Fallback
     return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
 
 def _train_img_dir(ws_id: str) -> Path:
@@ -833,31 +857,6 @@ def _save_parity_plot(
     plt.close(fig)
     # Cache-bust
     return f"/static/workspace/{ws_id}/train/parity.png?ts={int(time.time())}"
-    k = (key or "rf").lower()
-    if k == "rf":
-        return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
-    if k == "xgb" and xgb is not None:
-        return xgb.XGBRegressor(
-            n_estimators=500, learning_rate=0.05, max_depth=6,
-            subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.0,
-            random_state=42, tree_method="hist", n_jobs=0, verbosity=0
-        )
-    if k == "hgb":
-        return HistGradientBoostingRegressor(random_state=42)
-    if k == "svr":
-        return make_pipeline(StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1))
-    if k == "knn":
-        return make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
-    if k == "linear":
-        return LinearRegression()
-    if k == "ridge":
-        return make_pipeline(StandardScaler(), Ridge(alpha=1.0))
-    if k == "lasso":
-        return make_pipeline(StandardScaler(), Lasso(alpha=0.001, max_iter=10000))
-    if k == "elastic":
-        return make_pipeline(StandardScaler(), ElasticNet(alpha=0.001, l1_ratio=0.5, max_iter=10000))
-    # Fallback
-    return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
 
 # Replace the existing /train/run (from Step A) with this version:
 @app.post("/train/run", response_class=HTMLResponse)
