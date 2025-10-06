@@ -2,55 +2,92 @@
 {% block title %}ASCENDS — ML Performance Training &amp; Test{% endblock %}
 
 {% block content %}
-
-{% set ws_from_ctx = ws_id if ws_id is defined else None %}
-{% set ws_from_qs = request.query_params.get('ws_id') if request else None %}
-{% set ws_from_ck = request.cookies.get('ws_id') if request and request.cookies else None %}
-
-<div style="font-size:12px; opacity:0.75; margin-bottom:6px;">
-  <strong>Debug:</strong>
-  ws(ctx)={{ ws_from_ctx }},
-  ws(qs)={{ ws_from_qs }},
-  ws(cookie)={{ ws_from_ck }},
-  cols={{ (all_columns|length) if all_columns is defined and all_columns else 0 }},
-  inputs={{ (inputs|length) if inputs is defined and inputs else 0 }},
-  target={{ target if target is defined else None }}
-</div>
-
 <div class="train-page">
   <section class="panel">
     <h2>ML Performance Training &amp; Test</h2>
 
     <!-- Top row: 15% | 15% | 70% -->
     <div class="train-top">
-      <!-- All Columns (15%) -->
+
+      <!-- All Columns -->
       <div class="pane">
         <div class="card">
           <div class="card-title">All Columns</div>
           <div class="card-body train-pane-scroll">
-            <em>Columns will appear here after selecting a dataset.</em>
+            <form action="/train/select" method="post">
+              {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+
+              <div class="toolbar inline">
+                <button class="btn btn-sm" type="submit" name="action" value="select_all" {% if not ws_id %}disabled{% endif %}>Select all</button>
+                <button class="btn btn-sm" type="submit" name="action" value="select_none" {% if not ws_id %}disabled{% endif %}>Select none</button>
+              </div>
+
+              <div class="subcard">
+                <strong>Columns ({{ all_columns|length if all_columns else 0 }})</strong>
+                <div class="mt-8">
+                  <ul class="list">
+                    {% for c in all_columns or [] %}
+                      <li>
+                        <label>
+                          <input type="checkbox" name="columns" value="{{ c }}"
+                                 {% if selected and c in selected %}checked{% endif %}
+                                 {% if not ws_id %}disabled{% endif %}>
+                          {{ c }}
+                        </label>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+
+              <div class="mt-8">
+                <label for="target-choice"><strong>Target choice:</strong></label>
+                <select id="target-choice" name="target_choice" class="select" {% if not ws_id %}disabled{% endif %}>
+                  {% for c in all_columns or [] %}
+                    <option value="{{ c }}" {% if target is defined and target == c %}selected{% endif %}>{{ c }}</option>
+                  {% endfor %}
+                </select>
+                <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled{% endif %}>Set target</button>
+              </div>
+
+              <div class="toolbar inline mt-8">
+                <button class="btn btn-sm" type="submit" name="action" value="to_inputs" {% if not ws_id %}disabled{% endif %}>→ Use selected as inputs</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
 
-      <!-- Input / Target (15%) -->
+      <!-- Input / Target -->
       <div class="pane">
         <div class="card">
           <div class="card-title">Input / Target</div>
           <div class="card-body train-pane-scroll">
-            <div><strong>Target:</strong> (not set)</div>
-            <div class="mt-6"><strong>Inputs (0):</strong></div>
-            <em>No inputs selected.</em>
+            <div><strong>Target:</strong> {{ target if target else "(not set)" }}</div>
+
+            <form action="/train/select" method="post" class="mt-8">
+              {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+              <div><strong>Inputs ({{ inputs|length if inputs else 0 }}):</strong></div>
+              {% if inputs %}
+                <ul class="list">
+                  {% for c in inputs %}
+                    <li><label><input type="checkbox" name="rm_inputs" value="{{ c }}"> {{ c }}</label></li>
+                  {% endfor %}
+                </ul>
+                <button class="btn btn-sm" type="submit" name="action" value="remove_inputs" {% if not ws_id %}disabled{% endif %}>Remove selected</button>
+              {% else %}
+                <em>No inputs selected.</em>
+              {% endif %}
+            </form>
           </div>
         </div>
       </div>
 
-      <!-- Accuracy Test (70%) -->
+      <!-- Accuracy Test (placeholder for now) -->
       <div class="pane">
         <div class="card">
           <div class="card-title">Accuracy Test</div>
           <div class="card-body train-accuracy-body">
-            <!-- Options toolbar (disabled placeholders) -->
             <div class="acc-toolbar">
               <strong>Task:</strong>
               <label><input type="radio" name="task" value="r" disabled checked> Regression</label>
@@ -58,15 +95,9 @@
 
               <strong>Model:</strong>
               <select class="select" name="model" disabled>
-                <option>RandomForest</option>
-                <option>XGBoost</option>
-                <option>HistGradientBoost</option>
-                <option>SVR</option>
-                <option>KNN</option>
-                <option>Linear</option>
-                <option>Ridge</option>
-                <option>Lasso</option>
-                <option>ElasticNet</option>
+                <option>RandomForest</option><option>XGBoost</option><option>HistGradientBoost</option>
+                <option>SVR</option><option>KNN</option><option>Linear</option>
+                <option>Ridge</option><option>Lasso</option><option>ElasticNet</option>
               </select>
 
               <strong>Test size:</strong>
@@ -74,11 +105,7 @@
 
               <strong>Tuning:</strong>
               <select class="select" name="tune" disabled>
-                <option>off</option>
-                <option>quick</option>
-                <option>intense</option>
-                <option>optuna</option>
-                <option>bayes</option>
+                <option>off</option><option>quick</option><option>intense</option><option>optuna</option><option>bayes</option>
               </select>
 
               <button class="btn btn-sm" disabled>Train</button>
@@ -86,12 +113,10 @@
               <a class="btn btn-sm disabled" aria-disabled="true">Use in Predict ➜</a>
             </div>
 
-            <!-- Plot placeholder -->
             <div class="plot-box">
               <em>Parity plot with embedded metrics will render here after training.</em>
             </div>
 
-            <!-- Thin save strip -->
             <div class="save-strip">
               <label for="save-name"><strong>Name:</strong></label>
               <input id="save-name" class="input" type="text" placeholder="e.g., my_best_model" disabled>
@@ -100,11 +125,11 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Bottom row: 60% | 40% -->
+    </div> <!-- /train-top -->
+
+    <!-- Bottom row (placeholders) -->
     <div class="train-bottom">
-      <!-- Test History (60%) -->
       <div class="pane">
         <div class="card">
           <div class="card-title">Test History</div>
@@ -113,8 +138,6 @@
           </div>
         </div>
       </div>
-
-      <!-- ML Models (40%) -->
       <div class="pane">
         <div class="card">
           <div class="card-title">ML Models</div>
