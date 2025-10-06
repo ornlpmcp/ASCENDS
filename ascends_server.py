@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from fastapi import Request
+from fastapi import Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 import pandas as pd
 
@@ -747,38 +747,33 @@ async def correlation_download_all(ws_id: str):
     import uvicorn  # local import to avoid E402
     uvicorn.run("ascends_server:app", host="127.0.0.1", port=7777, reload=True)
 # NEW: actions for top row (all/select/inputs/target/remove)
-@app.post("/train/select")
-async def train_select(request: Request) -> RedirectResponse:
-    form = await request.form()
-    ws_id = form.get("ws_id")
-    if not ws_id:
-        return RedirectResponse(url="/train", status_code=303)
-
+@app.post("/train/run", response_class=HTMLResponse)
+async def train_run(
+    request: Request,
+    ws_id: str = Form(...),
+    task: str = Form(...),          # "r" or "c"
+    model: str = Form(...),         # rf/xgb/hgb/svr/knn/linear/ridge/lasso/elastic
+    test_size: float = Form(...),   # e.g., 0.2
+    tune: str = Form(...),          # off/quick/intense/optuna/bayes
+):
+    # Rebuild context similar to GET /train so the page has everything it needs
+    ctx: Dict[str, Any] = {"request": request, "ws_id": ws_id}
     mf = _load_manifest(ws_id) or {}
-    cols = mf.get("columns", []) or []
-    mf.setdefault("selected", [])
-    mf.setdefault("inputs", [])
-    mf.setdefault("target", None)
+    ctx.update({
+        "csv_path": mf.get("csv_path"),
+        "all_columns": mf.get("columns", []),
+        "selected": mf.get("selected", []),
+        "inputs": mf.get("inputs", []),
+        "target": mf.get("target"),
+    })
 
-    action = (form.get("action") or "").strip()
+    # For Step A: just echo the parsed options so we know the round-trip is good
+    ctx["train_params"] = {
+        "task": task,
+        "model": model,
+        "test_size": test_size,
+        "tune": tune,
+    }
 
-    if action == "select_all":
-        mf["selected"] = list(cols)
-    elif action == "select_none":
-        mf["selected"] = []
-    elif action == "to_inputs":
-        chosen = form.getlist("columns")
-        base = [c for c in mf["inputs"] if c != mf["target"]]
-        merged = base + [c for c in chosen if c != mf["target"]]
-        mf["inputs"] = _unique_preserve(merged)
-    elif action == "set_target":
-        tgt = form.get("target_choice")
-        if tgt:
-            mf["target"] = tgt
-            mf["inputs"] = [c for c in mf["inputs"] if c != tgt]
-    elif action == "remove_inputs":
-        rm = set(form.getlist("rm_inputs"))
-        mf["inputs"] = [c for c in mf["inputs"] if c not in rm]
-
-    _save_manifest(ws_id, mf)
-    return RedirectResponse(url=f"/train?ws_id={ws_id}", status_code=303)
+    # No training yet; simply re-render the template with a confirmation box
+    return templates.TemplateResponse("train.html", ctx)
