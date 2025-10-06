@@ -2,6 +2,21 @@
 {% block title %}ASCENDS — ML Performance Training &amp; Test{% endblock %}
 
 {% block content %}
+
+{% set ws_from_ctx = ws_id if ws_id is defined else None %}
+{% set ws_from_qs = request.query_params.get('ws_id') if request else None %}
+{% set ws_from_ck = request.cookies.get('ws_id') if request and request.cookies else None %}
+
+<div style="font-size:12px; opacity:0.75; margin-bottom:6px;">
+  <strong>Debug:</strong>
+  ws(ctx)={{ ws_from_ctx }},
+  ws(qs)={{ ws_from_qs }},
+  ws(cookie)={{ ws_from_ck }},
+  cols={{ (all_columns|length) if all_columns is defined and all_columns else 0 }},
+  inputs={{ (inputs|length) if inputs is defined and inputs else 0 }},
+  target={{ target if target is defined else None }}
+</div>
+
 <div class="train-page">
   <section class="panel">
     <h2>ML Performance Training &amp; Test</h2>
