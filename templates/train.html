@@ -144,7 +144,11 @@
               {% endif %}
 
               <div class="plot-box">
-                <em>Parity plot with embedded metrics will render here after training.</em>
+                {% if parity_img_url %}
+                  <img src="{{ parity_img_url }}" alt="Parity plot" style="max-width:100%; height:auto;">
+                {% else %}
+                  <em>Parity plot with embedded metrics will render here after training.</em>
+                {% endif %}
               </div>
 
               <div class="save-strip">
