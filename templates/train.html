@@ -89,11 +89,13 @@
           <div class="card">
             <div class="card-title">Accuracy Test</div>
             <div class="card-body train-accuracy-body">
+              {% set current_task = (train_params['task'] if train_params and 'task' in train_params else 'r') %}
+              {% set current_seed = (train_params['seed'] if train_params and 'seed' in train_params else 42) %}
+              {% set current_resample = (train_params['resample'] if train_params and 'resample' in train_params else False) %}
+
               <form action="/train/run" method="post" class="acc-toolbar">
-                {% set current_task = (train_params['task'] if train_params and 'task' in train_params else 'r') %}
                 {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
 
-                <strong>Task:</strong>
                 <strong>Task:</strong>
                 <label>
                   <input type="radio" name="task" value="r"
@@ -108,28 +110,42 @@
 
                 <strong>Model:</strong>
                 <select class="select" name="model" {% if not ws_id %}disabled{% endif %}>
-                  <option value="rf">RandomForest</option>
-                  <option value="xgb">XGBoost</option>
-                  <option value="hgb">HistGradientBoost</option>
-                  <option value="svr">SVR</option>
-                  <option value="knn">KNN</option>
-                  <option value="linear">Linear</option>
-                  <option value="ridge">Ridge</option>
-                  <option value="lasso">Lasso</option>
-                  <option value="elastic">ElasticNet</option>
+                  {% set current_model = (train_params['model'] if train_params and 'model' in train_params else 'rf') %}
+                  <option value="rf"   {% if current_model=='rf' %}selected{% endif %}>RandomForest</option>
+                  <option value="xgb"  {% if current_model=='xgb' %}selected{% endif %}>XGBoost</option>
+                  <option value="hgb"  {% if current_model=='hgb' %}selected{% endif %}>HistGradientBoost</option>
+                  <option value="svr"  {% if current_model=='svr' %}selected{% endif %}>SVR</option>
+                  <option value="knn"  {% if current_model=='knn' %}selected{% endif %}>KNN</option>
+                  <option value="linear" {% if current_model=='linear' %}selected{% endif %}>Linear</option>
+                  <option value="ridge"  {% if current_model=='ridge' %}selected{% endif %}>Ridge</option>
+                  <option value="lasso"  {% if current_model=='lasso' %}selected{% endif %}>Lasso</option>
+                  <option value="elastic" {% if current_model=='elastic' %}selected{% endif %}>ElasticNet</option>
                 </select>
 
                 <strong>Test size:</strong>
-                <input class="input" type="number" name="test_size" min="0.05" max="0.5" step="0.05" value="0.20" {% if not ws_id %}disabled{% endif %}>
+                {% set current_ts = (train_params['test_size'] if train_params and 'test_size' in train_params else 0.20) %}
+                <input class="input" type="number" name="test_size" min="0.05" max="0.5" step="0.05"
+                       value="{{ '%.2f'|format(current_ts|float) }}" {% if not ws_id %}disabled{% endif %}>
 
                 <strong>Tuning:</strong>
+                {% set current_tune = (train_params['tune'] if train_params and 'tune' in train_params else 'off') %}
                 <select class="select" name="tune" {% if not ws_id %}disabled{% endif %}>
-                  <option value="off">off</option>
-                  <option value="quick">quick</option>
-                  <option value="intense">intense</option>
-                  <option value="optuna">optuna</option>
-                  <option value="bayes">bayes</option>
+                  <option value="off"    {% if current_tune=='off' %}selected{% endif %}>off</option>
+                  <option value="quick"  {% if current_tune=='quick' %}selected{% endif %}>quick</option>
+                  <option value="intense" {% if current_tune=='intense' %}selected{% endif %}>intense</option>
+                  <option value="optuna" {% if current_tune=='optuna' %}selected{% endif %}>optuna</option>
+                  <option value="bayes"  {% if current_tune=='bayes' %}selected{% endif %}>bayes</option>
                 </select>
+
+                <strong>Seed:</strong>
+                <input class="input" type="number" name="seed" min="0" step="1"
+                       value="{{ current_seed }}" {% if not ws_id %}disabled{% endif %}>
+
+                <label title="Use a fresh time-based seed each run">
+                  <input type="checkbox" name="resample" {% if current_resample %}checked{% endif %}
+                         {% if not ws_id %}disabled{% endif %}>
+                  Resample each run
+                </label>
 
                 <button class="btn btn-sm" type="submit" {% if not ws_id or not target or not inputs %}disabled{% endif %}>
                   Train
