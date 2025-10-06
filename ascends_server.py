@@ -15,6 +15,7 @@ import dcor
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from fastapi import FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from typing import Optional
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -249,6 +250,14 @@ def health() -> Dict[str, Any]:
 async def home(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("home.html", {"request": request})
 
+
+@app.get("/train", response_class=HTMLResponse)
+async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
+    return templates.TemplateResponse("train.html", {"request": request})
+
+@app.get("/predict", response_class=HTMLResponse)
+async def predict_page(request: Request, run: Optional[str] = None) -> HTMLResponse:
+    return templates.TemplateResponse("predict.html", {"request": request})
 
 @app.get("/correlation", response_class=HTMLResponse)
 async def correlation_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
