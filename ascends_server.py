@@ -761,10 +761,12 @@ async def correlation_download_all(ws_id: str):
     uvicorn.run("ascends_server:app", host="127.0.0.1", port=7777, reload=True)
 # Helper: unique while preserving order
 def _unique_preserve(seq: List[str]) -> List[str]:
-    seen = set(); out: List[str] = []
+    seen: set[str] = set()
+    out: List[str] = []
     for x in seq:
         if x not in seen:
-            seen.add(x); out.append(x)
+            seen.add(x)
+            out.append(x)
     return out
 
 # Helper: pick a regressor by key
