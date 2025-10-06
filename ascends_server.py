@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import logging
 from fastapi import Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import pandas as pd
@@ -21,6 +22,8 @@ from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from typing import Optional
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+logger = logging.getLogger("ascends.gui")
 
 app = FastAPI(title="ASCENDS GUI", version="0.1.0")
 
@@ -266,20 +269,31 @@ def _unique_preserve(seq: List[str]) -> List[str]:
 
 # Replace /train GET with context that loads manifest using ws_id or cookie
 # Replace the /train GET to load manifest by ws_id (from query or cookie)
+# Replace the /train GET with a version that logs what it sees
 @app.get("/train", response_class=HTMLResponse)
 async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
-    ctx: Dict[str, Any] = {"request": request}
-    ws = ws_id or request.cookies.get("ws_id")
+    query_ws = ws_id
+    cookie_ws = request.cookies.get("ws_id")
+    ws = query_ws or cookie_ws
+
+    logger.info(f"/train: query_ws={query_ws!r}, cookie_ws={cookie_ws!r}, chosen_ws={ws!r}")
+
+    ctx: Dict[str, Any] = {"request": request, "ws_id": ws}
+
     if ws:
         mf = _load_manifest(ws) or {}
+        logger.info(f"/train: manifest for {ws!r} keys={list(mf.keys())}")
         ctx.update({
-            "ws_id": ws,
             "csv_path": mf.get("csv_path"),
             "all_columns": mf.get("columns", []),
             "selected": mf.get("selected", []),
             "inputs": mf.get("inputs", []),
             "target": mf.get("target"),
         })
+        logger.info(f"/train: cols={len(ctx['all_columns'] or [])}, inputs={len(ctx['inputs'] or [])}, target={ctx.get('target')!r}")
+    else:
+        logger.info("/train: no ws_id available (query or cookie)")
+
     return templates.TemplateResponse("train.html", ctx)
 
 @app.get("/predict", response_class=HTMLResponse)
