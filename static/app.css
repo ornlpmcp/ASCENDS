@@ -10,6 +10,64 @@ nav a:hover { color:var(--accent); }
   padding: clamp(0.75rem, 2vw, 1.5rem);
   margin: 0 auto;
 }
+
+.train-page .train-top {
+  display: grid;
+  grid-template-columns: 15% 15% 70%;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.train-page .train-bottom {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.train-page .pane { min-width: 0; }
+
+.train-page .train-pane-scroll {
+  height: 60vh;
+  overflow: auto;
+}
+
+.train-page .train-accuracy-body {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.train-page .acc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.train-page .plot-box {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(0,0,0,0.15);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.train-page .save-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .train-page .train-top { grid-template-columns: 100%; }
+  .train-page .train-bottom { grid-template-columns: 100%; }
+  .train-page .train-pane-scroll { height: auto; }
+  .train-page .train-accuracy-body { min-height: auto; }
+}
 .panel { padding:16px; border:1px solid #eee; border-radius:12px; background:#fafafa; }
 
 .tabs { display:flex; gap:12px; padding:8px 16px; border-bottom:1px solid #ddd; }
