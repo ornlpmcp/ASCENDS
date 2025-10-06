@@ -20,7 +20,6 @@ import matplotlib
 matplotlib.use("Agg")  # headless
 import matplotlib.pyplot as plt
 import time
-from pathlib import Path
 try:
     import xgboost as xgb  # type: ignore
 except Exception:
@@ -31,7 +30,6 @@ from uuid import uuid4
 
 import matplotlib
 matplotlib.use("Agg")  # headless, no GUI windows
-import matplotlib.pyplot as plt
 import dcor
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from fastapi import FastAPI, File, UploadFile
