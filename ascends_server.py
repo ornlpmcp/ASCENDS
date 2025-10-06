@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-import logging
+from typing import Optional, Dict, Any, List
 from fastapi import Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import pandas as pd
