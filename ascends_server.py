@@ -10,16 +10,14 @@ import pandas as pd
 import json
 from uuid import uuid4
 
-import pandas as pd
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")  # headless, no GUI windows
 import matplotlib.pyplot as plt
 import dcor
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
-from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
-from typing import Optional
+from fastapi import FastAPI, File, Form, UploadFile
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 

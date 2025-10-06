@@ -13,6 +13,7 @@ dist/
 
 # ASCENDS runtime
 workspace/uploads/
+workspace
 runs/
 logs/
 *.log
