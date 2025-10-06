@@ -892,7 +892,10 @@ async def train_run(
         "selected": mf.get("selected", []),
         "inputs": inputs,
         "target": target,
-        "train_params": {"task": task, "model": model, "test_size": test_size, "tune": tune},
+        "train_params": {
+            "task": task, "model": model, "test_size": test_size, "tune": tune,
+            "seed": seed_val, "resample": bool(resample),
+        },
     })
 
     # Guardrails
