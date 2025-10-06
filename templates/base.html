@@ -3,17 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ASCENDS</title>
+  <title>{% block title %}ASCENDS{% endblock %}</title>
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; object-src 'none'; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'">
   <link rel="stylesheet" href="/static/app.css">
   <link rel="icon" href="/static/favicon.ico">
 </head>
 <body>
+  <!-- Optional site header; hidden by CSS if you prefer -->
+  <header class="topbar"><h1>ASCENDS</h1></header>
+
+  {# Determine active tab from the current URL path #}
+  {% set path = request.url.path if request and request.url else '' %}
+
   <nav class="tabs">
-    <a href="/correlation" class="tab">Correlation Analysis &amp; Feature Selection</a>
-    <a href="/train" class="tab">ML Performance Training &amp; Test</a>
-    <a href="/predict" class="tab">ML Prediction</a>
+    <a href="/correlation"
+       class="tab{% if path.startswith('/correlation') %} active{% endif %}"
+       title="Correlation Analysis &amp; Feature Selection">
+      Correlation Analysis &amp; Feature Selection
+    </a>
+    <a href="/train"
+       class="tab{% if path.startswith('/train') %} active{% endif %}"
+       title="ML Performance Training &amp; Test">
+      ML Performance Training &amp; Test
+    </a>
+    <a href="/predict"
+       class="tab{% if path.startswith('/predict') %} active{% endif %}"
+       title="ML Prediction">
+      ML Prediction
+    </a>
   </nav>
+
   <main class="container">
     {% block content %}{% endblock %}
   </main>
