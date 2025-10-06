@@ -11,6 +11,25 @@ nav a:hover { color:var(--accent); }
   margin: 0 auto;
 }
 
+.train-page .plot-box img {
+  max-width: 100%;
+  max-height: 42vh;   /* cap vertical size so no scrolling is needed */
+  height: auto;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+@media (max-height: 800px) {
+  .train-page .plot-box img { max-height: 36vh; }
+}
+
+/* (Optional) make the accuracy area a bit shorter so things feel tighter */
+.train-page .train-accuracy-body {
+  min-height: 52vh;   /* was 60vh */
+}
+
 .train-page .train-top {
   display: grid;
   grid-template-columns: 15% 15% 70%;
