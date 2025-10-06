@@ -90,11 +90,21 @@
             <div class="card-title">Accuracy Test</div>
             <div class="card-body train-accuracy-body">
               <form action="/train/run" method="post" class="acc-toolbar">
+                {% set current_task = (train_params['task'] if train_params and 'task' in train_params else 'r') %}
                 {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
 
                 <strong>Task:</strong>
-                <label><input type="radio" name="task" value="r" {% if not ws_id %}disabled{% endif %} {% if request %}{% if request.method == 'GET' %}checked{% endif %}{% endif %}> Regression</label>
-                <label><input type="radio" name="task" value="c" {% if not ws_id %}disabled{% endif %}> Classification</label>
+                <strong>Task:</strong>
+                <label>
+                  <input type="radio" name="task" value="r"
+                         {% if not ws_id %}disabled{% endif %}
+                         {% if current_task == 'r' %}checked{% endif %}> Regression
+                </label>
+                <label>
+                  <input type="radio" name="task" value="c"
+                         {% if not ws_id %}disabled{% endif %}
+                         {% if current_task == 'c' %}checked{% endif %}> Classification
+                </label>
 
                 <strong>Model:</strong>
                 <select class="select" name="model" {% if not ws_id %}disabled{% endif %}>
