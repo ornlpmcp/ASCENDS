@@ -6,11 +6,24 @@ from typing import Optional, Dict, Any, List
 from fastapi import Request, Form
 from fastapi.responses import HTMLResponse
 import pandas as pd
+import numpy as np
+from math import sqrt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
+try:
+    import xgboost as xgb  # type: ignore
+except Exception:
+    xgb = None  # xgb optional; we'll fallback if absent
 
 import json
 from uuid import uuid4
 
-import numpy as np
 import matplotlib
 matplotlib.use("Agg")  # headless, no GUI windows
 import matplotlib.pyplot as plt
@@ -746,6 +759,43 @@ async def correlation_download_all(ws_id: str):
     return FileResponse(str(combined_path), media_type="text/csv", filename="correlation_all.csv")
     import uvicorn  # local import to avoid E402
     uvicorn.run("ascends_server:app", host="127.0.0.1", port=7777, reload=True)
+# Helper: unique while preserving order
+def _unique_preserve(seq: List[str]) -> List[str]:
+    seen = set(); out: List[str] = []
+    for x in seq:
+        if x not in seen:
+            seen.add(x); out.append(x)
+    return out
+
+# Helper: pick a regressor by key
+def _make_regressor(key: str):
+    k = (key or "rf").lower()
+    if k == "rf":
+        return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
+    if k == "xgb" and xgb is not None:
+        return xgb.XGBRegressor(
+            n_estimators=500, learning_rate=0.05, max_depth=6,
+            subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.0,
+            random_state=42, tree_method="hist", n_jobs=0, verbosity=0
+        )
+    if k == "hgb":
+        return HistGradientBoostingRegressor(random_state=42)
+    if k == "svr":
+        return make_pipeline(StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1))
+    if k == "knn":
+        return make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
+    if k == "linear":
+        return LinearRegression()
+    if k == "ridge":
+        return make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+    if k == "lasso":
+        return make_pipeline(StandardScaler(), Lasso(alpha=0.001, max_iter=10000))
+    if k == "elastic":
+        return make_pipeline(StandardScaler(), ElasticNet(alpha=0.001, l1_ratio=0.5, max_iter=10000))
+    # Fallback
+    return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
+
+# Replace the existing /train/run (from Step A) with this version:
 @app.post("/train/run", response_class=HTMLResponse)
 async def train_run(
     request: Request,
@@ -753,26 +803,82 @@ async def train_run(
     task: str = Form(...),          # "r" or "c"
     model: str = Form(...),         # rf/xgb/hgb/svr/knn/linear/ridge/lasso/elastic
     test_size: float = Form(...),   # e.g., 0.2
-    tune: str = Form(...),          # off/quick/intense/optuna/bayes
+    tune: str = Form(...),          # off/quick/intense/optuna/bayes (ignored in Step B)
 ):
-    # Rebuild context similar to GET /train so the page has everything it needs
+    # Build base context
     ctx: Dict[str, Any] = {"request": request, "ws_id": ws_id}
     mf = _load_manifest(ws_id) or {}
+    all_columns = mf.get("columns", [])
+    inputs = mf.get("inputs", [])
+    target = mf.get("target")
+
     ctx.update({
         "csv_path": mf.get("csv_path"),
-        "all_columns": mf.get("columns", []),
+        "all_columns": all_columns,
         "selected": mf.get("selected", []),
-        "inputs": mf.get("inputs", []),
-        "target": mf.get("target"),
+        "inputs": inputs,
+        "target": target,
+        "train_params": {"task": task, "model": model, "test_size": test_size, "tune": tune},
     })
 
-    # For Step A: just echo the parsed options so we know the round-trip is good
-    ctx["train_params"] = {
-        "task": task,
-        "model": model,
-        "test_size": test_size,
-        "tune": tune,
-    }
+    # Guardrails
+    if task != "r":
+        ctx["train_error"] = "Classification will be added later. Please use Regression for now."
+        return templates.TemplateResponse("train.html", ctx)
+    if not inputs or not target:
+        ctx["train_error"] = "Please select at least one input and a target."
+        return templates.TemplateResponse("train.html", ctx)
 
-    # No training yet; simply re-render the template with a confirmation box
+    # Load data
+    csv_path = mf.get("csv_path")
+    try:
+        df = pd.read_csv(csv_path)
+    except Exception as e:
+        ctx["train_error"] = f"Failed to read CSV: {e}"
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Keep only required columns & drop rows with NA in them
+    needed = [c for c in inputs if c in df.columns] + ([target] if target in df.columns else [])
+    if not needed or target not in needed:
+        ctx["train_error"] = "Selected columns not found in CSV. (Case sensitivity or mismatch.)"
+        return templates.TemplateResponse("train.html", ctx)
+
+    df2 = df[needed].dropna(axis=0, how="any")
+    X = df2[inputs]
+    y = df2[target]
+
+    # Split
+    try:
+        ts = float(test_size)
+    except Exception:
+        ts = 0.2
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=ts, random_state=42)
+
+    # Model
+    est = _make_regressor(model)
+
+    # Fit & predict
+    try:
+        est.fit(X_train, y_train)
+        y_pred_train = est.predict(X_train)
+        y_pred_test = est.predict(X_test)
+    except Exception as e:
+        ctx["train_error"] = f"Model training failed: {e}"
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Metrics (train/test)
+    def _metrics(y_true, y_pred):
+        r2 = r2_score(y_true, y_pred)
+        mae = mean_absolute_error(y_true, y_pred)
+        rmse = sqrt(mean_squared_error(y_true, y_pred))
+        return {"R2": r2, "MAE": mae, "RMSE": rmse}
+
+    ctx["metrics_train"] = _metrics(y_train, y_pred_train)
+    ctx["metrics_test"]  = _metrics(y_test,  y_pred_test)
+
+    # Save a small parity preview in context (used in Step C for plotting)
+    ctx["parity_preview"] = {
+        "train": {"actual": y_train.tolist(), "pred": y_pred_train.tolist()},
+        "test":  {"actual": y_test.tolist(),  "pred": y_pred_test.tolist()},
+    }
     return templates.TemplateResponse("train.html", ctx)
