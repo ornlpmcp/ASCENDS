@@ -86,41 +86,70 @@
       <!-- Accuracy Test (placeholder for now) -->
       <div class="pane">
         <div class="card">
-          <div class="card-title">Accuracy Test</div>
-          <div class="card-body train-accuracy-body">
-            <div class="acc-toolbar">
-              <strong>Task:</strong>
-              <label><input type="radio" name="task" value="r" disabled checked> Regression</label>
-              <label><input type="radio" name="task" value="c" disabled> Classification</label>
+          <div class="card">
+            <div class="card-title">Accuracy Test</div>
+            <div class="card-body train-accuracy-body">
+              <form action="/train/run" method="post" class="acc-toolbar">
+                {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
 
-              <strong>Model:</strong>
-              <select class="select" name="model" disabled>
-                <option>RandomForest</option><option>XGBoost</option><option>HistGradientBoost</option>
-                <option>SVR</option><option>KNN</option><option>Linear</option>
-                <option>Ridge</option><option>Lasso</option><option>ElasticNet</option>
-              </select>
+                <strong>Task:</strong>
+                <label><input type="radio" name="task" value="r" {% if not ws_id %}disabled{% endif %} {% if request %}{% if request.method == 'GET' %}checked{% endif %}{% endif %}> Regression</label>
+                <label><input type="radio" name="task" value="c" {% if not ws_id %}disabled{% endif %}> Classification</label>
 
-              <strong>Test size:</strong>
-              <input class="input" type="number" name="test_size" min="0.05" max="0.5" step="0.05" value="0.20" disabled>
+                <strong>Model:</strong>
+                <select class="select" name="model" {% if not ws_id %}disabled{% endif %}>
+                  <option value="rf">RandomForest</option>
+                  <option value="xgb">XGBoost</option>
+                  <option value="hgb">HistGradientBoost</option>
+                  <option value="svr">SVR</option>
+                  <option value="knn">KNN</option>
+                  <option value="linear">Linear</option>
+                  <option value="ridge">Ridge</option>
+                  <option value="lasso">Lasso</option>
+                  <option value="elastic">ElasticNet</option>
+                </select>
 
-              <strong>Tuning:</strong>
-              <select class="select" name="tune" disabled>
-                <option>off</option><option>quick</option><option>intense</option><option>optuna</option><option>bayes</option>
-              </select>
+                <strong>Test size:</strong>
+                <input class="input" type="number" name="test_size" min="0.05" max="0.5" step="0.05" value="0.20" {% if not ws_id %}disabled{% endif %}>
 
-              <button class="btn btn-sm" disabled>Train</button>
-              <button class="btn btn-sm" disabled>Tune only</button>
-              <a class="btn btn-sm disabled" aria-disabled="true">Use in Predict ➜</a>
-            </div>
+                <strong>Tuning:</strong>
+                <select class="select" name="tune" {% if not ws_id %}disabled{% endif %}>
+                  <option value="off">off</option>
+                  <option value="quick">quick</option>
+                  <option value="intense">intense</option>
+                  <option value="optuna">optuna</option>
+                  <option value="bayes">bayes</option>
+                </select>
 
-            <div class="plot-box">
-              <em>Parity plot with embedded metrics will render here after training.</em>
-            </div>
+                <button class="btn btn-sm" type="submit" {% if not ws_id or not target or not inputs %}disabled{% endif %}>
+                  Train
+                </button>
+              </form>
 
-            <div class="save-strip">
-              <label for="save-name"><strong>Name:</strong></label>
-              <input id="save-name" class="input" type="text" placeholder="e.g., my_best_model" disabled>
-              <button class="btn btn-sm" disabled>Save Model</button>
+              {% if train_params %}
+                <div class="subcard">
+                  <strong>Received parameters</strong>
+                  <div class="mt-8">
+                    <ul class="list">
+                      <li>task = {{ train_params.task or train_params["task"] }}</li>
+                      <li>model = {{ train_params.model or train_params["model"] }}</li>
+                      <li>test_size = {{ train_params.test_size or train_params["test_size"] }}</li>
+                      <li>tune = {{ train_params.tune or train_params["tune"] }}</li>
+                    </ul>
+                  </div>
+                  <em>Step A complete — form wiring works. Next: run training and render parity plot.</em>
+                </div>
+              {% endif %}
+
+              <div class="plot-box">
+                <em>Parity plot with embedded metrics will render here after training.</em>
+              </div>
+
+              <div class="save-strip">
+                <label for="save-name"><strong>Name:</strong></label>
+                <input id="save-name" class="input" type="text" placeholder="e.g., my_best_model" disabled>
+                <button class="btn btn-sm" disabled>Save Model</button>
+              </div>
             </div>
           </div>
         </div>
