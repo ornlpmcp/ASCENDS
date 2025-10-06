@@ -16,6 +16,11 @@ from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegresso
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
+import matplotlib
+matplotlib.use("Agg")  # headless
+import matplotlib.pyplot as plt
+import time
+from pathlib import Path
 try:
     import xgboost as xgb  # type: ignore
 except Exception:
@@ -771,6 +776,65 @@ def _unique_preserve(seq: List[str]) -> List[str]:
 
 # Helper: pick a regressor by key
 def _make_regressor(key: str):
+    return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
+
+def _train_img_dir(ws_id: str) -> Path:
+    d = STATIC_DIR / "workspace" / ws_id / "train"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+def _save_parity_plot(
+    ws_id: str,
+    y_train: np.ndarray, y_pred_train: np.ndarray,
+    y_test: np.ndarray,  y_pred_test: np.ndarray,
+    metrics_train: Dict[str, float], metrics_test: Dict[str, float],
+) -> str:
+    """Save a parity plot PNG under static/workspace/<ws_id>/train and return its URL."""
+    img_dir = _train_img_dir(ws_id)
+    out_png = img_dir / "parity.png"
+
+    # Golden ratio figure (w x h) with reasonable height for the UI
+    phi = (1 + 5 ** 0.5) / 2
+    width = 8.0
+    height = width / phi  # ~4.94
+
+    # Limits
+    all_actual = np.concatenate([y_train, y_test])
+    all_pred   = np.concatenate([y_pred_train, y_pred_test])
+    vmin = float(np.nanmin([all_actual.min(), all_pred.min()]))
+    vmax = float(np.nanmax([all_actual.max(), all_pred.max()]))
+    pad = 0.02 * (vmax - vmin) if vmax > vmin else 1.0
+    lo, hi = vmin - pad, vmax + pad
+
+    fig, ax = plt.subplots(figsize=(width, height), dpi=300)
+    # 45-degree reference
+    ax.plot([lo, hi], [lo, hi], linestyle="--", linewidth=1.0, alpha=0.8)
+    # Points
+    ax.scatter(y_train, y_pred_train, s=14, alpha=0.7, label="Train")
+    ax.scatter(y_test,  y_pred_test,  s=18, alpha=0.8, marker="x", label="Test")
+    ax.set_xlim(lo, hi)
+    ax.set_ylim(lo, hi)
+    ax.set_xlabel("Actual")
+    ax.set_ylabel("Predicted")
+    ax.legend(loc="upper left", frameon=True)
+
+    # Metrics box (embedded)
+    box_text = (
+        f"Train — R²={metrics_train['R2']:.3f}, MAE={metrics_train['MAE']:.3f}, RMSE={metrics_train['RMSE']:.3f}\n"
+        f"Test  — R²={metrics_test['R2']:.3f}, MAE={metrics_test['MAE']:.3f}, RMSE={metrics_test['RMSE']:.3f}"
+    )
+    ax.text(
+        0.02, 0.02, box_text,
+        transform=ax.transAxes, fontsize=8,
+        ha="left", va="bottom",
+        bbox=dict(boxstyle="round,pad=0.35", facecolor="white", alpha=0.85, linewidth=0.5),
+    )
+
+    fig.tight_layout()
+    fig.savefig(out_png, bbox_inches="tight")
+    plt.close(fig)
+    # Cache-bust
+    return f"/static/workspace/{ws_id}/train/parity.png?ts={int(time.time())}"
     k = (key or "rf").lower()
     if k == "rf":
         return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
@@ -878,9 +942,15 @@ async def train_run(
     ctx["metrics_train"] = _metrics(y_train, y_pred_train)
     ctx["metrics_test"]  = _metrics(y_test,  y_pred_test)
 
-    # Save a small parity preview in context (used in Step C for plotting)
-    ctx["parity_preview"] = {
-        "train": {"actual": y_train.tolist(), "pred": y_pred_train.tolist()},
-        "test":  {"actual": y_test.tolist(),  "pred": y_pred_test.tolist()},
-    }
+    # Step C: write parity plot PNG and expose its URL
+    try:
+        ctx["parity_img_url"] = _save_parity_plot(
+            ws_id,
+            y_train, y_pred_train,
+            y_test,  y_pred_test,
+            ctx["metrics_train"], ctx["metrics_test"],
+        )
+    except Exception as e:
+        ctx["train_error"] = f"Failed to generate parity plot: {e}"
+        
     return templates.TemplateResponse("train.html", ctx)
