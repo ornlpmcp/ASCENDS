@@ -9,9 +9,7 @@
   <link rel="icon" href="/static/favicon.ico">
 </head>
 <body>
-  <!-- Optional site header; hidden by CSS if you prefer -->
-  <header class="topbar"><h1>ASCENDS</h1></header>
-
+ 
   {# Determine active tab from the current URL path #}
   {% set path = request.url.path if request and request.url else '' %}
 
