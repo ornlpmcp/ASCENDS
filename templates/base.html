@@ -13,23 +13,22 @@
   {# Determine active tab from the current URL path #}
   {% set path = request.url.path if request and request.url else '' %}
 
-  <nav class="tabs">
-    <a href="/correlation"
-       class="tab{% if path.startswith('/correlation') %} active{% endif %}"
-       title="Correlation Analysis &amp; Feature Selection">
-      Correlation Analysis &amp; Feature Selection
-    </a>
-    <a href="/train"
-       class="tab{% if path.startswith('/train') %} active{% endif %}"
-       title="ML Performance Training &amp; Test">
-      ML Performance Training &amp; Test
-    </a>
-    <a href="/predict"
-       class="tab{% if path.startswith('/predict') %} active{% endif %}"
-       title="ML Prediction">
-      ML Prediction
-    </a>
-  </nav>
+{% set ws = (ws_id if (ws_id is defined and ws_id) else (request.query_params.get('ws_id') if request else None)) %}
+
+<nav class="tabs">
+  <a href="/correlation{% if ws %}?ws_id={{ ws }}{% endif %}"
+     class="tab{% if request and request.url and request.url.path.startswith('/correlation') %} active{% endif %}">
+    Correlation Analysis &amp; Feature Selection
+  </a>
+  <a href="/train{% if ws %}?ws_id={{ ws }}{% endif %}"
+     class="tab{% if request and request.url and request.url.path.startswith('/train') %} active{% endif %}">
+    ML Performance Training &amp; Test
+  </a>
+  <a href="/predict{% if ws %}?ws_id={{ ws }}{% endif %}"
+     class="tab{% if request and request.url and request.url.path.startswith('/predict') %} active{% endif %}">
+    ML Prediction
+  </a>
+</nav>
 
   <main class="container">
     {% block content %}{% endblock %}
