@@ -846,10 +846,11 @@ def _save_parity_plot(
         f"Test  — R²={metrics_test['R2']:.3f}, MAE={metrics_test['MAE']:.3f}, RMSE={metrics_test['RMSE']:.3f}"
     )
     ax.text(
-        0.02, 0.02, box_text,
-        transform=ax.transAxes, fontsize=8,
-        ha="left", va="bottom",
-        bbox=dict(boxstyle="round,pad=0.35", facecolor="white", alpha=0.85, linewidth=0.5),
+        0.98, 0.02, box_text,
+        transform=ax.transAxes, fontsize=16,  # ~2x larger
+        ha="right", va="bottom",             # bottom-right corner
+        bbox=dict(boxstyle="round,pad=0.35", facecolor="white", alpha=0.9, linewidth=0.5),
+        zorder=5,
     )
 
     fig.tight_layout()
