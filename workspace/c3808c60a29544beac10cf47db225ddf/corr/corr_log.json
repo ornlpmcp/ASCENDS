@@ -1,0 +1,33 @@
+{
+  "rows_in": 437,
+  "rows_used": 437,
+  "rows_dropped": 0,
+  "skipped_inputs": [],
+  "used_inputs": [
+    "NT",
+    "THT",
+    "THt",
+    "THQCr",
+    "CT",
+    "Ct",
+    "DT",
+    "Dt",
+    "QmT",
+    "TT",
+    "Tt",
+    "TCr",
+    "C",
+    "Si",
+    "Mn",
+    "P",
+    "S",
+    "Ni",
+    "Cr",
+    "Cu",
+    "Mo",
+    "RedRatio",
+    "dA",
+    "dB",
+    "dC"
+  ]
+}
