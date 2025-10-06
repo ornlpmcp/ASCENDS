@@ -887,6 +887,8 @@ async def train_run(
             seed_val = 42
     else:
         seed_val = 42
+
+    ctx.update({
         "csv_path": mf.get("csv_path"),
         "all_columns": all_columns,
         "selected": mf.get("selected", []),
