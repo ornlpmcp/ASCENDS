@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from fastapi import Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 import pandas as pd
 
 import json
@@ -746,7 +746,6 @@ async def correlation_download_all(ws_id: str):
     return FileResponse(str(combined_path), media_type="text/csv", filename="correlation_all.csv")
     import uvicorn  # local import to avoid E402
     uvicorn.run("ascends_server:app", host="127.0.0.1", port=7777, reload=True)
-# NEW: actions for top row (all/select/inputs/target/remove)
 @app.post("/train/run", response_class=HTMLResponse)
 async def train_run(
     request: Request,
