@@ -272,17 +272,10 @@ def _unique_preserve(seq: List[str]) -> List[str]:
 # Replace the /train GET with a version that logs what it sees
 @app.get("/train", response_class=HTMLResponse)
 async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
-    query_ws = ws_id
-    cookie_ws = request.cookies.get("ws_id")
-    ws = query_ws or cookie_ws
-
-    logger.info(f"/train: query_ws={query_ws!r}, cookie_ws={cookie_ws!r}, chosen_ws={ws!r}")
-
+    ws = ws_id or request.query_params.get("ws_id")
     ctx: Dict[str, Any] = {"request": request, "ws_id": ws}
-
     if ws:
         mf = _load_manifest(ws) or {}
-        logger.info(f"/train: manifest for {ws!r} keys={list(mf.keys())}")
         ctx.update({
             "csv_path": mf.get("csv_path"),
             "all_columns": mf.get("columns", []),
@@ -290,10 +283,6 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
             "inputs": mf.get("inputs", []),
             "target": mf.get("target"),
         })
-        logger.info(f"/train: cols={len(ctx['all_columns'] or [])}, inputs={len(ctx['inputs'] or [])}, target={ctx.get('target')!r}")
-    else:
-        logger.info("/train: no ws_id available (query or cookie)")
-
     return templates.TemplateResponse("train.html", ctx)
 
 @app.get("/predict", response_class=HTMLResponse)
@@ -780,9 +769,9 @@ async def train_select(request: Request) -> RedirectResponse:
     elif action == "select_none":
         mf["selected"] = []
     elif action == "to_inputs":
-        selected = form.getlist("columns")
+        chosen = form.getlist("columns")
         base = [c for c in mf["inputs"] if c != mf["target"]]
-        merged = base + [c for c in selected if c != mf["target"]]
+        merged = base + [c for c in chosen if c != mf["target"]]
         mf["inputs"] = _unique_preserve(merged)
     elif action == "set_target":
         tgt = form.get("target_choice")
