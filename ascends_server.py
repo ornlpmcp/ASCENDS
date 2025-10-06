@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from fastapi.responses import RedirectResponse
+from fastapi import Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+import pandas as pd
 
 import json
 from uuid import uuid4
@@ -263,6 +265,7 @@ def _unique_preserve(seq: List[str]) -> List[str]:
     return out
 
 # Replace /train GET with context that loads manifest using ws_id or cookie
+# Replace the /train GET to load manifest by ws_id (from query or cookie)
 @app.get("/train", response_class=HTMLResponse)
 async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
     ctx: Dict[str, Any] = {"request": request}
@@ -742,7 +745,7 @@ async def correlation_download_all(ws_id: str):
     return FileResponse(str(combined_path), media_type="text/csv", filename="correlation_all.csv")
     import uvicorn  # local import to avoid E402
     uvicorn.run("ascends_server:app", host="127.0.0.1", port=7777, reload=True)
-# New: POST endpoint to update selection/inputs/target on Train pane
+# NEW: actions for top row (all/select/inputs/target/remove)
 @app.post("/train/select")
 async def train_select(request: Request) -> RedirectResponse:
     form = await request.form()
