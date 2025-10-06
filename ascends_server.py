@@ -773,18 +773,18 @@ def _unique_preserve(seq: List[str]) -> List[str]:
     return out
 
 # Helper: pick a regressor by key
-def _make_regressor(key: str):
+def _make_regressor(key: str, seed: Optional[int] = 42):
     k = (key or "rf").lower()
     if k == "rf":
-        return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
+        return RandomForestRegressor(n_estimators=300, random_state=seed, n_jobs=-1)
     if k == "xgb" and xgb is not None:
         return xgb.XGBRegressor(
             n_estimators=500, learning_rate=0.05, max_depth=6,
             subsample=0.9, colsample_bytree=0.9, reg_alpha=0.0, reg_lambda=1.0,
-            random_state=42, tree_method="hist", n_jobs=0, verbosity=0
+            random_state=seed, tree_method="hist", n_jobs=0, verbosity=0
         )
     if k == "hgb":
-        return HistGradientBoostingRegressor(random_state=42)
+        return HistGradientBoostingRegressor(random_state=seed)
     if k == "svr":
         return make_pipeline(StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1))
     if k == "knn":
@@ -798,7 +798,7 @@ def _make_regressor(key: str):
     if k == "elastic":
         return make_pipeline(StandardScaler(), ElasticNet(alpha=0.001, l1_ratio=0.5, max_iter=10000))
     # Fallback
-    return RandomForestRegressor(n_estimators=300, random_state=42, n_jobs=-1)
+    return RandomForestRegressor(n_estimators=300, random_state=seed, n_jobs=-1)
 
 def _train_img_dir(ws_id: str) -> Path:
     d = STATIC_DIR / "workspace" / ws_id / "train"
@@ -858,7 +858,7 @@ def _save_parity_plot(
     # Cache-bust
     return f"/static/workspace/{ws_id}/train/parity.png?ts={int(time.time())}"
 
-# Replace the existing /train/run (from Step A) with this version:
+# Replace the /train/run handler to accept seed & resample and use them
 @app.post("/train/run", response_class=HTMLResponse)
 async def train_run(
     request: Request,
@@ -867,6 +867,8 @@ async def train_run(
     model: str = Form(...),         # rf/xgb/hgb/svr/knn/linear/ridge/lasso/elastic
     test_size: float = Form(...),   # e.g., 0.2
     tune: str = Form(...),          # off/quick/intense/optuna/bayes (ignored in Step B)
+    seed: Optional[str] = Form(None), # numeric seed as text
+    resample: Optional[str] = Form(None), # checkbox -> "on" when checked
 ):
     # Build base context
     ctx: Dict[str, Any] = {"request": request, "ws_id": ws_id}
@@ -875,7 +877,16 @@ async def train_run(
     inputs = mf.get("inputs", [])
     target = mf.get("target")
 
-    ctx.update({
+    # Determine seed value
+    if resample:  # checkbox checked -> time-based seed
+        seed_val = int(time.time()) & 0xFFFFFFFF
+    elif seed not in (None, ""):
+        try:
+            seed_val = int(seed)
+        except Exception:
+            seed_val = 42
+    else:
+        seed_val = 42
         "csv_path": mf.get("csv_path"),
         "all_columns": all_columns,
         "selected": mf.get("selected", []),
@@ -915,10 +926,11 @@ async def train_run(
         ts = float(test_size)
     except Exception:
         ts = 0.2
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=ts, random_state=42)
+    # Split with chosen seed
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=ts, random_state=seed_val)
 
-    # Model
-    est = _make_regressor(model)
+    # Model with chosen seed (where applicable)
+    est = _make_regressor(model, seed=seed_val)
 
     # Fit & predict
     try:
