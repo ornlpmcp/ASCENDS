@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from fastapi.responses import RedirectResponse
 
 import json
 from uuid import uuid4
@@ -251,9 +252,32 @@ async def home(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("home.html", {"request": request})
 
 
+# Helper to preserve order & uniqueness
+def _unique_preserve(seq: List[str]) -> List[str]:
+    seen = set()
+    out: List[str] = []
+    for x in seq:
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out
+
+# Replace /train GET with context that loads manifest using ws_id or cookie
 @app.get("/train", response_class=HTMLResponse)
 async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
-    return templates.TemplateResponse("train.html", {"request": request})
+    ctx: Dict[str, Any] = {"request": request}
+    ws = ws_id or request.cookies.get("ws_id")
+    if ws:
+        mf = _load_manifest(ws) or {}
+        ctx.update({
+            "ws_id": ws,
+            "csv_path": mf.get("csv_path"),
+            "all_columns": mf.get("columns", []),
+            "selected": mf.get("selected", []),
+            "inputs": mf.get("inputs", []),
+            "target": mf.get("target"),
+        })
+    return templates.TemplateResponse("train.html", ctx)
 
 @app.get("/predict", response_class=HTMLResponse)
 async def predict_page(request: Request, run: Optional[str] = None) -> HTMLResponse:
@@ -718,3 +742,39 @@ async def correlation_download_all(ws_id: str):
     return FileResponse(str(combined_path), media_type="text/csv", filename="correlation_all.csv")
     import uvicorn  # local import to avoid E402
     uvicorn.run("ascends_server:app", host="127.0.0.1", port=7777, reload=True)
+# New: POST endpoint to update selection/inputs/target on Train pane
+@app.post("/train/select")
+async def train_select(request: Request) -> RedirectResponse:
+    form = await request.form()
+    ws_id = form.get("ws_id")
+    if not ws_id:
+        return RedirectResponse(url="/train", status_code=303)
+
+    mf = _load_manifest(ws_id) or {}
+    cols = mf.get("columns", []) or []
+    mf.setdefault("selected", [])
+    mf.setdefault("inputs", [])
+    mf.setdefault("target", None)
+
+    action = (form.get("action") or "").strip()
+
+    if action == "select_all":
+        mf["selected"] = list(cols)
+    elif action == "select_none":
+        mf["selected"] = []
+    elif action == "to_inputs":
+        selected = form.getlist("columns")
+        base = [c for c in mf["inputs"] if c != mf["target"]]
+        merged = base + [c for c in selected if c != mf["target"]]
+        mf["inputs"] = _unique_preserve(merged)
+    elif action == "set_target":
+        tgt = form.get("target_choice")
+        if tgt:
+            mf["target"] = tgt
+            mf["inputs"] = [c for c in mf["inputs"] if c != tgt]
+    elif action == "remove_inputs":
+        rm = set(form.getlist("rm_inputs"))
+        mf["inputs"] = [c for c in mf["inputs"] if c not in rm]
+
+    _save_manifest(ws_id, mf)
+    return RedirectResponse(url=f"/train?ws_id={ws_id}", status_code=303)
