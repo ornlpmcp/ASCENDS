@@ -8,7 +8,7 @@ import shutil
 import json
 import re
 from typing import Optional, Dict, Any, List
-from fastapi import Request, Form
+from fastapi import Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse
 import pandas as pd
 import numpy as np
@@ -415,7 +415,52 @@ async def train_delete(
 
 @app.get("/predict", response_class=HTMLResponse)
 async def predict_page(request: Request, run: Optional[str] = None) -> HTMLResponse:
-    return templates.TemplateResponse("predict.html", {"request": request})
+    """Render Predict tab with saved runs and (optional) preselected run via ?run=."""
+    selected_run = run or request.query_params.get("run")
+    ctx: Dict[str, Any] = {
+        "request": request,
+        "saved_runs": _list_saved_runs(),
+        "selected_run": selected_run,
+    }
+    return templates.TemplateResponse("predict.html", ctx)
+
+@app.post("/predict/run", response_class=HTMLResponse)
+async def predict_run(
+    request: Request,
+    run_name: str = Form(...),
+    csvfile: UploadFile = File(...),
+) -> HTMLResponse:
+    """Step P1: echo the user's selections (run + file). No prediction yet."""
+    # Basic validation
+    errors: list[str] = []
+    if not run_name:
+        errors.append("Please select a saved model (run).")
+    if not csvfile or not csvfile.filename:
+        errors.append("Please upload a CSV file.")
+
+    file_info = None
+    if not errors:
+        try:
+            # Peek at size (read then discard for P1)
+            content = await csvfile.read()
+            file_info = {"filename": csvfile.filename, "bytes": len(content)}
+        except Exception as e:
+            errors.append(f"Failed to read uploaded file: {e}")
+
+    ctx: Dict[str, Any] = {
+        "request": request,
+        "saved_runs": _list_saved_runs(),
+        "selected_run": run_name,
+        "upload_info": file_info,
+        "predict_errors": errors if errors else None,
+        # Placeholders for future steps:
+        "predict_summary": None,
+        "predict_preview_headers": None,
+        "predict_preview_rows": None,
+        "download_csv_url": None,
+        "download_xlsx_url": None,
+    }
+    return templates.TemplateResponse("predict.html", ctx)
 
 @app.get("/correlation", response_class=HTMLResponse)
 async def correlation_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
