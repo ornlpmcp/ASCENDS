@@ -44,7 +44,7 @@
                 <label for="target-choice"><strong>Target choice:</strong></label>
                 <select id="target-choice" name="target_choice" class="select" {% if not ws_id %}disabled{% endif %}>
                   {% for c in all_columns or [] %}
-                    <option value="{{ c }}" {% if target is defined and target == c %}selected{% endif %}>{{ c }}</option>
+                    <option value="{{ c }}" {% if target and target == c %}selected{% endif %}>{{ c }}</option>
                   {% endfor %}
                 </select>
                 <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled{% endif %}>Set target</button>
@@ -100,26 +100,26 @@
                 <label>
                   <input type="radio" name="task" value="r"
                          {% if not ws_id %}disabled{% endif %}
-                         {% if current_task == 'r' %}checked{% endif %}> Regression
+                         {% if current_task and current_task == 'r' %}checked{% endif %}> Regression
                 </label>
                 <label>
                   <input type="radio" name="task" value="c"
                          {% if not ws_id %}disabled{% endif %}
-                         {% if current_task == 'c' %}checked{% endif %}> Classification
+                         {% if current_task and current_task == 'c' %}checked{% endif %}> Classification
                 </label>
 
                 <strong>Model:</strong>
                 <select class="select" name="model" {% if not ws_id %}disabled{% endif %}>
                   {% set current_model = (train_params['model'] if train_params and 'model' in train_params else 'rf') %}
-                  <option value="rf"   {% if current_model=='rf' %}selected{% endif %}>RandomForest</option>
-                  <option value="xgb"  {% if current_model=='xgb' %}selected{% endif %}>XGBoost</option>
-                  <option value="hgb"  {% if current_model=='hgb' %}selected{% endif %}>HistGradientBoost</option>
-                  <option value="svr"  {% if current_model=='svr' %}selected{% endif %}>SVR</option>
-                  <option value="knn"  {% if current_model=='knn' %}selected{% endif %}>KNN</option>
-                  <option value="linear" {% if current_model=='linear' %}selected{% endif %}>Linear</option>
-                  <option value="ridge"  {% if current_model=='ridge' %}selected{% endif %}>Ridge</option>
-                  <option value="lasso"  {% if current_model=='lasso' %}selected{% endif %}>Lasso</option>
-                  <option value="elastic" {% if current_model=='elastic' %}selected{% endif %}>ElasticNet</option>
+                  <option value="rf"   {% if current_model and current_model=='rf' %}selected{% endif %}>RandomForest</option>
+                  <option value="xgb"  {% if current_model and current_model=='xgb' %}selected{% endif %}>XGBoost</option>
+                  <option value="hgb"  {% if current_model and current_model=='hgb' %}selected{% endif %}>HistGradientBoost</option>
+                  <option value="svr"  {% if current_model and current_model=='svr' %}selected{% endif %}>SVR</option>
+                  <option value="knn"  {% if current_model and current_model=='knn' %}selected{% endif %}>KNN</option>
+                  <option value="linear" {% if current_model and current_model=='linear' %}selected{% endif %}>Linear</option>
+                  <option value="ridge"  {% if current_model and current_model=='ridge' %}selected{% endif %}>Ridge</option>
+                  <option value="lasso"  {% if current_model and current_model=='lasso' %}selected{% endif %}>Lasso</option>
+                  <option value="elastic" {% if current_model and current_model=='elastic' %}selected{% endif %}>ElasticNet</option>
                 </select>
 
                 <strong>Test size:</strong>
@@ -130,11 +130,11 @@
                 <strong>Tuning:</strong>
                 {% set current_tune = (train_params['tune'] if train_params and 'tune' in train_params else 'off') %}
                 <select class="select" name="tune" {% if not ws_id %}disabled{% endif %}>
-                  <option value="off"    {% if current_tune=='off' %}selected{% endif %}>off</option>
-                  <option value="quick"  {% if current_tune=='quick' %}selected{% endif %}>quick</option>
-                  <option value="intense" {% if current_tune=='intense' %}selected{% endif %}>intense</option>
-                  <option value="optuna" {% if current_tune=='optuna' %}selected{% endif %}>optuna</option>
-                  <option value="bayes"  {% if current_tune=='bayes' %}selected{% endif %}>bayes</option>
+                  <option value="off"    {% if current_tune and current_tune=='off' %}selected{% endif %}>off</option>
+                  <option value="quick"  {% if current_tune and current_tune=='quick' %}selected{% endif %}>quick</option>
+                  <option value="intense" {% if current_tune and current_tune=='intense' %}selected{% endif %}>intense</option>
+                  <option value="optuna" {% if current_tune and current_tune=='optuna' %}selected{% endif %}>optuna</option>
+                  <option value="bayes"  {% if current_tune and current_tune=='bayes' %}selected{% endif %}>bayes</option>
                 </select>
 
                 <strong>Seed:</strong>
@@ -212,7 +212,7 @@
         <div class="card">
           <div class="card-title">ML Models</div>
           <div class="card-body">
-            {% if saved_runs and saved_runs|length > 0 %}
+            {% if saved_runs %}
               <table class="table" style="width:100%; border-collapse:collapse;">
                 <thead>
                   <tr>
