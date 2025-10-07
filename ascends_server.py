@@ -2,6 +2,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from joblib import dump
+from datetime import datetime
+import shutil
+import json
+import re
 from typing import Optional, Dict, Any, List
 from fastapi import Request, Form
 from fastapi.responses import HTMLResponse
@@ -858,6 +863,67 @@ def _save_parity_plot(
     plt.close(fig)
     # Cache-bust
     return f"/static/workspace/{ws_id}/train/parity.png?ts={int(time.time())}"
+
+# --------------------------
+# Runs/save helpers & state
+# --------------------------
+RUNS_DIR = Path("runs")
+RUNS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Cache the last trained estimator & context by workspace (for quick Save)
+LAST_TRAIN: Dict[str, Any] = {}
+
+def _slugify_name(name: str) -> str:
+    name = name.strip()
+    if not name:
+        return ""
+    # letters, numbers, dash, underscore only
+    slug = re.sub(r"[^A-Za-z0-9_\-]+", "_", name)
+    return slug.strip("_-")
+
+def _unique_run_name(base: str) -> str:
+    """Ensure run name is unique under runs/ by appending numeric suffix if needed."""
+    base = _slugify_name(base) or datetime.now().strftime("run_%Y%m%d_%H%M%S")
+    candidate = base
+    n = 2
+    while (RUNS_DIR / candidate).exists():
+        candidate = f"{base}_{n}"
+        n += 1
+    return candidate
+
+def _list_saved_runs() -> list[dict]:
+    """Scan runs/* and load manifest + metrics for the ML Models pane."""
+    out: list[dict] = []
+    if not RUNS_DIR.exists():
+        return out
+    for p in sorted(RUNS_DIR.iterdir()):
+        if not p.is_dir():
+            continue
+        man = p / "manifest.json"
+        met = p / "metrics.csv"
+        item: dict[str, Any] = {"name": p.name}
+        try:
+            if man.exists():
+                item.update(json.loads(man.read_text(encoding="utf-8")))
+        except Exception:
+            pass
+        # Load test metrics (prefer manifest if present)
+        if met.exists():
+            try:
+                import pandas as _pd  # local to avoid global import shadowing
+                dfm = _pd.read_csv(met)
+                # Expect rows Train/Test, columns R2, MAE, RMSE
+                test_row = dfm[dfm["split"].str.lower() == "test"]
+                if not test_row.empty:
+                    tr = test_row.iloc[0]
+                    item.setdefault("metrics", {})
+                    item["metrics"].update({"R2": float(tr.get("R2", float("nan"))),
+                                            "MAE": float(tr.get("MAE", float("nan"))),
+                                            "RMSE": float(tr.get("RMSE", float("nan")))})
+            except Exception:
+                pass
+        out.append(item)
+    return out
 
 # Replace the /train/run handler to accept seed & resample and use them
 @app.post("/train/run", response_class=HTMLResponse)
