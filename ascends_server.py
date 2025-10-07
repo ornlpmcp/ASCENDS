@@ -436,13 +436,7 @@ async def predict_page(request: Request, run: Optional[str] = None) -> HTMLRespo
     return templates.TemplateResponse("predict.html", ctx)
 
 @app.post("/predict/run", response_class=HTMLResponse)
-async def predict_run(from joblib import load
-async def predict_run(from urllib.parse import quote, unquote
-async def predict_run(from datetime import datetime
-async def predict_run(from pathlib import Path
-async def predict_run(import os
-
-async def predict_run(async def predict_run(
+async def predict_run(
     request: Request,
     run_name: str = Form(...),
     csvfile: UploadFile = File(...),
