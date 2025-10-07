@@ -178,9 +178,18 @@
               </div>
 
               <div class="save-strip">
-                <label for="save-name"><strong>Name:</strong></label>
-                <input id="save-name" class="input" type="text" placeholder="e.g., my_best_model" disabled>
-                <button class="btn btn-sm" disabled>Save Model</button>
+                {% if save_ok %}
+                  <span style="color:#2a7;"><strong>{{ save_ok }}</strong></span>
+                {% endif %}
+                {% if train_error %}
+                  <span style="color:#a33;"><strong>{{ train_error }}</strong></span>
+                {% endif %}
+                <form action="/train/save" method="post" style="display:flex; gap:8px; align-items:center;">
+                  {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+                  <label for="save-name"><strong>Name:</strong></label>
+                  <input id="save-name" name="save_name" class="input" type="text" placeholder="e.g., my_best_model">
+                  <button class="btn btn-sm" type="submit" {% if not parity_img_url %}disabled{% endif %}>Save Model</button>
+                </form>
               </div>
             </div>
           </div>
@@ -203,7 +212,60 @@
         <div class="card">
           <div class="card-title">ML Models</div>
           <div class="card-body">
-            <em>Saved models will appear here with metrics, inputs, target, and actions.</em>
+            {% if saved_runs and saved_runs|length > 0 %}
+              <table class="table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Name</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Model</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Task</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Target</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Inputs</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Test R² / MAE / RMSE</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Created</th>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for r in saved_runs %}
+                  <tr>
+                    <td style="vertical-align:top; padding:4px 6px;"><code>{{ r.name }}</code></td>
+                    <td style="vertical-align:top; padding:4px 6px;">{{ r.model or "—" }}</td>
+                    <td style="vertical-align:top; padding:4px 6px;">{{ r.task or "r" }}</td>
+                    <td style="vertical-align:top; padding:4px 6px;">{{ r.target or "—" }}</td>
+                    <td style="vertical-align:top; padding:4px 6px;">
+                      {% if r.inputs %}
+                        {{ r.inputs|length }}&nbsp;feat<br>
+                        <small>{{ r.inputs|join(", ") }}</small>
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td style="vertical-align:top; padding:4px 6px;">
+                      {% set m = r.metrics if r.metrics is defined else r.get('metrics') %}
+                      {% if m %}
+                        R²={{ "%.3f"|format(m["R2"]) if m["R2"] is defined else "—" }},
+                        MAE={{ "%.3f"|format(m["MAE"]) if m["MAE"] is defined else "—" }},
+                        RMSE={{ "%.3f"|format(m["RMSE"]) if m["RMSE"] is defined else "—" }}
+                      {% else %}—{% endif %}
+                    </td>
+                    <td style="vertical-align:top; padding:4px 6px;">{{ r.created_at or "—" }}</td>
+                    <td style="vertical-align:top; padding:4px 6px;">
+                      <div style="display:flex; gap:8px;">
+                        <a class="btn btn-sm" href="/predict?run={{ r.name }}">Proceed →</a>
+                        <form action="/train/delete" method="post" onsubmit="return confirm('Delete run {{ r.name }}?');">
+                          <input type="hidden" name="run_name" value="{{ r.name }}">
+                          <button class="btn btn-sm" type="submit">Delete</button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <em>No saved models yet.</em>
+            {% endif %}
           </div>
         </div>
       </div>
