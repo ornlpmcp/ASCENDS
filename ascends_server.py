@@ -427,12 +427,18 @@ async def predict_page(request: Request, run: Optional[str] = None) -> HTMLRespo
     return templates.TemplateResponse("predict.html", ctx)
 
 @app.post("/predict/run", response_class=HTMLResponse)
-async def predict_run(
+async def predict_run(from joblib import load
+async def predict_run(from urllib.parse import quote, unquote
+async def predict_run(from datetime import datetime
+async def predict_run(from pathlib import Path
+async def predict_run(import os
+
+async def predict_run(async def predict_run(
     request: Request,
     run_name: str = Form(...),
     csvfile: UploadFile = File(...),
 ) -> HTMLResponse:
-    """Step P2: validate schema (case-insensitive), coerce/clean, and preview (no prediction yet)."""
+    """Schema validation (case-insensitive), coerce/clean, predict, save CSV, preview."""
     errors: list[str] = []
     ctx: Dict[str, Any] = {
         "request": request,
@@ -514,17 +520,78 @@ async def predict_run(
     rows_used = len(df_used)
     dropped = rows_read - rows_used
 
-    # Prepare preview (5 rows) — still no prediction column yet
-    preview = df_used.head(5).astype(object).where(pd.notnull(df_used.head(5)), None)
+    if rows_used == 0:
+        ctx["predict_errors"] = [f"All {rows_read} rows contained NA/invalid values in required inputs; nothing to predict."]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Load estimator
+    model_path = RUNS_DIR / run_name / "model.joblib"
+    if not model_path.exists():
+        ctx["predict_errors"] = [f"Run '{run_name}' is missing model.joblib."]
+        return templates.TemplateResponse("predict.html", ctx)
+    try:
+        est = load(model_path)
+    except Exception as e:
+        ctx["predict_errors"] = [f"Failed to load model.joblib: {e}"]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Predict
+    try:
+        preds = est.predict(df_used)
+    except Exception as e:
+        ctx["predict_errors"] = [f"Prediction failed: {e}"]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Build results DataFrame (inputs + prediction)
+    pred_col = f"{target}_pred" if target else "prediction"
+    result_df = df_used.copy()
+    result_df[pred_col] = preds
+
+    # Save CSV under runs/<run_name>/predictions/
+    pred_dir = RUNS_DIR / run_name / "predictions"
+    pred_dir.mkdir(parents=True, exist_ok=True)
+    # Create a safe filename based on uploaded name + timestamp
+    try:
+        stem = Path(csvfile.filename).stem if csvfile.filename else "input"
+    except Exception:
+        stem = "input"
+    safe_stem = _slugify_name(stem) or "input"
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    out_name = f"{safe_stem}_{ts}_pred.csv"
+    out_path = pred_dir / out_name
+    try:
+        result_df.to_csv(out_path, index=False)
+    except Exception as e:
+        ctx["predict_errors"] = [f"Failed to save predictions CSV: {e}"]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Preview (5 rows) including prediction column
+    preview = result_df.head(5).astype(object).where(pd.notnull(result_df.head(5)), None)
     ctx["predict_preview_headers"] = list(preview.columns)
     ctx["predict_preview_rows"] = preview.values.tolist()
 
+    # Summary + download link
     ctx["predict_summary"] = (
         f"Read: {rows_read}, Used: {rows_used}, Dropped: {dropped} "
-        f"(NA/invalid). Matched features case-insensitively. Extras ignored."
+        f"(NA/invalid). Matched features case-insensitively. Extras ignored. "
+        f"Saved: runs/{run_name}/predictions/{out_name}"
     )
+    ctx["download_csv_url"] = f"/predict/download?run={quote(run_name)}&file={quote(out_name)}"
     ctx["predict_errors"] = None
     return templates.TemplateResponse("predict.html", ctx)
+
+@app.get("/predict/download")
+async def predict_download(
+    run: str = Query(..., description="Saved run name"),
+    file: str = Query(..., description="Predictions filename in the run's predictions directory"),
+):
+    """Serve a predictions CSV from runs/<run>/predictions/<file> with basic path safety."""
+    pred_dir = (RUNS_DIR / run / "predictions").resolve()
+    file_path = (pred_dir / file).resolve()
+    # Basic path traversal protection
+    if not str(file_path).startswith(str(pred_dir)) or not file_path.is_file():
+        return HTMLResponse(status_code=404, content="Not found")
+    return FileResponse(file_path, media_type="text/csv", filename=file)
 
 @app.get("/correlation", response_class=HTMLResponse)
 async def correlation_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
