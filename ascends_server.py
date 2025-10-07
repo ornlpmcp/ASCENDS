@@ -10,16 +10,10 @@ import re
 from typing import Optional, Dict, Any, List
 from fastapi import Request, Form, UploadFile, File
 from fastapi import Query
-from fastapi import Query
 import io
-import json
 from joblib import load
-from urllib.parse import quote, unquote
-from datetime import datetime
-from pathlib import Path
-import os
+from urllib.parse import quote
 from fastapi.responses import HTMLResponse
-from fastapi.responses import FileResponse
 from fastapi.responses import FileResponse
 import pandas as pd
 import numpy as np
@@ -47,8 +41,8 @@ import matplotlib
 matplotlib.use("Agg")  # headless, no GUI windows
 import dcor
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
