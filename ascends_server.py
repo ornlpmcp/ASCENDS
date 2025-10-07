@@ -1045,7 +1045,7 @@ def _unique_run_name(base: str) -> str:
         n += 1
     return candidate
 
-def _list_saved_runs() -> list[dict]:
+def _list_saved_runs() -> List[Dict[str, Any]]:
     """Scan runs/* and load manifest + metrics for the ML Models pane."""
     out: list[dict] = []
     if not RUNS_DIR.exists():
