@@ -9,6 +9,8 @@ import json
 import re
 from typing import Optional, Dict, Any, List
 from fastapi import Request, Form, UploadFile, File
+import io
+import json
 from fastapi.responses import HTMLResponse
 import pandas as pd
 import numpy as np
@@ -430,36 +432,98 @@ async def predict_run(
     run_name: str = Form(...),
     csvfile: UploadFile = File(...),
 ) -> HTMLResponse:
-    """Step P1: echo the user's selections (run + file). No prediction yet."""
-    # Basic validation
+    """Step P2: validate schema (case-insensitive), coerce/clean, and preview (no prediction yet)."""
     errors: list[str] = []
-    if not run_name:
-        errors.append("Please select a saved model (run).")
-    if not csvfile or not csvfile.filename:
-        errors.append("Please upload a CSV file.")
-
-    file_info = None
-    if not errors:
-        try:
-            # Peek at size (read then discard for P1)
-            content = await csvfile.read()
-            file_info = {"filename": csvfile.filename, "bytes": len(content)}
-        except Exception as e:
-            errors.append(f"Failed to read uploaded file: {e}")
-
     ctx: Dict[str, Any] = {
         "request": request,
         "saved_runs": _list_saved_runs(),
         "selected_run": run_name,
-        "upload_info": file_info,
-        "predict_errors": errors if errors else None,
-        # Placeholders for future steps:
         "predict_summary": None,
         "predict_preview_headers": None,
         "predict_preview_rows": None,
         "download_csv_url": None,
         "download_xlsx_url": None,
     }
+
+    # Basic form checks
+    if not run_name:
+        errors.append("Please select a saved model (run).")
+    if not csvfile or not csvfile.filename:
+        errors.append("Please upload a CSV file.")
+    if errors:
+        ctx["predict_errors"] = errors
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Load run manifest
+    man_path = RUNS_DIR / run_name / "manifest.json"
+    if not man_path.exists():
+        ctx["predict_errors"] = [f"Run '{run_name}' is missing manifest.json."]
+        return templates.TemplateResponse("predict.html", ctx)
+    try:
+        manifest = json.loads(man_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        ctx["predict_errors"] = [f"Failed to read manifest.json for '{run_name}': {e}"]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    inputs: List[str] = manifest.get("inputs", []) or []
+    target: Optional[str] = manifest.get("target") or None
+    if not inputs:
+        ctx["predict_errors"] = [f"Run '{run_name}' has no recorded input features in manifest.json."]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Read uploaded CSV to DataFrame (in-memory)
+    try:
+        raw = await csvfile.read()
+        df = pd.read_csv(io.BytesIO(raw))
+    except Exception as e:
+        ctx["predict_errors"] = [f"Failed to parse uploaded CSV: {e}"]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    if df.empty:
+        ctx["predict_errors"] = ["Uploaded CSV is empty."]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Case-insensitive header mapping: manifest inputs -> actual CSV columns
+    # Build a lookup of lowercase->actual for CSV headers
+    csv_cols = list(df.columns)
+    lower_map = {c.lower(): c for c in csv_cols}
+    mapping: Dict[str, str] = {}
+    missing: List[str] = []
+    for feat in inputs:
+        key = feat.lower()
+        if key in lower_map:
+            mapping[feat] = lower_map[key]
+        else:
+            missing.append(feat)
+
+    if missing:
+        ctx["predict_errors"] = [
+            "Missing required feature(s) in CSV (case-insensitive match failed): "
+            + ", ".join(missing)
+        ]
+        return templates.TemplateResponse("predict.html", ctx)
+
+    # Align columns in manifest order; coerce to numeric and drop NA rows on required inputs
+    aligned_cols = [mapping[f] for f in inputs]  # actual column names in csv, ordered per manifest
+    df_aligned = df[aligned_cols].copy()
+    for c in df_aligned.columns:
+        df_aligned[c] = pd.to_numeric(df_aligned[c], errors="coerce")
+
+    rows_read = len(df_aligned)
+    df_used = df_aligned.dropna(axis=0, how="any")
+    rows_used = len(df_used)
+    dropped = rows_read - rows_used
+
+    # Prepare preview (5 rows) — still no prediction column yet
+    preview = df_used.head(5).astype(object).where(pd.notnull(df_used.head(5)), None)
+    ctx["predict_preview_headers"] = list(preview.columns)
+    ctx["predict_preview_rows"] = preview.values.tolist()
+
+    ctx["predict_summary"] = (
+        f"Read: {rows_read}, Used: {rows_used}, Dropped: {dropped} "
+        f"(NA/invalid). Matched features case-insensitively. Extras ignored."
+    )
+    ctx["predict_errors"] = None
     return templates.TemplateResponse("predict.html", ctx)
 
 @app.get("/correlation", response_class=HTMLResponse)
