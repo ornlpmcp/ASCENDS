@@ -1033,5 +1033,21 @@ async def train_run(
         )
     except Exception as e:
         ctx["train_error"] = f"Failed to generate parity plot: {e}"
+
+    # Cache last train to enable quick "Save Model"
+    LAST_TRAIN[ws_id] = {
+        "estimator": est,
+        "params": ctx["train_params"],
+        "inputs": inputs,
+        "target": target,
+        "csv_path": csv_path,
+        "metrics_train": ctx["metrics_train"],
+        "metrics_test": ctx["metrics_test"],
+        "parity_img_url": ctx.get("parity_img_url"),
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+    }
+
+    # Refresh saved runs list in the page
+    ctx["saved_runs"] = _list_saved_runs()
         
     return templates.TemplateResponse("train.html", ctx)
