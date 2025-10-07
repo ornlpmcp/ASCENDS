@@ -3,6 +3,94 @@
 {% block content %}
 <section class="panel">
   <h2>ML Prediction</h2>
-  <p><em>Content coming soon.</em></p>
+
+  <!-- Top: choose saved model + upload CSV -->
+  <div class="card">
+    <div class="card-title">Model &amp; Input Data</div>
+    <div class="card-body">
+      <form action="/predict/run" method="post" enctype="multipart/form-data" class="toolbar inline" style="flex-wrap:wrap; gap:10px;">
+        <label for="run_name"><strong>Saved Model:</strong></label>
+        <select id="run_name" name="run_name" class="select" style="min-width:260px;">
+          <option value="">(choose a run)</option>
+          {% for r in saved_runs or [] %}
+            <option value="{{ r.name }}" {% if selected_run and selected_run == r.name %}selected{% endif %}>
+              {{ r.name }}
+            </option>
+          {% endfor %}
+        </select>
+
+        <label for="csvfile"><strong>Input CSV:</strong></label>
+        <input id="csvfile" type="file" name="csvfile" accept=".csv">
+
+        <button class="btn btn-sm" type="submit">Run Predict</button>
+      </form>
+
+      {% if predict_errors %}
+        <div class="subcard" style="color:#a33; margin-top:10px;">
+          <strong>Errors:</strong>
+          <ul class="list">
+            {% for e in predict_errors %}<li>{{ e }}</li>{% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      {% if upload_info %}
+        <div class="subcard" style="margin-top:10px;">
+          <strong>Step P1:</strong> Received
+          <ul class="list" style="margin-top:6px;">
+            <li>Run = <code>{{ selected_run }}</code></li>
+            <li>File = <code>{{ upload_info.filename }}</code> ({{ upload_info.bytes }} bytes)</li>
+          </ul>
+          <em>Round-trip OK. Next step will validate schema and run predictions.</em>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Results placeholder area (P2/P3 will fill this) -->
+  <div class="card" style="margin-top:12px;">
+    <div class="card-title">Results</div>
+    <div class="card-body">
+      {% if predict_summary %}
+        <div class="subcard">{{ predict_summary }}</div>
+      {% endif %}
+
+      {% if predict_preview_headers and predict_preview_rows %}
+        <div style="overflow:auto; max-height:360px;">
+          <table class="table" style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr>
+                {% for h in predict_preview_headers %}
+                  <th style="text-align:left; border-bottom:1px solid #ddd; padding:4px 6px;">{{ h }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in predict_preview_rows %}
+                <tr>
+                  {% for cell in row %}
+                    <td style="border-bottom:1px solid #f0f0f0; padding:4px 6px;">{{ cell }}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <em>No results yet.</em>
+      {% endif %}
+
+      {% if download_csv_url or download_xlsx_url %}
+        <div class="toolbar" style="margin-top:10px;">
+          {% if download_csv_url %}
+            <a class="btn btn-sm" href="{{ download_csv_url }}">Download CSV</a>
+          {% endif %}
+          {% if download_xlsx_url %}
+            <a class="btn btn-sm" href="{{ download_xlsx_url }}">Download Excel</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </section>
 {% endblock %}
