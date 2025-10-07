@@ -177,12 +177,12 @@
                 {% endif %}
               </div>
 
-              <div class="save-strip">
+              <div class="save-strip" style="margin-top:8px;">
                 {% if save_ok %}
-                  <span style="color:#2a7;"><strong>{{ save_ok }}</strong></span>
+                  <div class="notice ok"><strong>{{ save_ok }}</strong></div>
                 {% endif %}
                 {% if train_error %}
-                  <span style="color:#a33;"><strong>{{ train_error }}</strong></span>
+                  <div class="notice err"><strong>{{ train_error }}</strong></div>
                 {% endif %}
                 <form action="/train/save" method="post" style="display:flex; gap:8px; align-items:center;">
                   {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
