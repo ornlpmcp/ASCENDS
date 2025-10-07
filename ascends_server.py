@@ -30,7 +30,6 @@ try:
 except Exception:
     xgb = None  # xgb optional; we'll fallback if absent
 
-import json
 from uuid import uuid4
 
 import matplotlib
