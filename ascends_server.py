@@ -567,12 +567,12 @@ async def predict_run(
     ctx["predict_preview_headers"] = list(preview.columns)
     ctx["predict_preview_rows"] = preview.values.tolist()
 
-    # Summary + download link
-    ctx["predict_summary"] = (
-        f"Read: {rows_read}, Used: {rows_used}, Dropped: {dropped} "
-        f"(NA/invalid). Matched features case-insensitively. Extras ignored. "
-        f"Saved: runs/{run_name}/predictions/{out_name}"
-    )
+    # Structured stats + download link (avoid noisy free-text summary)
+    ctx["rows_read"] = rows_read
+    ctx["rows_used"] = rows_used
+    ctx["rows_dropped"] = dropped
+    ctx["saved_relpath"] = f"runs/{run_name}/predictions/{out_name}"
+    ctx["predict_summary"] = None  # no verbose string in UI
     ctx["download_csv_url"] = f"/predict/download?run={quote(run_name)}&file={quote(out_name)}"
     ctx["predict_errors"] = None
     return templates.TemplateResponse("predict.html", ctx)
