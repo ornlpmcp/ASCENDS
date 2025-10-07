@@ -129,10 +129,35 @@ nav a:hover { color:var(--accent); }
   border-radius: 8px;
 }
 
-.toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-.toolbar.inline { align-items:center; }
-.btn { border:1px solid #ccc; background:#fff; border-radius:6px; padding:6px 8px; cursor:pointer; }
-.btn:hover { background:#f3f3f3; }
+.toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.input, .select {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+}
+.input:focus, .select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+.btn {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) {
+  background: #eef2ff;
+  border-color: #b6c3ff;
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; }
 .btn-sm { font-size:0.9rem; padding:4px 8px; }
 .input { padding:6px 8px; border:1px solid #ccc; border-radius:6px; width:120px; }
 .input-inline { display:inline-flex; gap:6px; align-items:center; margin:0 8px; }
