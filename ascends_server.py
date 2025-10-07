@@ -306,6 +306,114 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
     ctx["saved_runs"] = _list_saved_runs()
     return templates.TemplateResponse("train.html", ctx)
 
+# Save the current trained model and artifacts into runs/<name>/
+@app.post("/train/save", response_class=HTMLResponse)
+async def train_save(
+    request: Request,
+    ws_id: str = Form(...),
+    save_name: Optional[str] = Form(None),
+) -> HTMLResponse:
+    ctx: Dict[str, Any] = {"request": request, "ws_id": ws_id}
+    # Load manifest to re-populate panes
+    mf = _load_manifest(ws_id) or {}
+    ctx.update({
+        "csv_path": mf.get("csv_path"),
+        "all_columns": mf.get("columns", []),
+        "selected": mf.get("selected", []),
+        "inputs": mf.get("inputs", []),
+        "target": mf.get("target"),
+    })
+
+    rec = LAST_TRAIN.get(ws_id)
+    if not rec:
+        ctx["train_error"] = "No trained model available to save. Please Train first."
+        ctx["saved_runs"] = _list_saved_runs()
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Determine run name
+    base = save_name or (rec["params"].get("model", "model") + "_" + datetime.now().strftime("%Y%m%d_%H%M%S"))
+    run_name = _unique_run_name(base)
+    out_dir = RUNS_DIR / run_name
+    out_dir.mkdir(parents=True, exist_ok=False)
+
+    # Save model
+    try:
+        dump(rec["estimator"], out_dir / "model.joblib")
+    except Exception as e:
+        ctx["train_error"] = f"Failed to save model: {e}"
+        shutil.rmtree(out_dir, ignore_errors=True)
+        ctx["saved_runs"] = _list_saved_runs()
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Save metrics.csv
+    try:
+        import pandas as _pd
+        dfm = _pd.DataFrame([
+            {"split": "Train", "R2": rec["metrics_train"]["R2"], "MAE": rec["metrics_train"]["MAE"], "RMSE": rec["metrics_train"]["RMSE"]},
+            {"split": "Test",  "R2": rec["metrics_test"]["R2"],  "MAE": rec["metrics_test"]["MAE"],  "RMSE": rec["metrics_test"]["RMSE"]},
+        ])
+        dfm.to_csv(out_dir / "metrics.csv", index=False)
+    except Exception as e:
+        ctx["train_error"] = f"Failed to write metrics.csv: {e}"
+        shutil.rmtree(out_dir, ignore_errors=True)
+        ctx["saved_runs"] = _list_saved_runs()
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Save manifest.json for the run
+    manifest = {
+        "name": run_name,
+        "created_at": rec["timestamp"],
+        "task": "r",
+        "model": rec["params"].get("model"),
+        "seed": rec["params"].get("seed"),
+        "test_size": rec["params"].get("test_size"),
+        "tune": rec["params"].get("tune"),
+        "inputs": rec.get("inputs", []),
+        "target": rec.get("target"),
+        "csv_path": rec.get("csv_path"),
+        "ws_id": ws_id,
+    }
+    try:
+        (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    except Exception as e:
+        ctx["train_error"] = f"Failed to write manifest.json: {e}"
+        shutil.rmtree(out_dir, ignore_errors=True)
+        ctx["saved_runs"] = _list_saved_runs()
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Copy parity.png if present
+    try:
+        # rec["parity_img_url"] is a URL; compute actual file path
+        ws_img = STATIC_DIR / "workspace" / ws_id / "train" / "parity.png"
+        if ws_img.exists():
+            shutil.copyfile(ws_img, out_dir / "parity.png")
+    except Exception:
+        pass
+
+    ctx["save_ok"] = f"Saved run: {run_name}"
+    ctx["saved_runs"] = _list_saved_runs()
+    return templates.TemplateResponse("train.html", ctx)
+
+# Delete a saved run directory
+@app.post("/train/delete", response_class=HTMLResponse)
+async def train_delete(
+    request: Request,
+    run_name: str = Form(...),
+) -> HTMLResponse:
+    ctx: Dict[str, Any] = {"request": request}
+    target_dir = RUNS_DIR / run_name
+    if target_dir.exists() and target_dir.is_dir():
+        try:
+            shutil.rmtree(target_dir)
+            ctx["save_ok"] = f"Deleted run: {run_name}"
+        except Exception as e:
+            ctx["train_error"] = f"Failed to delete run {run_name}: {e}"
+    else:
+        ctx["train_error"] = f"Run not found: {run_name}"
+    # After delete, show Train page with updated list (no ws context needed to see runs)
+    ctx["saved_runs"] = _list_saved_runs()
+    return templates.TemplateResponse("train.html", ctx)
+
 @app.get("/predict", response_class=HTMLResponse)
 async def predict_page(request: Request, run: Optional[str] = None) -> HTMLResponse:
     return templates.TemplateResponse("predict.html", {"request": request})
