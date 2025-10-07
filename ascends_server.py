@@ -302,6 +302,8 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
             "inputs": mf.get("inputs", []),
             "target": mf.get("target"),
         })
+    # Always include saved runs for the bottom-right pane
+    ctx["saved_runs"] = _list_saved_runs()
     return templates.TemplateResponse("train.html", ctx)
 
 @app.get("/predict", response_class=HTMLResponse)
