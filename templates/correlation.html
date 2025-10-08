@@ -24,29 +24,31 @@
     <div class="col col-12">
       <div class="card">
         <div class="card-title">Data Table</div>
-        <div class="card-body" style="min-height:350px; max-height:350px; overflow:auto;">
-          {% if preview_headers %}
-            <table class="preview">
-              <thead>
-                <tr>
-                  {% for h in preview_headers %}
-                    <th>{{ h }}</th>
-                  {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for r in preview_rows %}
+        <div class="card-body">
+          <div class="table-wrap" style="max-height:350px;">
+            {% if preview_headers %}
+              <table class="table">
+                <thead>
                   <tr>
-                    {% for cell in r %}
-                      <td>{{ cell }}</td>
+                    {% for h in preview_headers %}
+                      <th>{{ h }}</th>
                     {% endfor %}
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% else %}
-            <em>Table preview will appear here…</em>
-          {% endif %}
+                </thead>
+                <tbody>
+                  {% for row in preview_rows %}
+                    <tr>
+                      {% for cell in row %}
+                        <td>{{ cell }}</td>
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <div style="padding:10px;"><em>Table preview will appear here…</em></div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
