@@ -13,9 +13,14 @@
         <select id="run_name" name="run_name" class="select" style="min-width:260px;">
           <option value="">(choose a run)</option>
           {% for r in saved_runs or [] %}
-            <option value="{{ r.name }}" {% if selected_run and selected_run == r.name %}selected{% endif %}>
-              {{ r.name }}
-            </option>
+            {# Normalize run name across dict/object/string #}
+            {% if r is mapping %}
+              {% set run_name = r['name'] %}
+            {% else %}
+              {% set run_name = (r.name if (r is defined and r is not string and (r.name is defined)) else r) %}
+            {% endif %}
+            {% set sel = 'selected' if selected_run and selected_run == run_name else '' %}
+            <option value="{{ run_name }}" {{ sel }}>{{ run_name }}</option>
           {% endfor %}
         </select>
 
