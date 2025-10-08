@@ -13,8 +13,7 @@ from fastapi import Query
 import io
 from joblib import load
 from urllib.parse import quote
-from fastapi.responses import HTMLResponse
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse, FileResponse
 import pandas as pd
 import numpy as np
 from math import sqrt
@@ -269,6 +268,17 @@ def _load_manifest(ws_id: str) -> Dict[str, Any]:
         return json.loads(p.read_text(encoding="utf-8"))
     return {}
 
+
+@app.get("/favicon.ico")
+async def _favicon_ico():
+    # Serve the SVG to requests for /favicon.ico to avoid 404 noise
+    return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
+
+@app.get("/apple-touch-icon.png")
+@app.get("/apple-touch-icon-precomposed.png")
+async def _apple_touch_icon():
+    # iOS prefers PNG, but serving SVG avoids 404 and is acceptable as a placeholder.
+    return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
