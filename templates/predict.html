@@ -70,7 +70,7 @@
 
       <div style="overflow:auto; max-height:360px; border:1px solid #e5e7eb; border-radius:8px;">
         {% if predict_preview_html %}
-          {{ predict_preview_html | safe }}
+          {% autoescape false %}{{ predict_preview_html }}{% endautoescape %}
         {% elif predict_preview_headers and predict_preview_rows %}
           <table class="table" style="width:100%; border-collapse:collapse;">
             <thead>
