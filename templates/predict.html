@@ -73,7 +73,7 @@
         </div>
       {% endif %}
 
-      <div style="overflow:auto; max-height:360px; border:1px solid #e5e7eb; border-radius:8px;">
+      <div class="table-wrap" style="max-height:360px;">
         {% if predict_preview_html %}
           {% autoescape false %}{{ predict_preview_html }}{% endautoescape %}
         {% elif predict_preview_headers and predict_preview_rows %}
