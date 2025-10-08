@@ -1,0 +1,51 @@
+{
+  "csv_path": "/Users/ds6/tmp/ASCENDS/workspace/uploads/BostonHousing-6bb3b99e.csv",
+  "columns": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "b",
+    "lstat",
+    "medv"
+  ],
+  "inputs": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "b",
+    "lstat"
+  ],
+  "target": null,
+  "selected": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "b",
+    "lstat",
+    "medv"
+  ]
+}

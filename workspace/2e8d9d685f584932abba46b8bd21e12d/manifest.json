@@ -1,0 +1,79 @@
+{
+  "csv_path": "/Users/ds6/tmp/ASCENDS/workspace/uploads/BostonHousing-480d608c.csv",
+  "columns": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "b",
+    "lstat",
+    "medv"
+  ],
+  "inputs": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "b",
+    "lstat"
+  ],
+  "target": "medv",
+  "selected": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "b",
+    "lstat"
+  ],
+  "corr": {
+    "metrics": [
+      "pearson",
+      "spearman",
+      "mi",
+      "dcor"
+    ],
+    "top_k": null,
+    "task": "r",
+    "view": "wide",
+    "artifacts": {
+      "pearson": {
+        "csv": "/Users/ds6/tmp/ASCENDS/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/pearson.csv",
+        "png": "/static/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/pearson.png"
+      },
+      "spearman": {
+        "csv": "/Users/ds6/tmp/ASCENDS/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/spearman.csv",
+        "png": "/static/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/spearman.png"
+      },
+      "mi": {
+        "csv": "/Users/ds6/tmp/ASCENDS/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/mi.csv",
+        "png": "/static/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/mi.png"
+      },
+      "dcor": {
+        "csv": "/Users/ds6/tmp/ASCENDS/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/dcor.csv",
+        "png": "/static/workspace/2e8d9d685f584932abba46b8bd21e12d/corr/dcor.png"
+      }
+    }
+  }
+}
