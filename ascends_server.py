@@ -562,10 +562,15 @@ async def predict_run(
         ctx["predict_errors"] = [f"Failed to save predictions CSV: {e}"]
         return templates.TemplateResponse("predict.html", ctx)
 
-    # Preview (5 rows) including prediction column
-    preview = result_df.head(5).astype(object).where(pd.notnull(result_df.head(5)), None)
-    ctx["predict_preview_headers"] = list(preview.columns)
-    ctx["predict_preview_rows"] = preview.values.tolist()
+    # Preview (5 rows) including prediction column — render as HTML table for consistent styling
+    preview_df = result_df.head(5)
+    try:
+        ctx["predict_preview_html"] = preview_df.to_html(classes="table", index=False, border=0)
+    except Exception:
+        # Fallback to simple rows if to_html fails for any reason
+        preview = preview_df.astype(object).where(pd.notnull(preview_df), None)
+        ctx["predict_preview_headers"] = list(preview.columns)
+        ctx["predict_preview_rows"] = preview.values.tolist()
 
     # Structured stats + download link (avoid noisy free-text summary)
     ctx["rows_read"] = rows_read
