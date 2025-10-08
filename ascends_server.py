@@ -565,7 +565,12 @@ async def predict_run(
     # Preview (5 rows) including prediction column — render as HTML table for consistent styling
     preview_df = result_df.head(5)
     try:
-        ctx["predict_preview_html"] = preview_df.to_html(classes="table", index=False, border=0)
+        ctx["predict_preview_html"] = preview_df.to_html(
+            classes="table",
+            index=False,
+            border=0,
+            float_format=lambda x: f"{x:.3f}"
+        )
     except Exception:
         # Fallback to simple rows if to_html fails for any reason
         preview = preview_df.astype(object).where(pd.notnull(preview_df), None)
