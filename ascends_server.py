@@ -269,9 +269,9 @@ def _load_manifest(ws_id: str) -> Dict[str, Any]:
     return {}
 
 
-@app.get("/favicon.ico")
-async def _favicon_ico():
-    # Serve the SVG to requests for /favicon.ico to avoid 404 noise
+@app.get("/favicon.svg")
+async def _favicon_svg():
+    # Serve the SVG to requests for /favicon.svg
     return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
 
 @app.get("/apple-touch-icon.png")
