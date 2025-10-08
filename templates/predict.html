@@ -68,13 +68,13 @@
         </div>
       {% endif %}
 
-      <div style="overflow:auto; max-height:360px; border:1px solid #e5e7eb; border-radius:8px;">
-        {% if predict_preview_headers and predict_preview_rows %}
+      {% if predict_preview_headers and predict_preview_rows %}
+        <div style="overflow:auto; max-height:360px;">
           <table class="table" style="width:100%; border-collapse:collapse;">
             <thead>
               <tr>
                 {% for h in predict_preview_headers %}
-                  <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:6px 8px;">{{ h }}</th>
+                  <th style="text-align:left; border-bottom:1px solid #ddd; padding:4px 6px;">{{ h }}</th>
                 {% endfor %}
               </tr>
             </thead>
@@ -82,16 +82,16 @@
               {% for row in predict_preview_rows %}
                 <tr>
                   {% for cell in row %}
-                    <td style="border-bottom:1px solid #f0f2f5; padding:6px 8px;">{{ cell }}</td>
+                    <td style="border-bottom:1px solid #f0f0f0; padding:4px 6px;">{{ cell }}</td>
                   {% endfor %}
                 </tr>
               {% endfor %}
             </tbody>
           </table>
-        {% else %}
-          <div style="padding:10px;"><em>No results yet.</em></div>
-        {% endif %}
-      </div>
+        </div>
+      {% else %}
+        <em>No results yet.</em>
+      {% endif %}
 
       {# download buttons shown in the stats strip above; keep Excel spot for future #}
       {% if download_xlsx_url %}
