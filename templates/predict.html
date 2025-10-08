@@ -51,8 +51,21 @@
   <div class="card" style="margin-top:12px;">
     <div class="card-title">Results</div>
     <div class="card-body">
-      {% if predict_summary %}
-        <div class="subcard">{{ predict_summary }}</div>
+      {% if rows_read is not none %}
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
+          <span style="display:inline-block; padding:4px 8px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc;">
+            <strong>Read:</strong> {{ rows_read }}
+          </span>
+          <span style="display:inline-block; padding:4px 8px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc;">
+            <strong>Used:</strong> {{ rows_used }}
+          </span>
+          <span style="display:inline-block; padding:4px 8px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc;">
+            <strong>Dropped:</strong> {{ rows_dropped }}
+          </span>
+          {% if download_csv_url %}
+            <a class="btn btn-sm" href="{{ download_csv_url }}" style="margin-left:auto;">Download CSV</a>
+          {% endif %}
+        </div>
       {% endif %}
 
       {% if predict_preview_headers and predict_preview_rows %}
@@ -80,14 +93,10 @@
         <em>No results yet.</em>
       {% endif %}
 
-      {% if download_csv_url or download_xlsx_url %}
+      {# download buttons shown in the stats strip above; keep Excel spot for future #}
+      {% if download_xlsx_url %}
         <div class="toolbar" style="margin-top:10px;">
-          {% if download_csv_url %}
-            <a class="btn btn-sm" href="{{ download_csv_url }}">Download CSV</a>
-          {% endif %}
-          {% if download_xlsx_url %}
-            <a class="btn btn-sm" href="{{ download_xlsx_url }}">Download Excel</a>
-          {% endif %}
+          <a class="btn btn-sm" href="{{ download_xlsx_url }}">Download Excel</a>
         </div>
       {% endif %}
     </div>
