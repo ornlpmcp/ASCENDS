@@ -13,8 +13,8 @@
         <select id="run_name" name="run_name" class="select" style="min-width:260px;">
           <option value="">(choose a run)</option>
           {% for r in saved_runs or [] %}
-            <option value="{{ r['name'] }}" {% if selected_run and selected_run == r['name'] %}selected{% endif %}>
-              {{ r['name'] }}
+            <option value="{{ r.name }}" {% if selected_run and selected_run == r.name %}selected{% endif %}>
+              {{ r.name }}
             </option>
           {% endfor %}
         </select>
