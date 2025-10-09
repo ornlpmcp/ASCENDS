@@ -1,0 +1,15 @@
+{
+  "rows_in": 158,
+  "rows_used": 158,
+  "rows_dropped": 0,
+  "skipped_inputs": [],
+  "used_inputs": [
+    "Economy (GDP per Capita)",
+    "Family",
+    "Health (Life Expectancy)",
+    "Freedom",
+    "Trust (Government Corruption)",
+    "Generosity",
+    "Dystopia Residual"
+  ]
+}
