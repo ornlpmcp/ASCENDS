@@ -1,9 +1,0 @@
-{
-  "rows_in": 500,
-  "rows_used": 500,
-  "rows_dropped": 0,
-  "skipped_inputs": [],
-  "used_inputs": [
-    "zn"
-  ]
-}
