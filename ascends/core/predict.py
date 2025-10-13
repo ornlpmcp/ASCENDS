@@ -3,7 +3,9 @@
 from typing import Any, List
 
 
-def batch_predict(model: Any, data: Any) -> List[Any]:
+import joblib
+
+def batch_predict(model_path: str, data: Any) -> List[Any]:
     """Perform batch predictions with the model.
 
     Args:
@@ -13,6 +15,9 @@ def batch_predict(model: Any, data: Any) -> List[Any]:
     Returns:
         A list of predictions.
     """
+    obj = joblib.load(model_path)
+    predictions = []
+
     # Backward-compat: older runs saved a result dict with a "model" key
     if isinstance(obj, dict) and "model" in obj:
         est = obj["model"]
