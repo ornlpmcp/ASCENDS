@@ -119,7 +119,6 @@ def train_model(
         df, test_size=float(test_size), random_state=random_state
     )
 
-    # run the actual training/eval
     result = train_eval(
         train_df=train_df,
         test_df=test_df,
@@ -138,14 +137,20 @@ def train_model(
     model_path = os.path.join(out_dir, "model.joblib")
     joblib.dump({"estimator": est, "features": feats, "task": task, "target": target}, model_path)
 
-    # save parity data
-    parity = pd.DataFrame({
-        "actual": result["y_test"].to_numpy(),
-        "predicted": result["y_pred"].to_numpy(),
-    })
+    # save parity data (compute directly; don't rely on train_eval returning y_test/y_pred)
+    y_test = test_df[target].to_numpy()
+    X_test = test_df[feats]
+    y_pred = est.predict(X_test)
+    parity = pd.DataFrame({"actual": y_test, "predicted": y_pred})
     parity_csv = parity_out or os.path.join(out_dir, "parity_test.csv")
     parity.to_csv(parity_csv, index=False)
 
+    # ensure MAE is positive if present (sklearn "neg_mean_absolute_error" can propagate)
+    if "mae" in test_metrics:
+        try:
+            test_metrics["mae"] = float(abs(float(test_metrics["mae"])))
+        except Exception:
+            pass
     # save metrics
     metrics_csv = metrics_out or os.path.join(out_dir, "metrics.csv")
     pd.DataFrame([test_metrics]).to_csv(metrics_csv, index=False)
