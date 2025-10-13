@@ -4,6 +4,7 @@ from typing import Any, Dict
 import pandas as pd
 from pathlib import Path
 from ascends.core.models import make_model
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 
 def train_eval(
