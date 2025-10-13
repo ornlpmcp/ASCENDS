@@ -2,6 +2,7 @@
 
 from typing import Any, Dict
 import pandas as pd
+from pathlib import Path
 from ascends.core.models import make_model
 
 
@@ -144,6 +145,12 @@ def train_model(
     y_pred_test = est.predict(X_test)
     parity_test = pd.DataFrame({"actual": y_test, "predicted": y_pred_test})
 
+    # Compute parity data for TRAIN
+    y_train = train_df[target].to_numpy()
+    X_train = train_df[feats]
+    y_pred_train = est.predict(X_train)
+    parity_train = pd.DataFrame({"actual": y_train, "predicted": y_pred_train})
+
     # --- Determine output paths ---
     # Standard (always written) inside run dir:
     std_test_path  = Path(out_dir) / "parity_test.csv"
@@ -216,12 +223,11 @@ def train_model(
                 "tune": tune,
                 "random_state": random_state,
                 "model_path": model_path,
-                "parity_csv": parity_csv,
                 "metrics_csv": metrics_csv,
             },
             f,
             indent=2,
         )
 
-    return {"model_path": model_path, "metrics": test_metrics, "parity_csv": parity_csv}
+    return {"model_path": model_path, "metrics": test_metrics}
 
