@@ -89,3 +89,85 @@ def train_eval(
         },
         "random_state": random_state,
     }
+
+def train_model(
+    csv_path: str,
+    target: str,
+    task: str,
+    model: str,
+    test_size: float,
+    tune: str,
+    out_dir: str,
+    metrics_out: str | None = None,
+    parity_out: str | None = None,
+    tune_trials: int | None = None,   # accepted but unused for now
+    random_state: int = 42,
+):
+    import os, json, joblib
+    import numpy as np
+    import pandas as pd
+    from sklearn.model_selection import train_test_split
+
+    os.makedirs(out_dir, exist_ok=True)
+
+    df = pd.read_csv(csv_path)
+    if target not in df.columns:
+        raise ValueError(f"Target '{target}' not in columns.")
+
+    # simple split
+    train_df, test_df = train_test_split(
+        df, test_size=float(test_size), random_state=random_state
+    )
+
+    # run the actual training/eval
+    result = train_eval(
+        train_df=train_df,
+        test_df=test_df,
+        target=target,
+        task=task,
+        model_kind=model,
+        tune_mode=tune or "off",
+        random_state=random_state,
+    )
+
+    est = result["model"]
+    feats = result["features"]
+    test_metrics = result["test_metrics"]
+
+    # save model
+    model_path = os.path.join(out_dir, "model.joblib")
+    joblib.dump({"estimator": est, "features": feats, "task": task, "target": target}, model_path)
+
+    # save parity data
+    parity = pd.DataFrame({
+        "actual": result["y_test"].to_numpy(),
+        "predicted": result["y_pred"].to_numpy(),
+    })
+    parity_csv = parity_out or os.path.join(out_dir, "parity_test.csv")
+    parity.to_csv(parity_csv, index=False)
+
+    # save metrics
+    metrics_csv = metrics_out or os.path.join(out_dir, "metrics.csv")
+    pd.DataFrame([test_metrics]).to_csv(metrics_csv, index=False)
+
+    # also write a small metadata.json for convenience
+    with open(os.path.join(out_dir, "metadata.json"), "w") as f:
+        json.dump(
+            {
+                "csv_path": csv_path,
+                "target": target,
+                "task": task,
+                "model": model,
+                "test_size": test_size,
+                "tune": tune,
+                "random_state": random_state,
+                "model_path": model_path,
+                "parity_csv": parity_csv,
+                "metrics_csv": metrics_csv,
+            },
+            f,
+            indent=2,
+        )
+
+    return {"model_path": model_path, "metrics": test_metrics, "parity_csv": parity_csv}
+
