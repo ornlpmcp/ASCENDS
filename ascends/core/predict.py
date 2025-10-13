@@ -13,7 +13,20 @@ def batch_predict(model: Any, data: Any) -> List[Any]:
     Returns:
         A list of predictions.
     """
-    predictions = []
+    # Backward-compat: older runs saved a result dict with a "model" key
+    if isinstance(obj, dict) and "model" in obj:
+        est = obj["model"]
+    else:
+        est = obj
+
+    # Sanity check
+    if not hasattr(est, "predict"):
+        raise TypeError(
+            f"Loaded object from {model_path} is a {type(obj).__name__} "
+            "and does not have a .predict(...) method. "
+            "If this run was trained with an older ASCENDS, retrain or "
+            "re-run train to produce a model-only artifact."
+        )
     for item in data:
         prediction = model.predict(item)
         predictions.append(prediction)
