@@ -55,4 +55,4 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
     pred_df = data.copy()
     pred_df[f"{target}_pred"] = y_pred
     pred_df.to_csv(pred_out, index=False)
-    print(f"Predictions saved to {pred_out} ({pred_col})")
+    print(f"Predictions saved to {pred_out} ({target}_pred)")
