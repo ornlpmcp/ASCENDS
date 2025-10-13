@@ -39,19 +39,25 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
 
     # --- Save predictions with descriptive column name ---
     pred_out = os.path.join(out_dir, "predictions.csv")
-    # Load target name from manifest if available
+    # Read the run manifest to get the target
     manifest_path = Path(run_dir) / "manifest.json"
-    target = "prediction"
+    target = None
     if manifest_path.exists():
         try:
             import json
             with open(manifest_path) as f:
                 manifest = json.load(f)
-            target = manifest.get("target", "prediction")
+            target = manifest.get("target", None)
         except Exception:
             pass
 
-    pred_col = f"{target}_pred"
+    # Set the prediction column name dynamically
+    pred_col = f"{target}_pred" if target else "prediction"
+
+    # Ensure the output directory exists before saving
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+
+    # Build the output DataFrame and add the prediction column
     pred_df = data.copy()
     pred_df[pred_col] = y_pred
     pred_df.to_csv(pred_out, index=False)
