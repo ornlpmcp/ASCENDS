@@ -4,6 +4,7 @@ from typing import Any, List
 
 
 import joblib
+import os
 
 def batch_predict(model_path: str, data: Any) -> List[Any]:
     """Perform batch predictions with the model.
@@ -15,23 +16,24 @@ def batch_predict(model_path: str, data: Any) -> List[Any]:
     Returns:
         A list of predictions.
     """
+    # --- Load model with backward compatibility ---
     obj = joblib.load(model_path)
-    predictions = []
-
-    # Backward-compat: older runs saved a result dict with a "model" key
+    # Older ASCENDS runs saved a dict with "model"
     if isinstance(obj, dict) and "model" in obj:
         est = obj["model"]
     else:
         est = obj
 
-    # Sanity check
+    # Sanity check: must be a fitted estimator
     if not hasattr(est, "predict"):
         raise TypeError(
             f"Loaded object from {model_path} is a {type(obj).__name__} "
             "and does not have a .predict(...) method. "
-            "If this run was trained with an older ASCENDS, retrain or "
-            "re-run train to produce a model-only artifact."
+            "Re-train or convert the artifact so it contains a fitted estimator."
         )
+
+    # Ensure output directory exists
+    os.makedirs(out_dir, exist_ok=True)
     for item in data:
         prediction = est.predict(item)
         predictions.append(prediction)
