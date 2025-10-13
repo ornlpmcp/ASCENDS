@@ -110,6 +110,9 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
 
     np.random.seed(random_state)
 
+    # --- Ensure output directory exists ---
+    os.makedirs(out_dir, exist_ok=True)
+
     df = pd.read_csv(csv_path)
     if target not in df.columns:
         raise ValueError(f"Target '{target}' not in columns.")
