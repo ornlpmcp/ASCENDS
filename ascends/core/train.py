@@ -137,32 +137,71 @@ def train_model(
     model_path = os.path.join(out_dir, "model.joblib")
     joblib.dump({"estimator": est, "features": feats, "task": task, "target": target}, model_path)
 
-    # save parity data (compute directly; don't rely on train_eval returning y_test/y_pred)
+    # === Parity data for TEST & TRAIN, plus a combined file ===
+    # Compute directly from the fitted estimator; don't rely on train_eval for vectors.
     y_test = test_df[target].to_numpy()
     X_test = test_df[feats]
-    y_pred = est.predict(X_test)
-    parity = pd.DataFrame({"actual": y_test, "predicted": y_pred})
-    parity_csv = parity_out or os.path.join(out_dir, "parity_test.csv")
-    # ensure parent directory exists for parity output
-    _par_dir = os.path.dirname(parity_csv)
-    if _par_dir:
-        os.makedirs(_par_dir, exist_ok=True)
+    y_pred_test = est.predict(X_test)
+    parity_test = pd.DataFrame({"actual": y_test, "predicted": y_pred_test})
 
-    parity.to_csv(parity_csv, index=False)
+    # --- Determine output paths ---
+    # Standard (always written) inside run dir:
+    std_test_path  = Path(out_dir) / "parity_test.csv"
+    std_train_path = Path(out_dir) / "parity_train.csv"
+    std_all_path   = Path(out_dir) / "parity_all.csv"
+    std_test_path.parent.mkdir(parents=True, exist_ok=True)
+    std_train_path.parent.mkdir(parents=True, exist_ok=True)
+    std_all_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Optional extra locations if --parity-out is provided:
+    from pathlib import Path
+    if parity_out:
+        p = Path(str(parity_out))
+    else:
+        p = None
+
+    extra_test_path = extra_train_path = extra_all_path = None
+    if p is not None:
+        if p.suffix.lower() == ".csv":
+            extra_test_path = p
+            extra_train_path = p.with_name(p.stem + "_train.csv")
+            extra_all_path = p.with_name(p.stem + "_all.csv")
+        else:
+            # treat as directory
+            p.mkdir(parents=True, exist_ok=True)
+            extra_test_path = p / "parity_test.csv"
+            extra_train_path = p / "parity_train.csv"
+            extra_all_path = p / "parity_all.csv"
+
+    # --- Write standard files into run dir (always) ---
+    parity_test.to_csv(std_test_path, index=False)
+    parity_train.to_csv(std_train_path, index=False)
+    parity_all = pd.concat(
+        [
+            parity_train.assign(split="train"),
+            parity_test.assign(split="test"),
+        ],
+        ignore_index=True,
+    )
+    parity_all.to_csv(std_all_path, index=False)
+
+    # --- Also write to extra locations when requested ---
+    if extra_test_path is not None:
+        extra_test_path.parent.mkdir(parents=True, exist_ok=True)
+        parity_test.to_csv(extra_test_path, index=False)
+    if extra_train_path is not None:
+        extra_train_path.parent.mkdir(parents=True, exist_ok=True)
+        parity_train.to_csv(extra_train_path, index=False)
+    if extra_all_path is not None:
+        extra_all_path.parent.mkdir(parents=True, exist_ok=True)
+        parity_all.to_csv(extra_all_path, index=False)
 
     # ensure MAE is positive if present (sklearn "neg_mean_absolute_error" can propagate)
-    if "mae" in test_metrics:
-        try:
-            test_metrics["mae"] = float(abs(float(test_metrics["mae"])))
-        except Exception:
-            pass
-    # save metrics
     metrics_csv = metrics_out or os.path.join(out_dir, "metrics.csv")
     # ensure parent directory exists for metrics output
     _met_dir = os.path.dirname(metrics_csv)
     if _met_dir:
         os.makedirs(_met_dir, exist_ok=True)
-
     pd.DataFrame([test_metrics]).to_csv(metrics_csv, index=False)
 
     # also write a small metadata.json for convenience
