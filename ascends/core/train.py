@@ -104,7 +104,9 @@ def train_model(
     tune_trials: int | None = None,   # accepted but unused for now
     random_state: int = 42,
 ):
-    import os, json, joblib
+    import os
+    from pathlib import Path
+    import json, joblib
     import numpy as np
     import pandas as pd
     from sklearn.model_selection import train_test_split
@@ -161,7 +163,6 @@ def train_model(
     std_all_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Optional extra locations if --parity-out is provided:
-    from pathlib import Path
     if parity_out:
         p = Path(str(parity_out))
     else:
