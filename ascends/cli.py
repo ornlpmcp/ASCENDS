@@ -203,6 +203,7 @@ def train(
     out: Path = typer.Option(..., "--out", help="Output run directory"),
     metrics_out: Optional[Path] = typer.Option(None, "--metrics-out", help="Write metrics CSV here"),
     parity_out: Optional[Path] = typer.Option(None, "--parity-out", help="Write parity plots here"),
+    random_state: Optional[str] = typer.Option("auto", "--random-state", help="Random seed (int or 'auto' for time-based)"),
 ):
     """
     Example:
@@ -252,7 +253,7 @@ def train(
             metrics_out=str(metrics_out) if metrics_out else None,
             parity_out=str(parity_out) if parity_out else None,
             tune_trials=trials,  # OK if the function accepts it
-        )
+        random_state=random_state,
     except TypeError:
         # Older core without tune_trials support
         result = _asc_train_model(
