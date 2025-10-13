@@ -6,7 +6,7 @@ from typing import Any, List
 import joblib
 import os
 
-def batch_predict(model_path: str, data: Any) -> List[Any]:
+def batch_predict(model_path: str, data: Any, out_dir: str = ".") -> List[Any]:
     """Perform batch predictions with the model.
 
     Args:
@@ -31,6 +31,8 @@ def batch_predict(model_path: str, data: Any) -> List[Any]:
             "and does not have a .predict(...) method. "
             "Re-train or convert the artifact so it contains a fitted estimator."
         )
+
+    predictions = []
 
     # Ensure output directory exists
     os.makedirs(out_dir, exist_ok=True)
