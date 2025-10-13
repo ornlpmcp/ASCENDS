@@ -33,6 +33,6 @@ def batch_predict(model_path: str, data: Any) -> List[Any]:
             "re-run train to produce a model-only artifact."
         )
     for item in data:
-        prediction = model.predict(item)
+        prediction = est.predict(item)
         predictions.append(prediction)
     return predictions
