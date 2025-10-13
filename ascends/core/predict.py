@@ -1,12 +1,14 @@
 """Batch inference, feature alignment."""
 
 from typing import Any, List
+import pandas as pd
+from pathlib import Path
 
 
 import joblib
 import os
 
-def batch_predict(model_path: str, data: Any, out_dir: str = ".") -> List[Any]:
+def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str = ".") -> List[Any]:
     """Perform batch predictions with the model.
 
     Args:
@@ -32,7 +34,11 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".") -> List[Any]:
             "Re-train or convert the artifact so it contains a fitted estimator."
         )
 
+    # --- Generate predictions ---
+    y_pred = est.predict(data)
+
     # --- Save predictions with descriptive column name ---
+    pred_out = os.path.join(out_dir, "predictions.csv")
     # Try to get target name from manifest if available
     pred_col = "prediction"
     manifest_path = Path(run_dir) / "manifest.json"
