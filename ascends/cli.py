@@ -618,13 +618,9 @@ def predict(
         typer.secho(f"Prediction failed: {e}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
-    core_predict(model_path=model_path, data=df, out_dir=out, run_dir=run_dir)
-    out_csv = out / "predictions.csv"
-    out_df = df.copy()
-    out_df["prediction"] = y_pred
-    out_df.to_csv(out_csv, index=False)
-
-    typer.echo(f"Predictions written to: {out_csv}")
+    result = core_predict(model_path=model_path, data=df, out_dir=out, run_dir=run_dir)
+    pred_col = result.get("pred_col", "prediction")
+    typer.echo(f"Predictions saved to {out}/predictions.csv ({pred_col})")
 
 
 if __name__ == "__main__":
