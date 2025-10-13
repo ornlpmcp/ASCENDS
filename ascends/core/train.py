@@ -204,13 +204,26 @@ def train_model(
         extra_all_path.parent.mkdir(parents=True, exist_ok=True)
         parity_all.to_csv(extra_all_path, index=False)
 
-    # ensure MAE is positive if present (sklearn "neg_mean_absolute_error" can propagate)
+    # === Metrics: write BOTH train and test, including RMSE ===
+    # We compute fresh metrics here for consistency (MAE will be positive).
+    r2_tr  = float(r2_score(y_train, y_pred_train))
+    mae_tr = float(mean_absolute_error(y_train, y_pred_train))
+    rmse_tr = float(mean_squared_error(y_train, y_pred_train, squared=False))
+
+    r2_te  = float(r2_score(y_test, y_pred_test))
+    mae_te = float(mean_absolute_error(y_test, y_pred_test))
+    rmse_te = float(mean_squared_error(y_test, y_pred_test, squared=False))
+
+    metrics_rows = [
+        {"split": "train", "r2": r2_tr, "mae": mae_tr, "rmse": rmse_tr},
+        {"split": "test",  "r2": r2_te, "mae": mae_te, "rmse": rmse_te},
+    ]
     metrics_csv = metrics_out or os.path.join(out_dir, "metrics.csv")
     # ensure parent directory exists for metrics output
     _met_dir = os.path.dirname(metrics_csv)
     if _met_dir:
         os.makedirs(_met_dir, exist_ok=True)
-    pd.DataFrame([test_metrics]).to_csv(metrics_csv, index=False)
+    pd.DataFrame(metrics_rows).to_csv(metrics_csv, index=False)
 
     # also write a small metadata.json for convenience
     with open(os.path.join(out_dir, "metadata.json"), "w") as f:
