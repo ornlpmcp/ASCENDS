@@ -243,5 +243,21 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
             indent=2,
         )
 
+    # --- Write manifest.json for predict() ---
+    from datetime import datetime
+    manifest = {
+        "model": model,
+        "task": task,
+        "target": target,
+        "features": feats,
+        "random_state": random_state,
+        "timestamp": datetime.now().isoformat()
+    }
+    manifest_path = Path(out_dir) / "manifest.json"
+    with open(manifest_path, "w") as f:
+        json.dump(manifest, f, indent=2)
+
+    print(f"Manifest written to {manifest_path}")
+
     return {"model_path": model_path, "metrics": test_metrics}
 
