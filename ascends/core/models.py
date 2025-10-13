@@ -16,49 +16,70 @@ except Exception:
     )
 
 
-def make_model(
-    task: str, kind: str, random_state: Optional[int] = None
-) -> Union[RandomForestRegressor, XGBRegressor, Pipeline]:
-    """
-    Returns a sklearn-compatible estimator for the given task and kind, with an optional random_state for reproducibility.
-    Supported kinds for task='regression':
-      - 'linear': Pipeline([StandardScaler(), LinearRegression()])
-      - 'ridge':  Pipeline([StandardScaler(), Ridge()])
-      - 'lasso':  Pipeline([StandardScaler(), Lasso()])
-      - 'elasticnet': Pipeline([StandardScaler(), ElasticNet()])
-      - 'rf': RandomForestRegressor(random_state=random_state)
-      - 'xgb': XGBRegressor(random_state=random_state, n_estimators=300, learning_rate=0.05)
-      - 'hgb': HistGradientBoostingRegressor(random_state=random_state)
-      - 'svr': Pipeline([StandardScaler(), SVR(kernel='rbf')])
-      - 'knn': Pipeline([StandardScaler(), KNeighborsRegressor()])
-    Raise ValueError on unsupported task or kind.
-    """
+SUPPORTED_TASKS = {"regression", "classification"}
+TASK_ALIASES = {
+    "r": "regression",
+    "reg": "regression",
+    "regression": "regression",
+    "c": "classification",
+    "clf": "classification",
+    "class": "classification",
+    "classification": "classification",
+}
+
+KIND_ALIASES = {
+    "rf": "rf",
+    "random_forest": "rf",
+    "xgb": "xgb",
+    "xgboost": "xgb",
+}
+
+def _normalize(task: str, kind: str):
+    t = TASK_ALIASES.get((task or "").lower().strip())
+    k = KIND_ALIASES.get((kind or "").lower().strip())
+    return t, k
+
+def make_model(task: str, kind: str, random_state: Optional[int] = None):
+    task, kind = _normalize(task, kind)
+    if task not in SUPPORTED_TASKS:
+        raise ValueError(
+            f"Unsupported task: {task!r}. Supported: {sorted(SUPPORTED_TASKS)} "
+            f"(aliases: {sorted(set(TASK_ALIASES) - SUPPORTED_TASKS)})"
+        )
+    if kind is None:
+        raise ValueError(
+            f"Unsupported model kind for task={task!r}. "
+            f"Known aliases: {sorted(KIND_ALIASES)}"
+        )
+
     if task == "regression":
         if kind == "rf":
             return RandomForestRegressor(random_state=random_state)
-        elif kind == "xgb":
-            return XGBRegressor(random_state=random_state, n_estimators=300, learning_rate=0.05)
-        elif kind == "hgb":
-            return HistGradientBoostingRegressor(random_state=random_state)
-        elif kind == "linear":
-            return LinearRegression()
-        elif kind == "ridge":
-            return Ridge(random_state=random_state) if hasattr(Ridge(), "random_state") else Ridge()
-        elif kind == "lasso":
-            return Lasso(random_state=random_state) if hasattr(Lasso(), "random_state") else Lasso()
-        elif kind == "elasticnet":
-            return ElasticNet(random_state=random_state) if hasattr(ElasticNet(), "random_state") else ElasticNet()
-        elif kind == "svr":
-            return SVR()  # no random_state
-        elif kind == "knn":
-            return KNeighborsRegressor()
-        else:
-            raise ValueError(f"Unsupported regression kind: {kind}")
-    elif task == "classification":
-        # (Return proper classifiers per kind, mirroring the pattern)
-        ...
-    else:
-        raise ValueError(f"Unsupported task: {task}")
+        if kind == "xgb":
+            try:
+                from xgboost import XGBRegressor
+            except Exception as e:
+                raise ImportError(
+                    "xgboost is required for --model xgb. Install with: "
+                    "`uv pip install xgboost`"
+                ) from e
+            return XGBRegressor(random_state=random_state)
+        raise ValueError(f"Unsupported regression model kind: {kind!r}. Try 'rf' (or 'random_forest').")
+
+    if task == "classification":
+        if kind == "rf":
+            from sklearn.ensemble import RandomForestClassifier
+            return RandomForestClassifier(random_state=random_state)
+        if kind == "xgb":
+            try:
+                from xgboost import XGBClassifier
+            except Exception as e:
+                raise ImportError(
+                    "xgboost is required for --model xgb. Install with: "
+                    "`uv pip install xgboost`"
+                ) from e
+            return XGBClassifier(random_state=random_state)
+        raise ValueError(f"Unsupported classification model kind: {kind!r}. Try 'rf' (or 'random_forest').")
 
 
 def is_tree_model(est) -> bool:
