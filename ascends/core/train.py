@@ -143,6 +143,11 @@ def train_model(
     y_pred = est.predict(X_test)
     parity = pd.DataFrame({"actual": y_test, "predicted": y_pred})
     parity_csv = parity_out or os.path.join(out_dir, "parity_test.csv")
+    # ensure parent directory exists for parity output
+    _par_dir = os.path.dirname(parity_csv)
+    if _par_dir:
+        os.makedirs(_par_dir, exist_ok=True)
+
     parity.to_csv(parity_csv, index=False)
 
     # ensure MAE is positive if present (sklearn "neg_mean_absolute_error" can propagate)
@@ -153,6 +158,11 @@ def train_model(
             pass
     # save metrics
     metrics_csv = metrics_out or os.path.join(out_dir, "metrics.csv")
+    # ensure parent directory exists for metrics output
+    _met_dir = os.path.dirname(metrics_csv)
+    if _met_dir:
+        os.makedirs(_met_dir, exist_ok=True)
+
     pd.DataFrame([test_metrics]).to_csv(metrics_csv, index=False)
 
     # also write a small metadata.json for convenience
