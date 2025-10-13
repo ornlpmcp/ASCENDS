@@ -191,7 +191,11 @@ except Exception:
 def train(
     csv: Path = typer.Option(..., "--csv", help="Input CSV file"),
     target: str = typer.Option(..., "--target", help="Target column"),
-    task: str = typer.Option("r", "--task", help="'r' regression or 'c' classification"),
+    task: str = typer.Option(
+        "r",
+        "--task",
+        help="Task type. Accepts aliases: r|reg|regression, c|clf|class|classification",
+    ),
     model: str = typer.Option("rf", "--model", help="rf|xgb|hgb|svr|knn|linear|ridge|lasso|elastic"),
     test_size: float = typer.Option(0.2, "--test-size", min=0.05, max=0.5, help="Test split fraction"),
     tune: str = typer.Option("off", "--tune", help="off|quick|intense|optuna|bayes (case-insensitive)"),
