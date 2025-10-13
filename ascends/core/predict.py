@@ -41,17 +41,19 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
     pred_out = os.path.join(out_dir, "predictions.csv")
     # Try to get target name from manifest if available
     manifest_path = Path(run_dir) / "manifest.json"
+    target = "prediction"
     if manifest_path.exists():
         try:
             import json
             with open(manifest_path) as f:
                 manifest = json.load(f)
             if "target" in manifest:
-                pred_col = f"{manifest['target']}_pred"
+                target = manifest["target"]
         except Exception:
             pass
 
-    pred_col = f"{manifest.get('target', 'prediction')}_pred"
-    pred_df = pd.DataFrame({pred_col: y_pred})
+    pred_col = f"{target}_pred"
+    pred_df = data.copy()
+    pred_df[pred_col] = y_pred
     pred_df.to_csv(pred_out, index=False)
     print(f"Predictions saved to {pred_out} ({pred_col})")
