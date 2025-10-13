@@ -253,7 +253,8 @@ def train(
             metrics_out=str(metrics_out) if metrics_out else None,
             parity_out=str(parity_out) if parity_out else None,
             tune_trials=trials,  # OK if the function accepts it
-        random_state=random_state,
+            random_state=random_state,
+        )
     except TypeError:
         # Older core without tune_trials support
         result = _asc_train_model(
