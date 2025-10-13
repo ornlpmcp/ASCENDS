@@ -142,14 +142,6 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     model_path = os.path.join(out_dir, "model.joblib")
     joblib.dump(est, model_path)
 
-    # 2) Optionally save the full result dict for debugging/backward-compat
-    #    This is NOT used by predict; predict should load model.joblib only.
-    result_path = os.path.join(out_dir, "result.joblib")
-    try:
-        joblib.dump(result, result_path)
-    except Exception:
-        pass
-
     # === Parity data for TEST & TRAIN, plus a combined file ===
     # Compute directly from the fitted estimator; don't rely on train_eval for vectors.
     y_test = test_df[target].to_numpy()
