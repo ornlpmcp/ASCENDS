@@ -136,9 +136,19 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     feats = result["features"]
     test_metrics = result["test_metrics"]
 
-    # save model
+    # --- Save artifacts ---
+    os.makedirs(out_dir, exist_ok=True)
+    # 1) Save ONLY the fitted estimator to model.joblib
     model_path = os.path.join(out_dir, "model.joblib")
-    joblib.dump({"estimator": est, "features": feats, "task": task, "target": target}, model_path)
+    joblib.dump(est, model_path)
+
+    # 2) Optionally save the full result dict for debugging/backward-compat
+    #    This is NOT used by predict; predict should load model.joblib only.
+    result_path = os.path.join(out_dir, "result.joblib")
+    try:
+        joblib.dump(result, result_path)
+    except Exception:
+        pass
 
     # === Parity data for TEST & TRAIN, plus a combined file ===
     # Compute directly from the fitted estimator; don't rely on train_eval for vectors.
@@ -246,6 +256,8 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     # --- Write manifest.json for predict() ---
     from datetime import datetime
     manifest = {
+        "schema_version": 1,
+        "artifact_type": "estimator-only",
         "model": model,
         "task": task,
         "target": target,
