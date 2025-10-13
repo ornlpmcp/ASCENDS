@@ -37,9 +37,7 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
     # --- Generate predictions ---
     y_pred = est.predict(data)
 
-    # --- Save predictions with descriptive column name ---
-    pred_out = os.path.join(out_dir, "predictions.csv")
-    # Read the run manifest to get the target
+    # --- Load the manifest to get the target ---
     manifest_path = Path(run_dir) / "manifest.json"
     target = None
     if manifest_path.exists():
@@ -51,14 +49,16 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
         except Exception:
             pass
 
-    # Set the prediction column name dynamically
+    # --- Decide the output column name ---
     pred_col = f"{target}_pred" if target else "prediction"
 
-    # Ensure the output directory exists before saving
+    # --- Build the output DataFrame and save ---
+    out_df = data.copy()
+    out_df[pred_col] = y_pred
     Path(out_dir).mkdir(parents=True, exist_ok=True)
+    out_path = Path(out_dir) / "predictions.csv"
+    out_df.to_csv(out_path, index=False)
+    print(f"Predictions saved to {out_path} ({pred_col})")
 
-    # Build the output DataFrame and add the prediction column
-    pred_df = data.copy()
-    pred_df[pred_col] = y_pred
-    pred_df.to_csv(pred_out, index=False)
-    print(f"Predictions saved to {pred_out} ({pred_col})")
+    # --- Return the actual column name and output path ---
+    return {"pred_col": pred_col, "out_path": str(out_path)}
