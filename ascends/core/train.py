@@ -92,19 +92,9 @@ def train_eval(
         "random_state": random_state,
     }
 
-def train_model(
-    csv_path: str,
-    target: str,
-    task: str,
-    model: str,
-    test_size: float,
-    tune: str,
-    out_dir: str,
-    metrics_out: str | None = None,
-    parity_out: str | None = None,
-    tune_trials: int | None = None,   # accepted but unused for now
-    random_state: int = 42,
-):
+def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off", tune_trials=None, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
+    """Train and evaluate a model."""
+    import time
     import os
     from pathlib import Path
     import json, joblib
@@ -112,7 +102,13 @@ def train_model(
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
-    os.makedirs(out_dir, exist_ok=True)
+    # Determine random seed
+    import time
+    import numpy as np
+    if isinstance(random_state, str) and random_state.lower() == "auto":
+        random_state = int(time.time() * 1000) % (2**32 - 1)
+
+    np.random.seed(random_state)
 
     df = pd.read_csv(csv_path)
     if target not in df.columns:
