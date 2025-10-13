@@ -609,6 +609,7 @@ def predict(
         raise typer.Exit(code=1)
 
     X = df[ordered_cols]
+    Path(out).mkdir(parents=True, exist_ok=True)
     model = joblib.load(model_path)
     try:
         y_pred = model.predict(X)
@@ -616,7 +617,7 @@ def predict(
         typer.secho(f"Prediction failed: {e}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
-    out.mkdir(parents=True, exist_ok=True)
+    core_predict(model_path=model_path, data=df, out_dir=out, run_dir=run_dir)
     out_csv = out / "predictions.csv"
     out_df = df.copy()
     out_df["prediction"] = y_pred
