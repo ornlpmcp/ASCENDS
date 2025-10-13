@@ -5,7 +5,7 @@ uv run ascends correlation `
   --task r `
   --metrics pearson,spearman,mi,dcor `
   --view wide `
-  --out runs/boston_rf
+  --out runs/boston_rf/correlation.csv
 
 Write-Host "=== [2/4] Training model ==="
 uv run ascends train `
