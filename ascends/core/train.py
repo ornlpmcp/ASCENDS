@@ -209,11 +209,11 @@ def train_model(
     # We compute fresh metrics here for consistency (MAE will be positive).
     r2_tr  = float(r2_score(y_train, y_pred_train))
     mae_tr = float(mean_absolute_error(y_train, y_pred_train))
-    rmse_tr = float(mean_squared_error(y_train, y_pred_train, squared=False))
+    rmse_tr = float(np.sqrt(mean_squared_error(y_train, y_pred_train)))
 
     r2_te  = float(r2_score(y_test, y_pred_test))
     mae_te = float(mean_absolute_error(y_test, y_pred_test))
-    rmse_te = float(mean_squared_error(y_test, y_pred_test, squared=False))
+    rmse_te = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
 
     metrics_rows = [
         {"split": "train", "r2": r2_tr, "mae": mae_tr, "rmse": rmse_tr},
