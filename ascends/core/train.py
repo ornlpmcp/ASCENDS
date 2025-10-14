@@ -175,6 +175,11 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         "train_metrics",
         {"r2": r2_tr, "rmse": rmse_tr, "mae": mae_tr},
     )
+
+    # Define model_path for saving the model
+    model_path = os.path.join(out_dir, "model.joblib")
+    joblib.dump(est, model_path)
+
     # Standard (always written) inside run dir:
     std_test_path  = Path(out_dir) / "parity_test.csv"
     std_train_path = Path(out_dir) / "parity_train.csv"
