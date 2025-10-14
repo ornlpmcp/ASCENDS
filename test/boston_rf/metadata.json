@@ -5,7 +5,7 @@
   "model": "rf",
   "test_size": 0.2,
   "tune": "off",
-  "random_state": 3813902763,
+  "random_state": 3815384733,
   "model_path": "boston_rf/model.joblib",
   "metrics_csv": "boston_rf/metrics.csv"
 }
