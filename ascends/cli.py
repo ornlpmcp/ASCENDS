@@ -20,6 +20,7 @@ from ascends.core.correlation import run_correlation
 from ascends.core.models import list_supported_models
 from ascends.core.predict import batch_predict as core_predict
 
+import click
 import typer.main as _typer_main
 
 class _CmdOrder(_typer_main.TyperGroup):
