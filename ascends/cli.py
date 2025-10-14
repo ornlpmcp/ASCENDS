@@ -284,7 +284,13 @@ def train(
             te = result.get("metrics", {}) or result.get("test_metrics", {})
 
             def _fmt(d):
-                return f"R2={d.get('r2')} RMSE={d.get('rmse')} MAE={d.get('mae')}"
+                def fmt_val(v):
+                    try:
+                        f = float(v)
+                        return f"{f:.4g}"
+                    except Exception:
+                        return v
+                return f"R2={fmt_val(d.get('r2'))} RMSE={fmt_val(d.get('rmse'))} MAE={fmt_val(d.get('mae'))}"
 
             if tr:
                 print("Train:", _fmt(tr))
