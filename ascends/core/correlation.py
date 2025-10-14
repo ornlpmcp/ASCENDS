@@ -66,11 +66,13 @@ def run_correlation(
                 if n < 2:
                     corr = None  # or np.nan
                 else:
-                    # distance correlation (dcor fast path needs float arrays)
-                    x_dc = X[feature].dropna().to_numpy()
-                    y_dc = y.dropna().to_numpy()
-                    x_dc = np.asarray(x_dc, dtype=np.float64)
-                    y_dc = np.asarray(y_dc, dtype=np.float64)
+                    # distance correlation (align on index, drop NaNs, cast to float64)
+                    # y may be a NumPy array already; use the original df[target] Series for alignment.
+                    x_ser = df[feature]
+                    y_ser = df[target]
+                    xy = pd.concat([x_ser, y_ser], axis=1).dropna()
+                    x_dc = np.asarray(xy.iloc[:, 0].to_numpy(), dtype=np.float64)
+                    y_dc = np.asarray(xy.iloc[:, 1].to_numpy(), dtype=np.float64)
                     corr = dcor.distance_correlation(x_dc, y_dc)
             results[metric][feature] = corr
 
