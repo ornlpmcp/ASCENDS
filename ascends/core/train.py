@@ -134,7 +134,24 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
 
     est = result["model"]
     feats = result["features"]
-    test_metrics = result["test_metrics"]
+
+    # Ensure consistent, positive metrics in the returned result
+    # Some older code may not include 'train_metrics' or may carry a signed MAE.
+    # Normalize here so the CLI can print without touching files.
+    if "test_metrics" in result:
+        tm = result["test_metrics"]
+        if "mae" in tm:
+            try:
+                tm["mae"] = float(abs(float(tm["mae"])))
+            except Exception:
+                pass
+    else:
+        result["test_metrics"] = {"r2": r2_te, "rmse": rmse_te, "mae": mae_te}
+
+    result.setdefault(
+        "train_metrics",
+        {"r2": r2_tr, "rmse": rmse_tr, "mae": mae_tr},
+    )
 
     # --- Save artifacts ---
     os.makedirs(out_dir, exist_ok=True)
@@ -263,5 +280,14 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
 
     print(f"Manifest written to {manifest_path}")
 
-    return {"model_path": model_path, "metrics": test_metrics}
+    return {
+        "model_path": model_path,
+        "metrics": result["test_metrics"],
+        "train_metrics": result["train_metrics"],
+        "random_state": random_state,
+        "n_train": int(len(y_train)),
+        "n_test": int(len(y_test)),
+        "features": feats,
+        "model": model,
+    }
 
