@@ -66,7 +66,12 @@ def run_correlation(
                 if n < 2:
                     corr = None  # or np.nan
                 else:
-                    corr = dcor.distance_correlation(X[feature], y)
+                    # distance correlation (dcor fast path needs float arrays)
+                    x_dc = X[feature].dropna().to_numpy()
+                    y_dc = y.dropna().to_numpy()
+                    x_dc = np.asarray(x_dc, dtype=np.float64)
+                    y_dc = np.asarray(y_dc, dtype=np.float64)
+                    corr = dcor.distance_correlation(x_dc, y_dc)
             results[metric][feature] = corr
 
     # Convert np.float64 to float for JSON serialization
