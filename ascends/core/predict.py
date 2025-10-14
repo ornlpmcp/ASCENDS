@@ -58,7 +58,6 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     out_path = Path(out_dir) / "predictions.csv"
     out_df.to_csv(out_path, index=False)
-    print(f"Predictions saved to {out_path} ({pred_col})")
 
     # --- Return the actual column name and output path ---
     return {"pred_col": pred_col, "out_path": str(out_path)}
