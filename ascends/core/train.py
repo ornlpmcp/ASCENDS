@@ -135,6 +135,16 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     est = result["model"]
     feats = result["features"]
 
+    # === Metrics: write BOTH train and test, including RMSE ===
+    # We compute fresh metrics here for consistency (MAE will be positive).
+    r2_tr  = float(r2_score(y_train, y_pred_train))
+    mae_tr = float(mean_absolute_error(y_train, y_pred_train))
+    rmse_tr = float(np.sqrt(mean_squared_error(y_train, y_pred_train)))
+
+    r2_te  = float(r2_score(y_test, y_pred_test))
+    mae_te = float(mean_absolute_error(y_test, y_pred_test))
+    rmse_te = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
+
     # Ensure consistent, positive metrics in the returned result
     # Some older code may not include 'train_metrics' or may carry a signed MAE.
     # Normalize here so the CLI can print without touching files.
@@ -222,16 +232,6 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     if extra_all_path is not None:
         extra_all_path.parent.mkdir(parents=True, exist_ok=True)
         parity_all.to_csv(extra_all_path, index=False)
-
-    # === Metrics: write BOTH train and test, including RMSE ===
-    # We compute fresh metrics here for consistency (MAE will be positive).
-    r2_tr  = float(r2_score(y_train, y_pred_train))
-    mae_tr = float(mean_absolute_error(y_train, y_pred_train))
-    rmse_tr = float(np.sqrt(mean_squared_error(y_train, y_pred_train)))
-
-    r2_te  = float(r2_score(y_test, y_pred_test))
-    mae_te = float(mean_absolute_error(y_test, y_pred_test))
-    rmse_te = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
 
     metrics_rows = [
         {"split": "train", "r2": r2_tr, "mae": mae_tr, "rmse": rmse_tr},
