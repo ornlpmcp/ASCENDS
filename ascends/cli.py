@@ -277,6 +277,23 @@ def train(
             msg += f", trials={trials}"
         typer.echo(msg)
 
+        # --- Minimal, file-free summary output (train & test) ---
+        # Use values returned by core without touching metrics.csv
+        try:
+            tr = result.get("train_metrics", {})
+            te = result.get("metrics", {}) or result.get("test_metrics", {})
+
+            def _fmt(d):
+                return f"R2={d.get('r2')} RMSE={d.get('rmse')} MAE={d.get('mae')}"
+
+            if tr:
+                print("Train:", _fmt(tr))
+            if te:
+                print("Test: ", _fmt(te))
+        except Exception:
+            # Keep CLI resilient; don't fail printing
+            pass
+
 def _parse_figsize(s: Union[str, Tuple[float, float]]) -> Tuple[float, float]:
     # Accept "W,H" or (W, H). Return (float(W), float(H)).
     if isinstance(s, tuple) and len(s) == 2:
