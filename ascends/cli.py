@@ -620,7 +620,7 @@ def predict(
 
     result = core_predict(model_path=model_path, data=df, out_dir=out, run_dir=run_dir)
     pred_col = result.get("pred_col", "prediction")
-    typer.echo(f"Predictions saved to {out}/predictions.csv ({pred_col})")
+    click.echo(f"Predictions saved to {out}/predictions.csv ({pred_col})")
 
 
 if __name__ == "__main__":
