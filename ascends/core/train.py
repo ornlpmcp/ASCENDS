@@ -135,6 +135,19 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     est = result["model"]
     feats = result["features"]
 
+    # === Parity data for TEST & TRAIN, plus a combined file ===
+    # Compute directly from the fitted estimator; don't rely on train_eval for vectors.
+    y_test = test_df[target].to_numpy()
+    X_test = test_df[feats]
+    y_pred_test = est.predict(X_test)
+    parity_test = pd.DataFrame({"actual": y_test, "predicted": y_pred_test})
+
+    # Compute parity data for TRAIN
+    y_train = train_df[target].to_numpy()
+    X_train = train_df[feats]
+    y_pred_train = est.predict(X_train)
+    parity_train = pd.DataFrame({"actual": y_train, "predicted": y_pred_train})
+
     # === Metrics: write BOTH train and test, including RMSE ===
     # We compute fresh metrics here for consistency (MAE will be positive).
     r2_tr  = float(r2_score(y_train, y_pred_train))
@@ -162,27 +175,6 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         "train_metrics",
         {"r2": r2_tr, "rmse": rmse_tr, "mae": mae_tr},
     )
-
-    # --- Save artifacts ---
-    os.makedirs(out_dir, exist_ok=True)
-    # 1) Save ONLY the fitted estimator to model.joblib
-    model_path = os.path.join(out_dir, "model.joblib")
-    joblib.dump(est, model_path)
-
-    # === Parity data for TEST & TRAIN, plus a combined file ===
-    # Compute directly from the fitted estimator; don't rely on train_eval for vectors.
-    y_test = test_df[target].to_numpy()
-    X_test = test_df[feats]
-    y_pred_test = est.predict(X_test)
-    parity_test = pd.DataFrame({"actual": y_test, "predicted": y_pred_test})
-
-    # Compute parity data for TRAIN
-    y_train = train_df[target].to_numpy()
-    X_train = train_df[feats]
-    y_pred_train = est.predict(X_train)
-    parity_train = pd.DataFrame({"actual": y_train, "predicted": y_pred_train})
-
-    # --- Determine output paths ---
     # Standard (always written) inside run dir:
     std_test_path  = Path(out_dir) / "parity_test.csv"
     std_train_path = Path(out_dir) / "parity_train.csv"
