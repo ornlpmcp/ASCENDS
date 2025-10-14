@@ -1,0 +1,11 @@
+{
+  "csv_path": "../examples/BostonHousing.csv",
+  "target": "medv",
+  "task": "r",
+  "model": "rf",
+  "test_size": 0.2,
+  "tune": "off",
+  "random_state": 3761137545,
+  "model_path": "boston_rf/model.joblib",
+  "metrics_csv": "boston_rf/metrics.csv"
+}

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "artifact_type": "estimator-only",
+  "model": "rf",
+  "task": "r",
+  "target": "medv",
+  "features": [
+    "crim",
+    "zn",
+    "indus",
+    "chas",
+    "nox",
+    "rm",
+    "age",
+    "dis",
+    "rad",
+    "tax",
+    "ptratio",
+    "b",
+    "lstat"
+  ],
+  "random_state": 3761137545,
+  "timestamp": "2025-10-13T20:46:02.380333"
+}
