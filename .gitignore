@@ -21,6 +21,9 @@ logs/
 # Node/JS (if any)
 node_modules/
 
+#test
+test/bostron_rf/
+
 # OS
 .DS_Store
 Thumbs.db
