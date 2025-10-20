@@ -2,7 +2,7 @@
 name = "ascends"
 version = "0.2.0"
 description = "ASCENDS v0.2 with FastAPI backend and CLI"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
   "numpy",
   "pandas",
