@@ -1,7 +1,7 @@
 """Model registry (RF, XGB, Linear/LogReg, optional SVM/KNN)."""
 
 from ascends.utils.validation import canonicalize_task
-from typing import Union, Optional
+from typing import Optional
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
@@ -16,11 +16,12 @@ from sklearn.ensemble import (
 from sklearn.linear_model import LogisticRegression
 
 try:
-    from xgboost import XGBRegressor, XGBClassifier
+    from xgboost import XGBRegressor, XGBClassifier  # type: ignore
+    HAS_XGBOOST = True
 except Exception:
-    raise ImportError(
-        "XGBoost is required for kind='xgb'. Install with: uv add xgboost"
-    )
+    XGBRegressor = None  # type: ignore[assignment]
+    XGBClassifier = None  # type: ignore[assignment]
+    HAS_XGBOOST = False
 
 
 SUPPORTED_TASKS = {"regression", "classification"}
@@ -91,7 +92,7 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
             except Exception as e:
                 raise ImportError(
                     "xgboost is required for --model xgb. Install with: "
-                    "`uv pip install xgboost`"
+                    "`uv sync --extra pro` (or `uv pip install xgboost`)."
                 ) from e
             return XGBRegressor(random_state=random_state)
         raise ValueError(f"Unsupported regression model kind: {kind!r}. Try 'rf' (or 'random_forest').")
@@ -114,7 +115,7 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
             except Exception as e:
                 raise ImportError(
                     "xgboost is required for --model xgb. Install with: "
-                    "`uv pip install xgboost`"
+                    "`uv sync --extra pro` (or `uv pip install xgboost`)."
                 ) from e
             return XGBClassifier(random_state=random_state)
         raise ValueError(f"Unsupported classification model kind: {kind!r}. Try 'rf' (or 'random_forest').")
@@ -125,33 +126,20 @@ def is_tree_model(est) -> bool:
     Return True if estimator is a tree ensemble suitable for SHAP TreeExplainer
     (RF/XGB/HGB, reg+clf), else False.
     """
-    if isinstance(
-        est,
-        (
-            RandomForestRegressor,
-            RandomForestClassifier,
-            XGBRegressor,
-            XGBClassifier,
-            HistGradientBoostingRegressor,
-            HistGradientBoostingClassifier,
-        ),
-    ):
+    tree_types = [
+        RandomForestRegressor,
+        RandomForestClassifier,
+        HistGradientBoostingRegressor,
+        HistGradientBoostingClassifier,
+    ]
+    if HAS_XGBOOST:
+        tree_types.extend([XGBRegressor, XGBClassifier])  # type: ignore[arg-type]
+    tree_types_t = tuple(tree_types)
+
+    if isinstance(est, tree_types_t):
         return True
     if isinstance(est, Pipeline):
-        return any(
-            isinstance(
-                step,
-                (
-                    RandomForestRegressor,
-                    RandomForestClassifier,
-                    XGBRegressor,
-                    XGBClassifier,
-                    HistGradientBoostingRegressor,
-                    HistGradientBoostingClassifier,
-                ),
-            )
-            for step in est.named_steps.values()
-        )
+        return any(isinstance(step, tree_types_t) for step in est.named_steps.values())
     return False
 
 
@@ -161,23 +149,27 @@ def list_supported_models(task: str) -> list[str]:
     """
     task = canonicalize_task(task)
     if task == "regression":
-        return [
+        models = [
             "linear",
             "ridge",
             "lasso",
             "elasticnet",
             "rf",
-            "xgb",
             "hgb",
             "svr",
             "knn",
         ]
+        if HAS_XGBOOST:
+            models.insert(5, "xgb")
+        return models
     else:
-        return [
+        models = [
             "linear",
             "ridge",
             "rf",
-            "xgb",
             "hgb",
             "knn",
         ]
+        if HAS_XGBOOST:
+            models.insert(3, "xgb")
+        return models
