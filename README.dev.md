@@ -127,7 +127,8 @@ bash ./bundle/make_bundle.sh pro
 Outputs:
 
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>/`
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip`
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` (macOS/Linux)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip` (Windows)
 
 Bundle usage on target machine:
 

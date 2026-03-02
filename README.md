@@ -69,7 +69,9 @@ Release policy (current):
 - `v0.3.0`: official/public release target is `pro`
 - `standard`: experimental/internal until profile split UX is fully stabilized
 
-This creates `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip`.
+This creates:
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` on macOS/Linux
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip` on Windows
 On the target machine (same OS/arch family), unpack and run:
 
 ```bash

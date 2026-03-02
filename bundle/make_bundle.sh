@@ -34,7 +34,12 @@ fi
 BUNDLE_NAME="ASCENDS-v${VERSION_TAG}-${DATE_TAG}-${OS_TAG}-${PROFILE}"
 BUNDLE_ROOT="$DIST_DIR/$BUNDLE_NAME"
 BUNDLE_APP="$BUNDLE_ROOT/ASCENDS"
-ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}.zip"
+if [[ "$OS_TAG" == "windows" ]]; then
+  ARCHIVE_EXT="zip"
+else
+  ARCHIVE_EXT="tar.gz"
+fi
+ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}.${ARCHIVE_EXT}"
 
 echo "[ASCENDS] Preparing portable bundle (profile=$PROFILE)..."
 mkdir -p "$DIST_DIR"
@@ -182,14 +187,15 @@ chmod +x "$BUNDLE_ROOT/launch_gui.sh" "$BUNDLE_ROOT/launch_cli.sh"
 
 if [[ -f "$ARCHIVE_PATH" ]]; then
   N=2
-  while [[ -f "$DIST_DIR/${BUNDLE_NAME}-${N}.zip" ]]; do
+  while [[ -f "$DIST_DIR/${BUNDLE_NAME}-${N}.${ARCHIVE_EXT}" ]]; do
     N=$((N + 1))
   done
-  ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}-${N}.zip"
+  ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}-${N}.${ARCHIVE_EXT}"
 fi
 
 echo "[ASCENDS] Creating archive: $ARCHIVE_PATH"
-python3 - <<PY
+if [[ "$ARCHIVE_EXT" == "zip" ]]; then
+  python3 - <<PY
 import os
 import zipfile
 
@@ -205,6 +211,9 @@ with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             arcname = os.path.relpath(fp, dist_dir)
             zf.write(fp, arcname)
 PY
+else
+  tar -czf "$ARCHIVE_PATH" -C "$DIST_DIR" "$BUNDLE_NAME"
+fi
 
 echo "[ASCENDS] Bundle complete."
 echo "  Directory: $BUNDLE_ROOT"
