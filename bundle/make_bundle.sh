@@ -5,11 +5,21 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 TS="$(date +%Y%m%d_%H%M%S)"
 PROFILE="${1:-pro}" # standard | pro
+DATE_TAG="$(date +%Y%m%d)"
+VERSION_TAG="$(python3 - <<PY
+import re
+from pathlib import Path
+p = Path(r"$ROOT_DIR/pyproject.toml")
+text = p.read_text(encoding="utf-8")
+m = re.search(r'^version\\s*=\\s*\"([^\"]+)\"', text, flags=re.MULTILINE)
+print(m.group(1) if m else "0.0.0")
+PY
+)"
 
 OS_RAW="$(uname -s)"
 ARCH_RAW="$(uname -m)"
 case "$OS_RAW" in
-  Darwin) OS_TAG="macos" ;;
+  Darwin) OS_TAG="macOS" ;;
   Linux) OS_TAG="linux" ;;
   *) OS_TAG="$(echo "$OS_RAW" | tr '[:upper:]' '[:lower:]')" ;;
 esac
@@ -21,10 +31,10 @@ if [[ "$PROFILE" != "standard" && "$PROFILE" != "pro" ]]; then
   exit 1
 fi
 
-BUNDLE_NAME="ASCENDS-bundle-${PROFILE}-${OS_TAG}-${ARCH_TAG}-${TS}"
+BUNDLE_NAME="ASCENDS-v${VERSION_TAG}-${DATE_TAG}-${OS_TAG}-${PROFILE}"
 BUNDLE_ROOT="$DIST_DIR/$BUNDLE_NAME"
 BUNDLE_APP="$BUNDLE_ROOT/ASCENDS"
-ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}.tar.gz"
+ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}.zip"
 
 echo "[ASCENDS] Preparing portable bundle (profile=$PROFILE)..."
 mkdir -p "$DIST_DIR"
@@ -170,8 +180,31 @@ EOF
 
 chmod +x "$BUNDLE_ROOT/launch_gui.sh" "$BUNDLE_ROOT/launch_cli.sh"
 
+if [[ -f "$ARCHIVE_PATH" ]]; then
+  N=2
+  while [[ -f "$DIST_DIR/${BUNDLE_NAME}-${N}.zip" ]]; do
+    N=$((N + 1))
+  done
+  ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}-${N}.zip"
+fi
+
 echo "[ASCENDS] Creating archive: $ARCHIVE_PATH"
-tar -czf "$ARCHIVE_PATH" -C "$DIST_DIR" "$BUNDLE_NAME"
+python3 - <<PY
+import os
+import zipfile
+
+dist_dir = r"$DIST_DIR"
+bundle_name = r"$BUNDLE_NAME"
+archive_path = r"$ARCHIVE_PATH"
+bundle_root = os.path.join(dist_dir, bundle_name)
+
+with zipfile.ZipFile(archive_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+    for root, _, files in os.walk(bundle_root):
+        for fn in files:
+            fp = os.path.join(root, fn)
+            arcname = os.path.relpath(fp, dist_dir)
+            zf.write(fp, arcname)
+PY
 
 echo "[ASCENDS] Bundle complete."
 echo "  Directory: $BUNDLE_ROOT"

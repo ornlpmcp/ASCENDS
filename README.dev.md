@@ -126,8 +126,8 @@ bash ./bundle/make_bundle.sh pro
 
 Outputs:
 
-- `dist/ASCENDS-bundle-<profile>-<os>-<arch>-<timestamp>/`
-- `dist/ASCENDS-bundle-<profile>-<os>-<arch>-<timestamp>.tar.gz`
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>/`
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip`
 
 Bundle usage on target machine:
 
@@ -142,6 +142,9 @@ Windows launchers are also generated:
 
 ## Known Status
 
+- Release packaging policy:
+  - `v0.3.0` is shipped as `pro` for external/public use.
+  - `standard` profile is currently internal/experimental until model-option UX and guardrails are fully aligned.
 - `parity-plot` crash path on macOS backend was fixed by forcing headless plotting in CLI.
 - GUI `train/select` route is implemented and wired to template actions.
 - Classification is enabled in GUI backend training path with:

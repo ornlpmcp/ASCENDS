@@ -64,7 +64,12 @@ bash ./bundle/make_bundle.sh pro
 - `standard`: lighter bundle (no `xgboost` / `shap`)
 - `pro`: includes `xgboost` + `shap`
 
-This creates `dist/ASCENDS-bundle-<profile>-<os>-<arch>-<timestamp>.tar.gz`.
+Release policy (current):
+
+- `v0.3.0`: official/public release target is `pro`
+- `standard`: experimental/internal until profile split UX is fully stabilized
+
+This creates `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip`.
 On the target machine (same OS/arch family), unpack and run:
 
 ```bash
