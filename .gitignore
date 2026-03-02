@@ -22,7 +22,17 @@ logs/
 node_modules/
 
 #test
-test/bostron_rf/
+test/boston_rf/
+test/boston_linear/
+test/iris_rf_cli/
+test/tmp_cls.csv
+
+# bundle/build artifacts
+bundle-out/
+*.tar.gz
+
+# generated static assets at runtime
+static/workspace/
 
 # OS
 .DS_Store
