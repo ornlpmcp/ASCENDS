@@ -184,6 +184,12 @@
                 {% if train_error %}
                   <div class="notice err"><strong>{{ train_error }}</strong></div>
                 {% endif %}
+                <form action="/train/shap" method="post" style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                  {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+                  <label for="shap-samples"><strong>SHAP samples:</strong></label>
+                  <input id="shap-samples" name="max_samples" class="input" type="number" min="50" max="5000" step="50" value="300">
+                  <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled{% endif %}>Run SHAP</button>
+                </form>
                 <form action="/train/save" method="post" style="display:flex; gap:8px; align-items:center;">
                   {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
                   <label for="save-name"><strong>Name:</strong></label>
@@ -191,6 +197,42 @@
                   <button class="btn btn-sm" type="submit" {% if not parity_img_url %}disabled{% endif %}>Save Model</button>
                 </form>
               </div>
+
+              {% if shap_warning %}
+                <div class="subcard" style="color:#7a5200; margin-top:8px;">
+                  <strong>SHAP Warning:</strong> {{ shap_warning }}
+                </div>
+              {% endif %}
+
+              <div class="plot-box shap-box" style="margin-top:8px;">
+                {% if shap_img_url %}
+                  <img src="{{ shap_img_url }}" alt="SHAP importance plot">
+                {% else %}
+                  <em>Run SHAP to generate feature importance plot.</em>
+                {% endif %}
+              </div>
+
+              {% if shap_rows %}
+                <div class="subcard" style="margin-top:8px;">
+                  <strong>Top SHAP Features</strong>
+                  <table class="table" style="width:100%; border-collapse:collapse; margin-top:6px;">
+                    <thead>
+                      <tr>
+                        <th style="text-align:left; border-bottom:1px solid #ddd;">Feature</th>
+                        <th style="text-align:left; border-bottom:1px solid #ddd;">Importance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in shap_rows %}
+                      <tr>
+                        <td style="padding:4px 6px;">{{ row[0] }}</td>
+                        <td style="padding:4px 6px;">{{ "%.6f"|format(row[1]) }}</td>
+                      </tr>
+                    {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% endif %}
             </div>
           </div>
         </div>

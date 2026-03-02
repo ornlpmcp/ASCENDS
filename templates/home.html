@@ -1,7 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="panel">
-  <h2>Welcome</h2>
-  <p>Start with <a href="/correlation">Correlation</a>, then Train, then Predict.</p>
+  <h2>Welcome to ASCENDS</h2>
+  <p>
+    ASCENDS helps researchers run practical machine learning on local CSV data
+    with a guided workflow.
+  </p>
+
+  <div class="card" style="margin-top:10px;">
+    <div class="card-title">What ASCENDS is for</div>
+    <div class="card-body">
+      <ul class="list">
+        <li>Understand feature-target relationships quickly</li>
+        <li>Train baseline regression or classification models without coding from scratch</li>
+        <li>Save runs and generate predictions on new data</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-title">Recommended Workflow</div>
+    <div class="card-body">
+      <ol class="list" style="padding-left:18px;">
+        <li>
+          <strong>Correlation Analysis &amp; Feature Selection</strong>:
+          Upload CSV, choose target, and identify useful inputs.
+        </li>
+        <li>
+          <strong>ML Performance Training &amp; Test</strong>:
+          Train a model, review metrics/plots, and save the run.
+        </li>
+        <li>
+          <strong>ML Prediction</strong>:
+          Apply the saved model to new CSV data.
+        </li>
+      </ol>
+
+      <div class="toolbar" style="margin-top:10px;">
+        <a class="btn btn-sm" href="/correlation">Start Workflow</a>
+        <a class="btn btn-sm" href="/train">Go to Train</a>
+        <a class="btn btn-sm" href="/predict">Go to Predict</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-title">Credits</div>
+    <div class="card-body">
+      <ul class="list">
+        <li>
+          <strong>Dongwon Shin</strong> (Oak Ridge National Laboratory)
+          - Project direction and user workflow design
+          - <a href="mailto:shind@ornl.gov">shind@ornl.gov</a>
+        </li>
+        <li>
+          <strong>Sangkeun Lee</strong> (Oak Ridge National Laboratory)
+          - Original ASCENDS developer
+          - <a href="mailto:lees4@ornl.gov">lees4@ornl.gov</a>
+        </li>
+      </ul>
+    </div>
+  </div>
 </section>
 {% endblock %}

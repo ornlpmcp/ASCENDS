@@ -5,7 +5,17 @@ import pandas as pd
 from pathlib import Path
 from ascends.core.models import make_model
 from ascends.core.data import align_to_features
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from ascends.utils.validation import canonicalize_task
+from sklearn.metrics import (
+    r2_score,
+    mean_absolute_error,
+    mean_squared_error,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+)
 
 
 def train_eval(
@@ -17,28 +27,11 @@ def train_eval(
     tune_mode: str = "off",
     random_state: int = 42,
 ) -> Dict[str, Any]:
-    """
-    Minimal training pipeline for regression:
-    - Build X_train, y_train, X_test, y_test
-      * One-hot encode categoricals with pd.get_dummies on train
-      * Align test to train columns (missing -> 0, extra -> drop)
-    - Build estimator via ascends.core.models.make_model(task, model_kind)
-    - 5-fold CV on the training set:
-        * R2 and MAE (use cross_val_score with scoring 'r2' and 'neg_mean_absolute_error')
-        * Compute mean±std for both
-    - Fit on full train, evaluate on hold-out test (R2, MAE)
-    - Return:
-        {
-          "model": fitted_estimator,
-          "features": ordered list of train feature columns,
-          "cv_scores": {"r2_mean":..., "r2_std":..., "mae_mean":..., "mae_std":...},
-          "test_metrics": {"r2":..., "mae":...}
-        },
-        "random_state": random_state
-    For now ignore tune_mode!='off' (leave TODO).
-    """
-    from sklearn.model_selection import KFold, cross_val_score
+    """Train/evaluate a model for regression or classification."""
+    from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score
     import numpy as np
+
+    task = canonicalize_task(task)
 
     # 1) Build X_train, y_train, X_test, y_test (with one-hot for categoricals)
     X_train_raw = train_df.drop(columns=[target])
@@ -57,19 +50,57 @@ def train_eval(
     if model is None:
         raise ValueError(f"make_model returned None for task={task!r}, kind={model_kind!r}")
 
-    # 3) Build seeded CV splitter
-    cv = KFold(n_splits=5, shuffle=True, random_state=random_state)
+    # 3) Build seeded CV splitter and task-specific metrics
+    if task == "classification":
+        min_class_count = int(pd.Series(y_train).value_counts().min())
+        n_splits = max(2, min(5, min_class_count))
+        cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+        cv_acc = cross_val_score(model, X_train, y_train, cv=cv, scoring="accuracy")
+        cv_f1 = cross_val_score(model, X_train, y_train, cv=cv, scoring="f1_weighted")
 
-    # 4) Cross-validation scores
-    cv_r2 = cross_val_score(model, X_train, y_train, cv=cv, scoring="r2")
-    cv_mae = cross_val_score(
-        model, X_train, y_train, cv=cv, scoring="neg_mean_absolute_error"
-    )
+        model.fit(X_train, y_train)
+        y_pred_test = model.predict(X_test)
+        test_metrics = {
+            "accuracy": float(accuracy_score(y_test, y_pred_test)),
+            "precision": float(precision_score(y_test, y_pred_test, average="weighted", zero_division=0)),
+            "recall": float(recall_score(y_test, y_pred_test, average="weighted", zero_division=0)),
+            "f1": float(f1_score(y_test, y_pred_test, average="weighted", zero_division=0)),
+        }
+        # Optional ROC-AUC for binary classification when probabilities are available
+        try:
+            labels = pd.Series(y_test).dropna().unique()
+            if len(labels) == 2 and hasattr(model, "predict_proba"):
+                y_proba = model.predict_proba(X_test)
+                test_metrics["roc_auc"] = float(roc_auc_score(y_test, y_proba[:, 1]))
+        except Exception:
+            pass
 
-    # 5) Fit model; predict on test; compute test R2/MAE
-    model.fit(X_train, y_train)
-    test_r2 = model.score(X_test, y_test)
-    test_mae = -np.mean(np.abs(y_test - model.predict(X_test)))
+        cv_scores = {
+            "accuracy_mean": float(np.mean(cv_acc)),
+            "accuracy_std": float(np.std(cv_acc)),
+            "f1_mean": float(np.mean(cv_f1)),
+            "f1_std": float(np.std(cv_f1)),
+        }
+    else:
+        cv = KFold(n_splits=5, shuffle=True, random_state=random_state)
+        cv_r2 = cross_val_score(model, X_train, y_train, cv=cv, scoring="r2")
+        cv_mae = cross_val_score(
+            model, X_train, y_train, cv=cv, scoring="neg_mean_absolute_error"
+        )
+
+        model.fit(X_train, y_train)
+        test_r2 = model.score(X_test, y_test)
+        test_mae = -np.mean(np.abs(y_test - model.predict(X_test)))
+        test_metrics = {
+            "r2": float(test_r2),
+            "mae": float(test_mae),
+        }
+        cv_scores = {
+            "r2_mean": float(np.mean(cv_r2)),
+            "r2_std": float(np.std(cv_r2)),
+            "mae_mean": float(-np.mean(cv_mae)),
+            "mae_std": float(np.std(cv_mae)),
+        }
 
     # 6) Features list
     features = list(X_train.columns)
@@ -78,16 +109,8 @@ def train_eval(
     return {
         "model": model,
         "features": features,
-        "cv_scores": {
-            "r2_mean": np.mean(cv_r2),
-            "r2_std": np.std(cv_r2),
-            "mae_mean": -np.mean(cv_mae),
-            "mae_std": np.std(cv_mae),
-        },
-        "test_metrics": {
-            "r2": test_r2,
-            "mae": test_mae,
-        },
+        "cv_scores": cv_scores,
+        "test_metrics": test_metrics,
         "random_state": random_state,
     }
 
@@ -121,6 +144,8 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         df, test_size=float(test_size), random_state=random_state
     )
 
+    task = canonicalize_task(task)
+
     result = train_eval(
         train_df=train_df,
         test_df=test_df,
@@ -147,33 +172,53 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     y_pred_train = est.predict(X_train)
     parity_train = pd.DataFrame({"actual": y_train, "predicted": y_pred_train})
 
-    # === Metrics: write BOTH train and test, including RMSE ===
-    # We compute fresh metrics here for consistency (MAE will be positive).
-    r2_tr  = float(r2_score(y_train, y_pred_train))
-    mae_tr = float(mean_absolute_error(y_train, y_pred_train))
-    rmse_tr = float(np.sqrt(mean_squared_error(y_train, y_pred_train)))
-
-    r2_te  = float(r2_score(y_test, y_pred_test))
-    mae_te = float(mean_absolute_error(y_test, y_pred_test))
-    rmse_te = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
-
-    # Ensure consistent, positive metrics in the returned result
-    # Some older code may not include 'train_metrics' or may carry a signed MAE.
-    # Normalize here so the CLI can print without touching files.
-    if "test_metrics" in result:
-        tm = result["test_metrics"]
-        if "mae" in tm:
-            try:
-                tm["mae"] = float(abs(float(tm["mae"])))
-            except Exception:
-                pass
+    if task == "classification":
+        train_metrics = {
+            "accuracy": float(accuracy_score(y_train, y_pred_train)),
+            "precision": float(precision_score(y_train, y_pred_train, average="weighted", zero_division=0)),
+            "recall": float(recall_score(y_train, y_pred_train, average="weighted", zero_division=0)),
+            "f1": float(f1_score(y_train, y_pred_train, average="weighted", zero_division=0)),
+        }
+        test_metrics = {
+            "accuracy": float(accuracy_score(y_test, y_pred_test)),
+            "precision": float(precision_score(y_test, y_pred_test, average="weighted", zero_division=0)),
+            "recall": float(recall_score(y_test, y_pred_test, average="weighted", zero_division=0)),
+            "f1": float(f1_score(y_test, y_pred_test, average="weighted", zero_division=0)),
+        }
+        try:
+            labels = pd.Series(y_test).dropna().unique()
+            if len(labels) == 2 and hasattr(est, "predict_proba"):
+                test_metrics["roc_auc"] = float(roc_auc_score(y_test, est.predict_proba(X_test)[:, 1]))
+        except Exception:
+            pass
+        result["test_metrics"] = test_metrics
+        result.setdefault("train_metrics", train_metrics)
     else:
-        result["test_metrics"] = {"r2": r2_te, "rmse": rmse_te, "mae": mae_te}
+        # === Metrics: write BOTH train and test, including RMSE ===
+        r2_tr = float(r2_score(y_train, y_pred_train))
+        mae_tr = float(mean_absolute_error(y_train, y_pred_train))
+        rmse_tr = float(np.sqrt(mean_squared_error(y_train, y_pred_train)))
 
-    result.setdefault(
-        "train_metrics",
-        {"r2": r2_tr, "rmse": rmse_tr, "mae": mae_tr},
-    )
+        r2_te = float(r2_score(y_test, y_pred_test))
+        mae_te = float(mean_absolute_error(y_test, y_pred_test))
+        rmse_te = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
+
+        # Ensure consistent, positive metrics in the returned result
+        if "test_metrics" in result:
+            tm = result["test_metrics"]
+            if "mae" in tm:
+                try:
+                    tm["mae"] = float(abs(float(tm["mae"])))
+                except Exception:
+                    pass
+            tm.setdefault("rmse", rmse_te)
+        else:
+            result["test_metrics"] = {"r2": r2_te, "rmse": rmse_te, "mae": mae_te}
+
+        result.setdefault(
+            "train_metrics",
+            {"r2": r2_tr, "rmse": rmse_tr, "mae": mae_tr},
+        )
 
     # Define model_path for saving the model
     model_path = os.path.join(out_dir, "model.joblib")
@@ -230,8 +275,8 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         parity_all.to_csv(extra_all_path, index=False)
 
     metrics_rows = [
-        {"split": "train", "r2": r2_tr, "mae": mae_tr, "rmse": rmse_tr},
-        {"split": "test",  "r2": r2_te, "mae": mae_te, "rmse": rmse_te},
+        {"split": "train", **result.get("train_metrics", {})},
+        {"split": "test", **result.get("test_metrics", {})},
     ]
     metrics_csv = metrics_out or os.path.join(out_dir, "metrics.csv")
     # ensure parent directory exists for metrics output

@@ -1,0 +1,82 @@
+/* Utility-first style sheet for UI lab (Tailwind-inspired naming). */
+.tw-min-h-screen { min-height: 100vh; }
+.tw-bg-slate-50 { background: #f8fafc; }
+.tw-bg-white { background: #fff; }
+.tw-bg-slate-200 { background: #e2e8f0; }
+.tw-bg-emerald-500 { background: #10b981; }
+.tw-text-slate-900 { color: #0f172a; }
+.tw-text-slate-700 { color: #334155; }
+.tw-text-slate-600 { color: #475569; }
+.tw-text-slate-500 { color: #64748b; }
+.tw-text-sm { font-size: 0.875rem; line-height: 1.3rem; }
+.tw-text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.tw-text-xl { font-size: 1.25rem; line-height: 1.9rem; }
+.tw-text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.tw-font-semibold { font-weight: 600; }
+.tw-font-bold { font-weight: 700; }
+.tw-p-6 { padding: 1.5rem; }
+.tw-mt-2 { margin-top: 0.5rem; }
+.tw-mt-3 { margin-top: 0.75rem; }
+.tw-mt-4 { margin-top: 1rem; }
+.tw-mx-auto { margin-left: auto; margin-right: auto; }
+.tw-max-w-5xl { max-width: 64rem; }
+.tw-rounded-2xl { border-radius: 1rem; }
+.tw-rounded-full { border-radius: 9999px; }
+.tw-border { border: 1px solid #e2e8f0; }
+.tw-border-slate-200 { border-color: #e2e8f0; }
+.tw-shadow-sm { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); }
+.tw-space-y-6 > * + * { margin-top: 1.5rem; }
+.tw-space-y-2 > * + * { margin-top: 0.5rem; }
+.tw-grid { display: grid; }
+.tw-gap-4 { gap: 1rem; }
+.tw-flex { display: flex; }
+.tw-items-center { align-items: center; }
+.tw-justify-between { justify-content: space-between; }
+.tw-gap-2 { gap: 0.5rem; }
+.tw-flex-wrap { flex-wrap: wrap; }
+.tw-h-2 { height: 0.5rem; }
+.tw-h-full { height: 100%; }
+.tw-w-full { width: 100%; }
+.tw-w-0 { width: 0%; }
+.tw-overflow-hidden { overflow: hidden; }
+.tw-transition-all { transition: all 220ms ease; }
+
+.tw-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  background: #fff;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.tw-btn {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.6rem;
+  background: #fff;
+  color: #0f172a;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.2rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+.tw-btn:hover { background: #f1f5f9; }
+.tw-btn-primary {
+  border-color: #0d9488;
+  background: #0f766e;
+  color: #ecfeff;
+}
+.tw-btn-primary:hover { background: #0b6a62; }
+
+.tw-badge {
+  border: 1px solid #bfdbfe;
+  border-radius: 9999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+}
+
+@media (min-width: 900px) {
+  .tw-grid-cols-3-sm { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

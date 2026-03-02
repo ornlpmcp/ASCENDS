@@ -132,6 +132,21 @@ nav a:hover { color:var(--accent); }
   padding: 12px;
 }
 
+/* SHAP plot should use horizontal space aggressively for readability. */
+.train-page .shap-box {
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 10px;
+}
+.train-page .shap-box img {
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  height: auto;
+  margin: 0;
+  object-fit: contain;
+}
+
 .train-page .save-strip {
   display: flex;
   align-items: center;
@@ -286,16 +301,34 @@ nav a:hover { color:var(--accent); }
   .scroll-panel { height: auto; }
   .correlation-body { min-height: auto; }
 }
-/* Correlation 3-pane layout: lock to 10/10/80 */
-.corr-3 { display: flex; flex-wrap: nowrap; gap: 12px; }
+/* Correlation 3-pane layout: wider feature/target panes with stable minimums */
+.corr-3 { display: flex; flex-wrap: nowrap; gap: 12px; overflow-x: auto; }
 .corr-3 .col { display: flex; flex-direction: column; min-width: 0; }
-.corr-3 .col-left  { flex: 0 0 10%; max-width: 10%; }
-.corr-3 .col-mid   { flex: 0 0 10%; max-width: 10%; }
-.corr-3 .col-right { flex: 0 0 80%; max-width: 80%; }
+.corr-3 .col-left  { flex: 0 0 clamp(290px, 24vw, 380px); max-width: none; }
+.corr-3 .col-mid   { flex: 0 0 clamp(290px, 24vw, 380px); max-width: none; }
+.corr-3 .col-right { flex: 1 1 720px; min-width: 720px; max-width: none; }
+
+.feat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.feat-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feat-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
 /* Stack for small screens */
 @media (max-width: 1100px) {
   .corr-3 { flex-wrap: wrap; }
-  .corr-3 .col-left, .corr-3 .col-mid { flex: 0 0 50%; max-width: 50%; }
-  .corr-3 .col-right { flex: 0 0 100%; max-width: 100%; }
+  .corr-3 .col-left, .corr-3 .col-mid { flex: 0 0 100%; max-width: 100%; }
+  .corr-3 .col-right { flex: 0 0 100%; min-width: 0; max-width: 100%; }
 }

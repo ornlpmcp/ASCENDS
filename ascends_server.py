@@ -18,7 +18,17 @@ import pandas as pd
 import numpy as np
 from math import sqrt
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from sklearn.metrics import (
+    r2_score,
+    mean_absolute_error,
+    mean_squared_error,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    ConfusionMatrixDisplay,
+)
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
@@ -44,6 +54,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from ascends.core.explain import explain_model as core_explain, save_importance_plot
 
 logger = logging.getLogger("ascends.gui")
 
@@ -289,6 +300,11 @@ def health() -> Dict[str, Any]:
 async def home(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("home.html", {"request": request})
 
+@app.get("/ui-lab", response_class=HTMLResponse)
+async def ui_lab(request: Request) -> HTMLResponse:
+    """TS + utility-first UI proof page."""
+    return templates.TemplateResponse("ui_lab.html", {"request": request})
+
 
 # Helper to preserve order & uniqueness
 def _unique_preserve(seq: List[str]) -> List[str]:
@@ -316,8 +332,118 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
             "inputs": mf.get("inputs", []),
             "target": mf.get("target"),
         })
+        # Load previously generated SHAP artifacts if available
+        shap_png = STATIC_DIR / "workspace" / ws / "train" / "shap_importance.png"
+        shap_csv = _ws_dir(ws) / "train" / "shap_importance.csv"
+        if shap_png.exists():
+            ctx["shap_img_url"] = f"/static/workspace/{ws}/train/shap_importance.png?ts={int(time.time())}"
+        if shap_csv.exists():
+            try:
+                df_shap = pd.read_csv(shap_csv).head(10)
+                ctx["shap_rows"] = df_shap.values.tolist()
+            except Exception:
+                pass
     # Always include saved runs for the bottom-right pane
     ctx["saved_runs"] = _list_saved_runs()
+    return templates.TemplateResponse("train.html", ctx)
+
+
+@app.post("/train/shap", response_class=HTMLResponse)
+async def train_shap(
+    request: Request,
+    ws_id: str = Form(...),
+    max_samples: int = Form(300),
+) -> HTMLResponse:
+    """Compute SHAP/permutation importance for the latest trained model in this workspace."""
+    mf = _load_manifest(ws_id) or {}
+    ctx: Dict[str, Any] = {
+        "request": request,
+        "ws_id": ws_id,
+        "csv_path": mf.get("csv_path"),
+        "all_columns": mf.get("columns", []),
+        "selected": mf.get("selected", []),
+        "inputs": mf.get("inputs", []),
+        "target": mf.get("target"),
+        "saved_runs": _list_saved_runs(),
+    }
+
+    rec = LAST_TRAIN.get(ws_id)
+    if not rec:
+        ctx["train_error"] = "No trained model found in this workspace. Train first, then run SHAP."
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Keep showing existing train outputs if present
+    ctx["metrics_train"] = rec.get("metrics_train")
+    ctx["metrics_test"] = rec.get("metrics_test")
+    ctx["parity_img_url"] = rec.get("parity_img_url")
+
+    csv_path = rec.get("csv_path")
+    inputs = rec.get("inputs", [])
+    target = rec.get("target")
+    task = rec.get("params", {}).get("task", "r")
+    est = rec.get("estimator")
+    if not csv_path or not est or not inputs or not target:
+        ctx["train_error"] = "Insufficient training context for SHAP. Re-train and try again."
+        return templates.TemplateResponse("train.html", ctx)
+
+    try:
+        df = pd.read_csv(csv_path)
+        required = [c for c in inputs if c in df.columns] + ([target] if target in df.columns else [])
+        if target not in required:
+            raise ValueError("Target column missing in source CSV.")
+        df2 = df[required].dropna(axis=0, how="any")
+        X = df2[inputs]
+        y = df2[target]
+        task_name = "classification" if str(task).lower() == "c" else "regression"
+        expl = core_explain(
+            model=est,
+            X=X,
+            y=y,
+            task=task_name,
+            max_samples=max(50, int(max_samples)),
+            random_state=42,
+        )
+    except Exception as e:
+        ctx["train_error"] = f"SHAP failed: {e}"
+        return templates.TemplateResponse("train.html", ctx)
+
+    # Save artifacts
+    data_dir = _ws_dir(ws_id) / "train"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    img_dir = _train_img_dir(ws_id)
+    csv_out = data_dir / "shap_importance.csv"
+    report_out = data_dir / "shap_report.json"
+    png_out = img_dir / "shap_importance.png"
+
+    imp_df = expl["importance_df"]
+    imp_df.to_csv(csv_out, index=False)
+
+    save_importance_plot(
+        imp_df,
+        png_out,
+        method=str(expl.get("method", "shap")),
+        top_n=20,
+    )
+
+    report_out.write_text(
+        json.dumps(
+            {
+                "method": expl.get("method"),
+                "warning": expl.get("warning"),
+                "n_samples": expl.get("n_samples"),
+                "csv_path": str(csv_out),
+                "png_path": str(png_out),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/shap_importance.png?ts={int(time.time())}"
+    ctx["shap_rows"] = imp_df.head(10).values.tolist()
+    if expl.get("warning"):
+        ctx["shap_warning"] = expl["warning"]
+
     return templates.TemplateResponse("train.html", ctx)
 
 
@@ -431,13 +557,17 @@ async def train_save(
         ctx["saved_runs"] = _list_saved_runs()
         return templates.TemplateResponse("train.html", ctx)
 
-    # Save metrics.csv
+    # Save metrics.csv (supports both regression and classification metric keys)
     try:
         import pandas as _pd
-        dfm = _pd.DataFrame([
-            {"split": "Train", "R2": rec["metrics_train"]["R2"], "MAE": rec["metrics_train"]["MAE"], "RMSE": rec["metrics_train"]["RMSE"]},
-            {"split": "Test",  "R2": rec["metrics_test"]["R2"],  "MAE": rec["metrics_test"]["MAE"],  "RMSE": rec["metrics_test"]["RMSE"]},
-        ])
+        train_metrics = dict(rec.get("metrics_train", {}))
+        test_metrics = dict(rec.get("metrics_test", {}))
+        dfm = _pd.DataFrame(
+            [
+                {"split": "Train", **train_metrics},
+                {"split": "Test", **test_metrics},
+            ]
+        )
         dfm.to_csv(out_dir / "metrics.csv", index=False)
     except Exception as e:
         ctx["train_error"] = f"Failed to write metrics.csv: {e}"
@@ -449,7 +579,7 @@ async def train_save(
     manifest = {
         "name": run_name,
         "created_at": rec["timestamp"],
-        "task": "r",
+        "task": rec["params"].get("task", "r"),
         "model": rec["params"].get("model"),
         "seed": rec["params"].get("seed"),
         "test_size": rec["params"].get("test_size"),
@@ -467,12 +597,15 @@ async def train_save(
         ctx["saved_runs"] = _list_saved_runs()
         return templates.TemplateResponse("train.html", ctx)
 
-    # Copy parity.png if present
+    # Copy train visualization (parity/confusion) if present
     try:
-        # rec["parity_img_url"] is a URL; compute actual file path
-        ws_img = STATIC_DIR / "workspace" / ws_id / "train" / "parity.png"
-        if ws_img.exists():
-            shutil.copyfile(ws_img, out_dir / "parity.png")
+        ws_train_dir = STATIC_DIR / "workspace" / ws_id / "train"
+        parity_img = ws_train_dir / "parity.png"
+        confusion_img = ws_train_dir / "confusion.png"
+        if parity_img.exists():
+            shutil.copyfile(parity_img, out_dir / "parity.png")
+        if confusion_img.exists():
+            shutil.copyfile(confusion_img, out_dir / "confusion.png")
     except Exception:
         pass
 
@@ -568,16 +701,21 @@ async def predict_run(
         ctx["predict_errors"] = ["Uploaded CSV is empty."]
         return templates.TemplateResponse("predict.html", ctx)
 
-    # Case-insensitive header mapping: manifest inputs -> actual CSV columns
-    # Build a lookup of lowercase->actual for CSV headers
+    # Header mapping: exact match first, then unique case-insensitive fallback.
     csv_cols = list(df.columns)
-    lower_map = {c.lower(): c for c in csv_cols}
+    lower_candidates: Dict[str, List[str]] = {}
+    for c in csv_cols:
+        lower_candidates.setdefault(c.lower(), []).append(c)
     mapping: Dict[str, str] = {}
     missing: List[str] = []
     for feat in inputs:
+        if feat in df.columns:
+            mapping[feat] = feat
+            continue
         key = feat.lower()
-        if key in lower_map:
-            mapping[feat] = lower_map[key]
+        cands = lower_candidates.get(key, [])
+        if len(cands) == 1:
+            mapping[feat] = cands[0]
         else:
             missing.append(feat)
 
@@ -1039,10 +1177,35 @@ async def correlation_select(
     elif action == "set_target":
         if target_choice and target_choice in columns:
             cur_target = target_choice
-            if cur_target in cur_inputs:
-                cur_inputs.discard(cur_target)
-        if chosen_cols:
+            # Default UX: once target is chosen, use all remaining columns as inputs.
+            cur_inputs = {c for c in columns if c != cur_target}
+            cur_selected = set(columns)
+        elif chosen_cols:
             cur_selected = set(chosen_cols)
+
+    elif action.startswith("set_target_direct:"):
+        direct_target = action.split(":", 1)[1]
+        if direct_target in columns:
+            cur_target = direct_target
+            cur_inputs = {c for c in columns if c != cur_target}
+            cur_selected = set(columns)
+
+    elif action.startswith("toggle_input:"):
+        col_name = action.split(":", 1)[1]
+        if col_name in columns and col_name != cur_target:
+            if col_name in cur_inputs:
+                cur_inputs.discard(col_name)
+            else:
+                cur_inputs.add(col_name)
+            cur_selected = set(columns)
+
+    elif action == "auto_inputs":
+        # Explicit one-click action: use all columns except current target.
+        if cur_target and cur_target in columns:
+            cur_inputs = {c for c in columns if c != cur_target}
+        else:
+            cur_inputs = set(columns)
+        cur_selected = set(columns)
 
     elif action == "clear_target":
         cur_target = None
@@ -1180,6 +1343,42 @@ def _make_regressor(key: str, seed: Optional[int] = 42):
     # Fallback
     return RandomForestRegressor(n_estimators=300, random_state=seed, n_jobs=-1)
 
+
+def _make_classifier(key: str, seed: Optional[int] = 42):
+    """Pick a classifier by key."""
+    from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.neighbors import KNeighborsClassifier
+
+    k = (key or "rf").lower()
+    if k == "rf":
+        return RandomForestClassifier(n_estimators=300, random_state=seed, n_jobs=-1)
+    if k == "xgb" and xgb is not None:
+        return xgb.XGBClassifier(
+            n_estimators=500,
+            learning_rate=0.05,
+            max_depth=6,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            reg_alpha=0.0,
+            reg_lambda=1.0,
+            random_state=seed,
+            tree_method="hist",
+            n_jobs=0,
+            verbosity=0,
+        )
+    if k == "hgb":
+        return HistGradientBoostingClassifier(random_state=seed)
+    if k == "knn":
+        return make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5))
+    if k == "linear":
+        return LogisticRegression(max_iter=2000, random_state=seed)
+    if k == "ridge":
+        # Same practical behavior as "linear" for classification.
+        return LogisticRegression(max_iter=2000, random_state=seed)
+    # Fallback
+    return RandomForestClassifier(n_estimators=300, random_state=seed, n_jobs=-1)
+
 def _train_img_dir(ws_id: str) -> Path:
     d = STATIC_DIR / "workspace" / ws_id / "train"
     d.mkdir(parents=True, exist_ok=True)
@@ -1239,6 +1438,33 @@ def _save_parity_plot(
     # Cache-bust
     return f"/static/workspace/{ws_id}/train/parity.png?ts={int(time.time())}"
 
+
+def _save_confusion_plot(
+    ws_id: str,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    labels: List[Any],
+) -> str:
+    """Save confusion matrix PNG under static/workspace/<ws_id>/train and return its URL."""
+    img_dir = _train_img_dir(ws_id)
+    out_png = img_dir / "confusion.png"
+
+    fig, ax = plt.subplots(figsize=(7.2, 5.0), dpi=300)
+    disp = ConfusionMatrixDisplay.from_predictions(
+        y_true,
+        y_pred,
+        display_labels=labels,
+        cmap="Blues",
+        colorbar=True,
+        xticks_rotation=30,
+        ax=ax,
+    )
+    disp.ax_.set_title("Confusion Matrix")
+    fig.tight_layout()
+    fig.savefig(out_png, bbox_inches="tight")
+    plt.close(fig)
+    return f"/static/workspace/{ws_id}/train/confusion.png?ts={int(time.time())}"
+
 # --------------------------
 # Runs/save helpers & state
 # --------------------------
@@ -1287,14 +1513,17 @@ def _list_saved_runs() -> List[Dict[str, Any]]:
             try:
                 import pandas as _pd  # local to avoid global import shadowing
                 dfm = _pd.read_csv(met)
-                # Expect rows Train/Test, columns R2, MAE, RMSE
+                # Expect rows Train/Test; key columns differ by task.
                 test_row = dfm[dfm["split"].str.lower() == "test"]
                 if not test_row.empty:
                     tr = test_row.iloc[0]
                     item.setdefault("metrics", {})
-                    item["metrics"].update({"R2": float(tr.get("R2", float("nan"))),
-                                            "MAE": float(tr.get("MAE", float("nan"))),
-                                            "RMSE": float(tr.get("RMSE", float("nan")))})
+                    for col in dfm.columns:
+                        if col != "split":
+                            try:
+                                item["metrics"][col] = float(tr.get(col, float("nan")))
+                            except Exception:
+                                item["metrics"][col] = tr.get(col)
             except Exception:
                 pass
         out.append(item)
@@ -1343,8 +1572,9 @@ async def train_run(
     })
 
     # Guardrails
-    if task != "r":
-        ctx["train_error"] = "Classification will be added later. Please use Regression for now."
+    task = (task or "r").lower()
+    if task not in {"r", "c"}:
+        ctx["train_error"] = "Task must be 'r' (regression) or 'c' (classification)."
         return templates.TemplateResponse("train.html", ctx)
     if not inputs or not target:
         ctx["train_error"] = "Please select at least one input and a target."
@@ -1373,11 +1603,14 @@ async def train_run(
         ts = float(test_size)
     except Exception:
         ts = 0.2
-    # Split with chosen seed
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=ts, random_state=seed_val)
+    # Split with chosen seed (stratify for classification if possible)
+    stratify_vec = y if task == "c" and y.nunique(dropna=True) > 1 else None
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=ts, random_state=seed_val, stratify=stratify_vec
+    )
 
     # Model with chosen seed (where applicable)
-    est = _make_regressor(model, seed=seed_val)
+    est = _make_regressor(model, seed=seed_val) if task == "r" else _make_classifier(model, seed=seed_val)
 
     # Fit & predict
     try:
@@ -1388,26 +1621,55 @@ async def train_run(
         ctx["train_error"] = f"Model training failed: {e}"
         return templates.TemplateResponse("train.html", ctx)
 
-    # Metrics (train/test)
-    def _metrics(y_true, y_pred):
-        r2 = r2_score(y_true, y_pred)
-        mae = mean_absolute_error(y_true, y_pred)
-        rmse = sqrt(mean_squared_error(y_true, y_pred))
-        return {"R2": r2, "MAE": mae, "RMSE": rmse}
+    # Metrics + plot by task
+    if task == "r":
+        def _metrics_reg(y_true, y_pred):
+            r2 = r2_score(y_true, y_pred)
+            mae = mean_absolute_error(y_true, y_pred)
+            rmse = sqrt(mean_squared_error(y_true, y_pred))
+            return {"R2": r2, "MAE": mae, "RMSE": rmse}
 
-    ctx["metrics_train"] = _metrics(y_train, y_pred_train)
-    ctx["metrics_test"]  = _metrics(y_test,  y_pred_test)
+        ctx["metrics_train"] = _metrics_reg(y_train, y_pred_train)
+        ctx["metrics_test"] = _metrics_reg(y_test, y_pred_test)
+        try:
+            ctx["parity_img_url"] = _save_parity_plot(
+                ws_id,
+                y_train, y_pred_train,
+                y_test, y_pred_test,
+                ctx["metrics_train"], ctx["metrics_test"],
+            )
+        except Exception as e:
+            ctx["train_error"] = f"Failed to generate parity plot: {e}"
+    else:
+        def _metrics_clf(y_true, y_pred, estm, X_eval):
+            out = {
+                "Accuracy": accuracy_score(y_true, y_pred),
+                "Precision": precision_score(y_true, y_pred, average="weighted", zero_division=0),
+                "Recall": recall_score(y_true, y_pred, average="weighted", zero_division=0),
+                "F1": f1_score(y_true, y_pred, average="weighted", zero_division=0),
+            }
+            # ROC-AUC for binary class only (when probabilities are available)
+            try:
+                classes = pd.Series(y_true).dropna().unique()
+                if len(classes) == 2 and hasattr(estm, "predict_proba"):
+                    y_proba = estm.predict_proba(X_eval)
+                    out["ROC_AUC"] = roc_auc_score(y_true, y_proba[:, 1])
+            except Exception:
+                pass
+            return out
 
-    # Step C: write parity plot PNG and expose its URL
-    try:
-        ctx["parity_img_url"] = _save_parity_plot(
-            ws_id,
-            y_train, y_pred_train,
-            y_test,  y_pred_test,
-            ctx["metrics_train"], ctx["metrics_test"],
-        )
-    except Exception as e:
-        ctx["train_error"] = f"Failed to generate parity plot: {e}"
+        ctx["metrics_train"] = _metrics_clf(y_train, y_pred_train, est, X_train)
+        ctx["metrics_test"] = _metrics_clf(y_test, y_pred_test, est, X_test)
+        try:
+            labels = sorted(pd.Series(y).dropna().unique().tolist())
+            ctx["parity_img_url"] = _save_confusion_plot(
+                ws_id,
+                np.asarray(y_test),
+                np.asarray(y_pred_test),
+                labels,
+            )
+        except Exception as e:
+            ctx["train_error"] = f"Failed to generate confusion matrix: {e}"
 
     # Cache last train to enable quick "Save Model"
     LAST_TRAIN[ws_id] = {

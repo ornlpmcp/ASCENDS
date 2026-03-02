@@ -55,33 +55,50 @@
   </div>
 
   <!-- Row 2: All Columns | Input/Target Columns | Correlation Analysis -->
-  <div class="row no-gap">
+  <div class="row no-gap corr-3">
     <!-- All Columns -->
-    <div class="col col-10p">
+    <div class="col col-left">
       <div class="card">
         <div class="card-title">All Columns</div>
 <div class="card-body scroll-panel">
   <form action="/correlation/select" method="post">
     {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
     <div class="toolbar">
-      <button class="btn btn-sm" type="submit" name="action" value="select_all" {% if not ws_id %}disabled{% endif %}>Select all</button>
-      <button class="btn btn-sm" type="submit" name="action" value="select_none" {% if not ws_id %}disabled{% endif %}>Select none</button>
-      <button class="btn btn-sm" type="submit" name="action" value="add_inputs" {% if not ws_id %}disabled{% endif %}>➜ Inputs</button>
-      <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled{% endif %}>🎯 Set target</button>
-      {% if selected is defined %}
-        <span style="margin-left:8px;"><strong>Selected:</strong> {{ selected|length }}</span>
+      <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled{% endif %}>🎯 Target from dropdown</button>
+      <button class="btn btn-sm" type="submit" name="action" value="auto_inputs" {% if not ws_id %}disabled{% endif %}>Auto all except target</button>
+      {% if inputs is defined %}
+        <span style="margin-left:8px;"><strong>Inputs:</strong> {{ inputs|length }}</span>
       {% endif %}
     </div>
     <ul class="list" id="all-cols">
       {% if all_columns %}
         {% for c in all_columns %}
           <li>
-            <label>
-              <input type="checkbox" name="cols" value="{{ c }}"
-                     {% if selected and (c in selected) %}checked{% endif %}
-                     {% if not ws_id %}disabled{% endif %}>
-              {{ c }}
-            </label>
+            <div class="feat-row">
+              <span class="feat-name">{{ c }}</span>
+              <div class="feat-actions">
+                <button
+                  class="btn btn-sm"
+                  type="submit"
+                  name="action"
+                  value="toggle_input:{{ c }}"
+                  {% if not ws_id or (target and target == c) %}disabled{% endif %}
+                  title="Toggle input"
+                >
+                  {% if inputs and (c in inputs) %}➖ Input{% else %}➕ Input{% endif %}
+                </button>
+                <button
+                  class="btn btn-sm"
+                  type="submit"
+                  name="action"
+                  value="set_target_direct:{{ c }}"
+                  {% if not ws_id %}disabled{% endif %}
+                  title="Set target"
+                >
+                  {% if target and target == c %}🎯 Target{% else %}◎ Target{% endif %}
+                </button>
+              </div>
+            </div>
           </li>
         {% endfor %}
       {% else %}
@@ -106,20 +123,22 @@
     </div>
 
     <!-- Input/Target Columns -->
-    <div class="col col-10p">
+    <div class="col col-mid">
       <div class="card">
         <div class="card-title">Input/Target Columns</div>
         <div class="card-body scroll-panel">
           <form action="/correlation/select" method="post">
             {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
             <div class="subcard" style="min-height:370px; overflow:auto;">
-              <div class="toolbar">
-                <button class="btn btn-sm" type="submit" name="action" value="remove_inputs" {% if not ws_id %}disabled{% endif %}>Remove</button>
-              </div>
               <ul class="list" id="input-cols-list">
                 {% if inputs %}
                   {% for c in inputs %}
-                    <li><label><input type="checkbox" name="inputs" value="{{ c }}" {% if not ws_id %}disabled{% endif %}> {{ c }}</label></li>
+                    <li>
+                      <div class="feat-row">
+                        <span class="feat-name">{{ c }}</span>
+                        <button class="btn btn-sm" type="submit" name="action" value="toggle_input:{{ c }}" {% if not ws_id %}disabled{% endif %}>✕</button>
+                      </div>
+                    </li>
                   {% endfor %}
                 {% else %}
                   <li><em>No inputs selected yet…</em></li>
@@ -138,7 +157,7 @@
     </div>
 
     <!-- Correlation Analysis -->
-    <div class="col col-80p">
+    <div class="col col-right">
       <div class="card">
         <div class="card-title">Correlation Analysis</div>
         <div class="card-body no-limit correlation-body">

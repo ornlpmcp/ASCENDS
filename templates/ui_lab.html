@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}ASCENDS UI Lab{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/tw-poc.css">
+
+<section class="tw-min-h-screen tw-bg-slate-50 tw-p-6">
+  <div class="tw-mx-auto tw-max-w-5xl tw-space-y-6">
+    <div class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-6 tw-shadow-sm">
+      <h1 class="tw-text-3xl tw-font-bold tw-text-slate-900">ASCENDS UI Lab</h1>
+      <p class="tw-mt-2 tw-text-slate-600">
+        FastAPI + TypeScript + utility-first styling proof-of-concept page.
+      </p>
+      <p class="tw-mt-3 tw-text-sm tw-text-slate-500">
+        Goal: evaluate look-and-feel direction before wider UI migration.
+      </p>
+      <div class="tw-mt-4 tw-flex tw-gap-2">
+        <a class="tw-btn tw-btn-primary" href="/correlation">Open Correlation</a>
+        <a class="tw-btn" href="/train">Open Train</a>
+      </div>
+    </div>
+
+    <div class="tw-grid tw-gap-4 tw-grid-cols-3-sm">
+      <article class="tw-card">
+        <h2 class="tw-text-lg tw-font-semibold tw-text-slate-900">1. Select Data</h2>
+        <p class="tw-mt-2 tw-text-sm tw-text-slate-600">Upload CSV and review schema quickly.</p>
+      </article>
+      <article class="tw-card">
+        <h2 class="tw-text-lg tw-font-semibold tw-text-slate-900">2. Train Model</h2>
+        <p class="tw-mt-2 tw-text-sm tw-text-slate-600">Run baseline regression or classification.</p>
+      </article>
+      <article class="tw-card">
+        <h2 class="tw-text-lg tw-font-semibold tw-text-slate-900">3. Explain/ Predict</h2>
+        <p class="tw-mt-2 tw-text-sm tw-text-slate-600">Generate outputs for analysis and reporting.</p>
+      </article>
+    </div>
+
+    <div class="tw-rounded-2xl tw-border tw-border-slate-200 tw-bg-white tw-p-6 tw-shadow-sm">
+      <div class="tw-flex tw-items-center tw-justify-between tw-gap-4">
+        <div>
+          <h2 class="tw-text-xl tw-font-semibold tw-text-slate-900">Interaction Demo (TypeScript)</h2>
+          <p class="tw-text-sm tw-text-slate-600">Press buttons to simulate workflow progress.</p>
+        </div>
+        <span id="demoStatus" class="tw-badge">Idle</span>
+      </div>
+      <div class="tw-mt-4 tw-flex tw-gap-2 tw-flex-wrap">
+        <button id="btnPreview" class="tw-btn">Preview Data</button>
+        <button id="btnTrain" class="tw-btn">Train</button>
+        <button id="btnPredict" class="tw-btn">Predict</button>
+        <button id="btnReset" class="tw-btn">Reset</button>
+      </div>
+      <div class="tw-mt-4 tw-h-2 tw-w-full tw-overflow-hidden tw-rounded-full tw-bg-slate-200">
+        <div id="demoBar" class="tw-h-full tw-w-0 tw-bg-emerald-500 tw-transition-all"></div>
+      </div>
+      <ul id="demoLog" class="tw-mt-4 tw-space-y-2 tw-text-sm tw-text-slate-700"></ul>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="/static/js/ui-lab.js"></script>
+{% endblock %}

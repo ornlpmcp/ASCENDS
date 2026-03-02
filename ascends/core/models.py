@@ -4,13 +4,19 @@ from ascends.utils.validation import canonicalize_task
 from typing import Union, Optional
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.svm import SVR
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.ensemble import (
+    RandomForestRegressor,
+    HistGradientBoostingRegressor,
+    HistGradientBoostingClassifier,
+    RandomForestClassifier,
+)
+from sklearn.linear_model import LogisticRegression
 
 try:
-    from xgboost import XGBRegressor
+    from xgboost import XGBRegressor, XGBClassifier
 except Exception:
     raise ImportError(
         "XGBoost is required for kind='xgb'. Install with: uv add xgboost"
@@ -91,6 +97,14 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
         raise ValueError(f"Unsupported regression model kind: {kind!r}. Try 'rf' (or 'random_forest').")
 
     if task == "classification":
+        if kind == "linear":
+            return LogisticRegression(max_iter=2000, random_state=random_state)
+        if kind == "ridge":
+            return LogisticRegression(max_iter=2000, random_state=random_state)
+        if kind == "hgb":
+            return HistGradientBoostingClassifier(random_state=random_state)
+        if kind == "knn":
+            return make_pipeline(StandardScaler(), KNeighborsClassifier())
         if kind == "rf":
             from sklearn.ensemble import RandomForestClassifier
             return RandomForestClassifier(random_state=random_state)
@@ -109,17 +123,32 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
 def is_tree_model(est) -> bool:
     """
     Return True if estimator is a tree ensemble suitable for SHAP TreeExplainer
-    (RandomForestRegressor, XGBRegressor, HistGradientBoostingRegressor), else False.
+    (RF/XGB/HGB, reg+clf), else False.
     """
     if isinstance(
-        est, (RandomForestRegressor, XGBRegressor, HistGradientBoostingRegressor)
+        est,
+        (
+            RandomForestRegressor,
+            RandomForestClassifier,
+            XGBRegressor,
+            XGBClassifier,
+            HistGradientBoostingRegressor,
+            HistGradientBoostingClassifier,
+        ),
     ):
         return True
     if isinstance(est, Pipeline):
         return any(
             isinstance(
                 step,
-                (RandomForestRegressor, XGBRegressor, HistGradientBoostingRegressor),
+                (
+                    RandomForestRegressor,
+                    RandomForestClassifier,
+                    XGBRegressor,
+                    XGBClassifier,
+                    HistGradientBoostingRegressor,
+                    HistGradientBoostingClassifier,
+                ),
             )
             for step in est.named_steps.values()
         )
@@ -144,4 +173,11 @@ def list_supported_models(task: str) -> list[str]:
             "knn",
         ]
     else:
-        raise ValueError(f"Unsupported task: {task}")
+        return [
+            "linear",
+            "ridge",
+            "rf",
+            "xgb",
+            "hgb",
+            "knn",
+        ]
