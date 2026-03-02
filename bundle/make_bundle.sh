@@ -31,18 +31,12 @@ mkdir -p "$DIST_DIR"
 rm -rf "$BUNDLE_ROOT"
 mkdir -p "$BUNDLE_APP"
 
-if [[ ! -x "$ROOT_DIR/.venv/bin/ascends" ]]; then
-  echo "[ASCENDS] Local environment not ready, running install.sh first..."
-  bash "$ROOT_DIR/install.sh"
-fi
-
 echo "[ASCENDS] Copying project files..."
 cp -R "$ROOT_DIR/ascends" "$BUNDLE_APP/"
 cp -R "$ROOT_DIR/templates" "$BUNDLE_APP/"
 cp -R "$ROOT_DIR/static" "$BUNDLE_APP/"
 cp -R "$ROOT_DIR/examples" "$BUNDLE_APP/"
 cp -R "$ROOT_DIR/test" "$BUNDLE_APP/"
-cp -R "$ROOT_DIR/.venv" "$BUNDLE_APP/"
 
 cp "$ROOT_DIR/ascends_server.py" "$BUNDLE_APP/"
 cp "$ROOT_DIR/pyproject.toml" "$BUNDLE_APP/"
@@ -53,6 +47,20 @@ cp "$ROOT_DIR/quickstart.md" "$BUNDLE_APP/"
 cp "$ROOT_DIR/LICENSE" "$BUNDLE_APP/"
 cp "$ROOT_DIR/CHANGELOG.md" "$BUNDLE_APP/"
 cp "$ROOT_DIR/TODO.md" "$BUNDLE_APP/"
+
+echo "[ASCENDS] Building bundled virtual environment for profile=$PROFILE ..."
+if ! command -v uv >/dev/null 2>&1; then
+  echo "[ASCENDS] ERROR: uv is required to create bundle environments."
+  exit 1
+fi
+
+pushd "$BUNDLE_APP" >/dev/null
+if [[ "$PROFILE" == "pro" ]]; then
+  uv sync --extra pro --no-dev
+else
+  uv sync --no-dev
+fi
+popd >/dev/null
 
 # Bundle metadata
 cat > "$BUNDLE_ROOT/bundle-meta.txt" <<EOF

@@ -59,6 +59,12 @@ Typical run artifacts:
 uv sync
 ```
 
+Pro setup (includes `xgboost` + `shap`):
+
+```bash
+uv sync --extra pro
+```
+
 ## Common Commands
 
 ### Launch GUI
@@ -142,14 +148,15 @@ Windows launchers are also generated:
   - `Accuracy`, `Precision`, `Recall`, `F1`
   - optional `ROC_AUC` for binary classification
   - confusion matrix image output
-- `shap` CLI command remains a placeholder.
+- SHAP/feature-importance flow is implemented in CLI and GUI
+  (tree SHAP with permutation fallback).
 
 ## Product Roadmap (Active)
 
 1. Improve classification consistency across CLI and GUI surfaces.
 2. Add clearer UI rendering for classification metrics in Train view.
 3. Split distribution into:
-   - `Standard`: lighter package
+   - `Standard`: lighter package (no `xgboost` / `shap`)
    - `Pro`: includes `xgboost + shap`
 4. Move from browser-first to desktop-app packaging path.
 

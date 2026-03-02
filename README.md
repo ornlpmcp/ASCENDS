@@ -38,6 +38,13 @@ uv sync
 uv run ascends gui
 ```
 
+Pro profile (includes `xgboost` + `shap`):
+
+```bash
+uv sync --extra pro
+uv run ascends gui
+```
+
 ## Smoke Test
 
 ```bash
@@ -53,6 +60,9 @@ bash ./bundle/make_bundle.sh standard
 # or
 bash ./bundle/make_bundle.sh pro
 ```
+
+- `standard`: lighter bundle (no `xgboost` / `shap`)
+- `pro`: includes `xgboost` + `shap`
 
 This creates `dist/ASCENDS-bundle-<profile>-<os>-<arch>-<timestamp>.tar.gz`.
 On the target machine (same OS/arch family), unpack and run:

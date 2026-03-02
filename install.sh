@@ -4,6 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
+PROFILE="${1:-standard}" # standard | pro
+if [[ "$PROFILE" != "standard" && "$PROFILE" != "pro" ]]; then
+  echo "[ASCENDS] ERROR: profile must be 'standard' or 'pro'."
+  echo "Usage: ./install.sh [standard|pro]"
+  exit 1
+fi
+
 echo "[ASCENDS] Starting setup..."
 
 if ! command -v python3 >/dev/null 2>&1; then
@@ -27,7 +34,11 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 echo "[ASCENDS] Syncing dependencies..."
-uv sync
+if [[ "$PROFILE" == "pro" ]]; then
+  uv sync --extra pro
+else
+  uv sync
+fi
 
 echo "[ASCENDS] Setup complete."
 echo "[ASCENDS] Run GUI with:"
