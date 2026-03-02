@@ -61,6 +61,9 @@ def split_train_test(
         train_idx, test_idx = next(stratifier.split(df, df[cfg.stratify_col]))
         return df.iloc[train_idx], df.iloc[test_idx]
 
+    # Group/time methods are implemented in the helper.
+    return split_group_or_time(df, cfg)
+
 
 def align_to_features(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
     """

@@ -320,6 +320,78 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
     ctx["saved_runs"] = _list_saved_runs()
     return templates.TemplateResponse("train.html", ctx)
 
+
+@app.post("/train/select", response_class=HTMLResponse)
+async def train_select(
+    request: Request,
+    ws_id: str = Form(...),
+    action: str = Form(...),
+    columns: Optional[List[str]] = Form(None),
+    rm_inputs: Optional[List[str]] = Form(None),
+    target_choice: Optional[str] = Form(None),
+) -> HTMLResponse:
+    """Handle Train tab selection state (columns/inputs/target)."""
+    mf = _load_manifest(ws_id)
+    if not mf:
+        return templates.TemplateResponse(
+            "train.html",
+            {
+                "request": request,
+                "ws_id": ws_id,
+                "train_error": "Invalid session. Please upload/select data from Correlation tab first.",
+                "saved_runs": _list_saved_runs(),
+            },
+        )
+
+    all_columns: List[str] = list(mf.get("columns", []))
+    selected = set(mf.get("selected", []))
+    inputs = set(mf.get("inputs", []))
+    target = mf.get("target")
+
+    chosen_cols = columns or []
+    to_remove = rm_inputs or []
+
+    if action == "select_all":
+        selected = set(all_columns)
+    elif action == "select_none":
+        selected = set()
+    elif action == "to_inputs":
+        selected = set(chosen_cols)
+        for c in chosen_cols:
+            if c in all_columns:
+                inputs.add(c)
+        if target in inputs:
+            inputs.discard(target)
+    elif action == "remove_inputs":
+        for c in to_remove:
+            inputs.discard(c)
+    elif action == "set_target":
+        selected = set(chosen_cols)
+        if target_choice and target_choice in all_columns:
+            target = target_choice
+            if target in inputs:
+                inputs.discard(target)
+
+    ordered_inputs = sorted(inputs, key=lambda c: all_columns.index(c)) if all_columns else list(inputs)
+    ordered_selected = sorted(selected, key=lambda c: all_columns.index(c)) if all_columns else list(selected)
+
+    mf["inputs"] = ordered_inputs
+    mf["target"] = target
+    mf["selected"] = ordered_selected
+    _save_manifest(ws_id, mf)
+
+    ctx: Dict[str, Any] = {
+        "request": request,
+        "ws_id": ws_id,
+        "csv_path": mf.get("csv_path"),
+        "all_columns": all_columns,
+        "inputs": ordered_inputs,
+        "target": target,
+        "selected": ordered_selected,
+        "saved_runs": _list_saved_runs(),
+    }
+    return templates.TemplateResponse("train.html", ctx)
+
 # Save the current trained model and artifacts into runs/<name>/
 @app.post("/train/save", response_class=HTMLResponse)
 async def train_save(
@@ -758,6 +830,7 @@ async def correlation_run(
     # Prepare data and write cleaning log
     data_dir, img_dir = _corr_dirs(ws_id)
     df_clean, info = _prepare_corr_dataframe(mf["csv_path"], target, inputs)
+    mf["corr"]["used_inputs"] = info.get("used_inputs", [])
     (data_dir / "corr_log.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
     # Base context (so we never reference ctx before assignment)
     ctx = {

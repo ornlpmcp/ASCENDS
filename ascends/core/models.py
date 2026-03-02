@@ -5,7 +5,8 @@ from typing import Union, Optional
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 
 try:
@@ -32,6 +33,15 @@ KIND_ALIASES = {
     "random_forest": "rf",
     "xgb": "xgb",
     "xgboost": "xgb",
+    "linear": "linear",
+    "ridge": "ridge",
+    "lasso": "lasso",
+    "elastic": "elasticnet",
+    "elasticnet": "elasticnet",
+    "hgb": "hgb",
+    "hist_gradient_boosting": "hgb",
+    "svr": "svr",
+    "knn": "knn",
 }
 
 def _normalize(task: str, kind: str):
@@ -53,8 +63,22 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
         )
 
     if task == "regression":
+        if kind == "linear":
+            return LinearRegression()
+        if kind == "ridge":
+            return Ridge(random_state=random_state)
+        if kind == "lasso":
+            return Lasso(random_state=random_state)
+        if kind == "elasticnet":
+            return ElasticNet(random_state=random_state)
         if kind == "rf":
             return RandomForestRegressor(random_state=random_state)
+        if kind == "hgb":
+            return HistGradientBoostingRegressor(random_state=random_state)
+        if kind == "svr":
+            return make_pipeline(StandardScaler(), SVR())
+        if kind == "knn":
+            return make_pipeline(StandardScaler(), KNeighborsRegressor())
         if kind == "xgb":
             try:
                 from xgboost import XGBRegressor

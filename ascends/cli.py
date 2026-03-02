@@ -11,6 +11,8 @@ from rich.table import Table
 from typing import List, Tuple, Union
 import numpy as np
 import joblib
+import matplotlib
+matplotlib.use("Agg")  # keep CLI plotting headless/stable on macOS and CI
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 from typing import Dict
@@ -384,12 +386,18 @@ def parity_plot(
     from ascends.core.data import SplitConfig, split_train_test
     from ascends.core.serialize import load_model
 
+    if scope not in {"train", "test", "both", "combined"}:
+        raise typer.BadParameter("scope must be one of: train|test|both|combined")
+
+    need_train = scope in {"train", "both", "combined"}
+    need_test = scope in {"test", "both", "combined"}
+
     parity_train_path = os.path.join(run_dir, "parity_train.csv")
     parity_test_path = os.path.join(run_dir, "parity_test.csv")
     df_train, df_test = None, None
-    if scope in {"train", "both", "combined"} and os.path.exists(parity_train_path):
+    if need_train and os.path.exists(parity_train_path):
         df_train = pd.read_csv(parity_train_path)
-    if scope in {"test", "both", "combined"} and os.path.exists(parity_test_path):
+    if need_test and os.path.exists(parity_test_path):
         df_test = pd.read_csv(parity_test_path)
 
     import json
@@ -401,7 +409,7 @@ def parity_plot(
             manifest = json.load(f)
     model_kind = manifest.get("model", "?")
     target_name = manifest.get("target", "?")
-    if (df_train is None or df_test is None) and save_parity_if_missing:
+    if ((need_train and df_train is None) or (need_test and df_test is None)) and save_parity_if_missing:
         manifest_path = os.path.join(run_dir, "manifest.json")
         model_path = os.path.join(run_dir, "model.joblib")
         if not os.path.exists(manifest_path) or not os.path.exists(model_path):
@@ -419,12 +427,15 @@ def parity_plot(
         model = load_model(model_path)
 
         df = pd.read_csv(manifest['csv_path'])
+        split_cfg = manifest.get("split", {}) if isinstance(manifest.get("split"), dict) else {}
+        split_method = split_cfg.get("method", "random")
+        split_test_size = float(split_cfg.get("test_size", manifest.get("test_size", 0.2)))
         tr, te = split_train_test(
             df,
             manifest['target'],
             SplitConfig(
-                method=manifest['split'].get('method', 'random'),
-                test_size=manifest['split']['test_size'],
+                method=split_method,
+                test_size=split_test_size,
                 random_state=manifest['random_state']
             )
         )
@@ -433,70 +444,16 @@ def parity_plot(
         Xtest = pd.get_dummies(te.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=manifest['features'], fill_value=0)
         ytrain = tr[manifest['target']]
         ytest = te[manifest['target']]
-        if df_train is None:
+        if need_train and df_train is None:
             preds_train = model.predict(Xtrain)
             df_train = pd.DataFrame({'actual': ytrain, 'predicted': preds_train})
             df_train.to_csv(parity_train_path, index=False)
-        if df_test is None:
+        if need_test and df_test is None:
             preds_test = model.predict(Xtest)
             df_test = pd.DataFrame({'actual': ytest, 'predicted': preds_test})
             df_test.to_csv(parity_test_path, index=False)
 
-    if df_train is None or df_test is None:
-        raise typer.BadParameter("Required parity data missing and --save-parity-if-missing not set.")
-
-    # Load existing parity data if available
-    parity_train_path = os.path.join(run_dir, "parity_train.csv")
-    parity_test_path = os.path.join(run_dir, "parity_test.csv")
-    df_train, df_test = None, None
-    if scope in {"train", "both", "combined"} and os.path.exists(parity_train_path):
-        df_train = pd.read_csv(parity_train_path)
-    if scope in {"test", "both", "combined"} and os.path.exists(parity_test_path):
-        df_test = pd.read_csv(parity_test_path)
-
-    # Regenerate missing parity data if needed
-    if (df_train is None or df_test is None) and save_parity_if_missing:
-        manifest_path = os.path.join(run_dir, "manifest.json")
-        model_path = os.path.join(run_dir, "model.joblib")
-        if not os.path.exists(manifest_path) or not os.path.exists(model_path):
-            raise typer.BadParameter("Manifest or model file missing in run directory.")
-
-        # Load manifest
-        with open(manifest_path, 'r') as f:
-            manifest = json.load(f)
-
-        # Check for required fields in manifest
-        if 'csv_path' not in manifest or 'features' not in manifest:
-            raise typer.BadParameter("Manifest missing 'csv_path' or 'features'. Re-train with ASCENDS.")
-
-        # Load model
-        model = load_model(model_path)
-
-        df = pd.read_csv(manifest['csv_path'])
-        tr, te = split_train_test(
-            df,
-            manifest['target'],
-            SplitConfig(
-                method=manifest['split']['method'],
-                test_size=manifest['split']['test_size'],
-                random_state=manifest['random_state']
-            )
-        )
-        # One-hot encode and reindex
-        Xtrain = pd.get_dummies(tr.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=manifest['features'], fill_value=0)
-        Xtest = pd.get_dummies(te.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=manifest['features'], fill_value=0)
-        ytrain = tr[manifest['target']]
-        ytest = te[manifest['target']]
-        if df_train is None:
-            preds_train = model.predict(Xtrain)
-            df_train = pd.DataFrame({'actual': ytrain, 'predicted': preds_train})
-            df_train.to_csv(parity_train_path, index=False)
-        if df_test is None:
-            preds_test = model.predict(Xtest)
-            df_test = pd.DataFrame({'actual': ytest, 'predicted': preds_test})
-            df_test.to_csv(parity_test_path, index=False)
-
-    if df_train is None or df_test is None:
+    if (need_train and df_train is None) or (need_test and df_test is None):
         raise typer.BadParameter("Required parity data missing and --save-parity-if-missing not set.")
 
     if out is None:
@@ -505,7 +462,7 @@ def parity_plot(
     if scope == "both" and not os.path.isdir(out):
         raise typer.BadParameter("Output must be a directory when scope is 'both'.")
     if scope == "combined" and not os.path.isdir(out):
-        os.makedirs(os.path.dirname(out), exist_ok=True)
+        os.makedirs(out, exist_ok=True)
     else:
         os.makedirs(out, exist_ok=True)
 

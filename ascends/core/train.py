@@ -4,6 +4,7 @@ from typing import Any, Dict
 import pandas as pd
 from pathlib import Path
 from ascends.core.models import make_model
+from ascends.core.data import align_to_features
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 
@@ -53,10 +54,8 @@ def train_eval(
 
     # 2) Create model
     model = make_model(task, model_kind, random_state=random_state)
-
     if model is None:
         raise ValueError(f"make_model returned None for task={task!r}, kind={model_kind!r}")
-    model = make_model(task, model_kind, random_state=random_state)
 
     # 3) Build seeded CV splitter
     cv = KFold(n_splits=5, shuffle=True, random_state=random_state)
@@ -138,13 +137,13 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     # === Parity data for TEST & TRAIN, plus a combined file ===
     # Compute directly from the fitted estimator; don't rely on train_eval for vectors.
     y_test = test_df[target].to_numpy()
-    X_test = test_df[feats]
+    X_test = align_to_features(test_df.drop(columns=[target]), feats)
     y_pred_test = est.predict(X_test)
     parity_test = pd.DataFrame({"actual": y_test, "predicted": y_pred_test})
 
     # Compute parity data for TRAIN
     y_train = train_df[target].to_numpy()
-    X_train = train_df[feats]
+    X_train = align_to_features(train_df.drop(columns=[target]), feats)
     y_pred_train = est.predict(X_train)
     parity_train = pd.DataFrame({"actual": y_train, "predicted": y_pred_train})
 
@@ -287,4 +286,3 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         "features": feats,
         "model": model,
     }
-
