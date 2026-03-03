@@ -124,11 +124,21 @@ bash ./bundle/make_bundle.sh standard
 bash ./bundle/make_bundle.sh pro
 ```
 
+Windows PowerShell:
+
+```powershell
+./bundle/make_bundle.ps1 -Profile standard
+# or
+./bundle/make_bundle.ps1 -Profile pro
+```
+
 Outputs:
 
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>/`
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` (macOS/Linux)
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip` (Windows)
+
+Note: Linux `pro` bundle size is expected to be larger because XGBoost can pull NVIDIA NCCL runtime wheels.
 
 Bundle usage on target machine:
 
@@ -162,7 +172,10 @@ Windows launchers are also generated:
 3. Split distribution into:
    - `Standard`: lighter package (no `xgboost` / `shap`)
    - `Pro`: includes `xgboost + shap`
-4. Move from browser-first to desktop-app packaging path.
+4. Hyperparameter tuning rollout:
+   - `standard`: quick/limited presets
+   - `pro`: expanded search + Optuna (advanced)
+5. Move from browser-first to desktop-app packaging path.
 
 ## Dataset References
 

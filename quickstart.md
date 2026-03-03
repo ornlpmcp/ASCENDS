@@ -11,6 +11,48 @@ Then open:
 
 `http://127.0.0.1:7777`
 
+## Profiles
+
+- `standard`: lighter install/bundle (no `xgboost` / `shap`)
+- `pro`: includes `xgboost` + `shap`
+
+Install `pro` profile:
+
+```bash
+./install.sh pro
+./run_gui.sh
+```
+
+Release policy (current):
+
+- `v0.3.0` official/public recommendation: `pro`
+- `standard` is currently internal/experimental
+
+## Portable Bundle Build
+
+macOS/Linux:
+
+```bash
+bash ./bundle/make_bundle.sh standard
+# or
+bash ./bundle/make_bundle.sh pro
+```
+
+Windows (PowerShell):
+
+```powershell
+./bundle/make_bundle.ps1 -Profile standard
+# or
+./bundle/make_bundle.ps1 -Profile pro
+```
+
+Outputs:
+
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` (macOS/Linux)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip` (Windows)
+
+Note: Linux `pro` bundles can be significantly larger due to XGBoost/NCCL dependencies.
+
 ## CLI examples
 
 ```bash
