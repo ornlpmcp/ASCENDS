@@ -5,6 +5,7 @@
 - [ ] Portable 배포 고도화: `standard/pro` 번들 정책 확정 및 배포 절차 문서화(수동 업데이트 기준).
 - [ ] `standard` 프로파일 안정화: xgboost 미설치 시 UI/모델선택/에러메시지 일관성 정리 후 외부 배포 승격.
 - [ ] Neural Network 옵션 추가 검토: `MLPRegressor/MLPClassifier`를 기본모델이 아닌 선택형으로 도입하고 성능/안정성 비교.
+- [ ] Hyperparameter tuning 도입: `standard`는 Quick/제한 검색, `pro`는 확장 검색 + Optuna(advanced) 검토.
 - [ ] 번들 용량 최적화: `dist` 중복 산출물 정리 규칙 + 용량 목표치(압축본 기준) 설정.
 - [ ] Classification CLI 예측 옵션: `--with-proba` 추가(모델이 `predict_proba` 지원 시 확률 컬럼 출력).
 - [ ] UI refresh pass: Correlation/Train/Predict 전체 시각 개선(레이아웃/타이포/간격/컴포넌트 일관성).
