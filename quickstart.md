@@ -1,5 +1,14 @@
 # Quickstart
 
+## Before you start (Prerequisites)
+
+- Common: Python 3.10+ and `uv`
+- macOS: Homebrew is recommended for easy install
+  - Example: `brew install python uv`
+- Windows (PowerShell): install Python + uv first
+  - Example: `winget install Python.Python.3.12` and `winget install astral-sh.uv`
+- Linux: install Python + uv from your distro or the official uv installer
+
 ## Easiest path
 
 ```bash
@@ -36,9 +45,6 @@ Outputs:
 
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` (macOS/Linux)
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
-
-Note: Linux bundles can be significantly larger due to XGBoost/NCCL dependencies.
-For Linux advanced users, `uv sync --extra pro` or a conda environment is recommended.
 
 ## CLI examples
 
