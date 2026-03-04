@@ -60,9 +60,8 @@ Key message: prediction and interpretation should be used together.
 
 # Packaging and Release Notes
 
-- Recommended for v0.3.0: pro
-- standard is currently experimental/internal
-- Linux pro bundle can be larger due to XGBoost/NCCL dependencies
+- Recommended for v0.3.0: single default package
+- Linux bundle can be larger due to XGBoost/NCCL dependencies
 
 # 30-Minute Agenda
 

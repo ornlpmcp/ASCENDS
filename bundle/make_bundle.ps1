@@ -52,7 +52,7 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 Write-Host "[ASCENDS] Building bundled virtual environment..."
 Push-Location $BundleApp
 try {
-  uv sync --extra pro --no-dev
+  uv sync --no-dev
 } finally {
   Pop-Location
 }

@@ -41,7 +41,7 @@ Open: `http://127.0.0.1:7777`
 Manual path (advanced users):
 
 ```bash
-uv sync --extra pro
+uv sync
 uv run ascends gui
 ```
 
@@ -75,7 +75,7 @@ This creates:
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` on Windows
 
 Note: Linux bundles can be significantly larger because XGBoost may pull NVIDIA NCCL runtime wheels.
-For Linux advanced users, `uv sync --extra pro` (or a dedicated conda env) is highly recommended.
+For Linux advanced users, `uv sync` (or a dedicated conda env) is highly recommended.
 On the target machine (same OS/arch family), unpack and run:
 
 ```bash

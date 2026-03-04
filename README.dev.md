@@ -56,7 +56,7 @@ Typical run artifacts:
 ## Development Setup
 
 ```bash
-uv sync --extra pro
+uv sync
 ```
 
 ## Common Commands
@@ -129,7 +129,7 @@ Outputs:
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
 
 Note: Linux bundle size is expected to be larger because XGBoost can pull NVIDIA NCCL runtime wheels.
-For Linux power users, `uv sync --extra pro` or a dedicated conda environment is recommended.
+For Linux power users, `uv sync` or a dedicated conda environment is recommended.
 
 Bundle usage on target machine:
 

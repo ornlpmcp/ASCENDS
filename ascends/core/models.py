@@ -92,7 +92,7 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
             except Exception as e:
                 raise ImportError(
                     "xgboost is required for --model xgb. Install with: "
-                    "`uv sync --extra pro` (or `uv pip install xgboost`)."
+                    "`uv sync` (or `uv pip install xgboost`)."
                 ) from e
             return XGBRegressor(random_state=random_state)
         raise ValueError(f"Unsupported regression model kind: {kind!r}. Try 'rf' (or 'random_forest').")
@@ -115,7 +115,7 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
             except Exception as e:
                 raise ImportError(
                     "xgboost is required for --model xgb. Install with: "
-                    "`uv sync --extra pro` (or `uv pip install xgboost`)."
+                    "`uv sync` (or `uv pip install xgboost`)."
                 ) from e
             return XGBClassifier(random_state=random_state)
         raise ValueError(f"Unsupported classification model kind: {kind!r}. Try 'rf' (or 'random_forest').")

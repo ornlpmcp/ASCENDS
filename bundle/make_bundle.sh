@@ -63,7 +63,7 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 pushd "$BUNDLE_APP" >/dev/null
-uv sync --extra pro --no-dev
+uv sync --no-dev
 popd >/dev/null
 
 # Bundle metadata

@@ -27,7 +27,7 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 echo "[ASCENDS] Syncing dependencies..."
-uv sync --extra pro
+uv sync
 
 echo "[ASCENDS] Setup complete."
 echo "[ASCENDS] Run GUI with:"

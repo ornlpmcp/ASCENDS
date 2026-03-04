@@ -16,7 +16,7 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "[ASCENDS] Syncing dependencies..."
-uv sync --extra pro
+uv sync
 if ($LASTEXITCODE -ne 0) {
   Write-Host "[ASCENDS] ERROR: dependency sync failed." -ForegroundColor Red
   exit $LASTEXITCODE
