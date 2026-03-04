@@ -3,15 +3,15 @@
 ## Easiest path
 
 ```bash
-./install.sh
-./run_gui.sh
+./scripts/install.sh
+./scripts/run_gui.sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-./install.ps1
-./run_gui.ps1
+./scripts/install.ps1
+./scripts/run_gui.ps1
 ```
 
 Then open:
@@ -26,8 +26,8 @@ Then open:
 Install `pro` profile:
 
 ```bash
-./install.sh pro
-./run_gui.sh
+./scripts/install.sh pro
+./scripts/run_gui.sh
 ```
 
 Release policy (current):

@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RootDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $RootDir
 
 # Policy: Windows install uses pro only.
@@ -21,7 +21,7 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue) -and -not (Get-Comma
 }
 
 if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-  Write-Host "[ASCENDS] ERROR: uv is required. Install uv first, then re-run install.ps1." -ForegroundColor Red
+  Write-Host "[ASCENDS] ERROR: uv is required. Install uv first, then re-run scripts/install.ps1." -ForegroundColor Red
   Write-Host "          https://docs.astral.sh/uv/getting-started/installation/"
   exit 1
 }
@@ -39,4 +39,4 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "[ASCENDS] Setup complete."
 Write-Host "[ASCENDS] Run GUI with:"
-Write-Host "  ./run_gui.ps1"
+Write-Host "  ./scripts/run_gui.ps1"

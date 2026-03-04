@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RootDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $RootDir
 
 # Policy: Windows run uses pro only.
@@ -16,7 +16,7 @@ if ($Profile -ne "pro") {
 $AscendsExe = ".venv\Scripts\ascends.exe"
 if (-not (Test-Path $AscendsExe)) {
   Write-Host "[ASCENDS] Environment not ready. Running install first..."
-  & "$RootDir\install.ps1" -Profile $Profile
+  & "$RootDir\scripts\install.ps1" -Profile $Profile
 }
 
 if (-not (Test-Path $AscendsExe)) {

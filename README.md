@@ -25,15 +25,15 @@ All processing runs locally.
 ## Quick Start
 
 ```bash
-./install.sh
-./run_gui.sh
+./scripts/install.sh
+./scripts/run_gui.sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-./install.ps1
-./run_gui.ps1
+./scripts/install.ps1
+./scripts/run_gui.ps1
 ```
 
 Open: `http://127.0.0.1:7777`

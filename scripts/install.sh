@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 PROFILE="${1:-}" # standard | pro
@@ -32,7 +32,7 @@ fi
 
 if [[ "$PROFILE" != "standard" && "$PROFILE" != "pro" ]]; then
   echo "[ASCENDS] ERROR: profile must be 'standard' or 'pro'."
-  echo "Usage: ./install.sh [standard|pro]"
+  echo "Usage: ./scripts/install.sh [standard|pro]"
   exit 1
 fi
 
@@ -67,4 +67,4 @@ fi
 
 echo "[ASCENDS] Setup complete."
 echo "[ASCENDS] Run GUI with:"
-echo "  ./run_gui.sh"
+echo "  ./scripts/run_gui.sh"
