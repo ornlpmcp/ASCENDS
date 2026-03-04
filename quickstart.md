@@ -18,45 +18,27 @@ Then open:
 
 `http://127.0.0.1:7777`
 
-## Profiles
-
-- `pro` (official): includes `xgboost` + `shap`
-- `standard`: Linux-only internal/experimental profile
-
-Install `pro` profile:
-
-```bash
-./scripts/install.sh pro
-./scripts/run_gui.sh
-```
-
-Release policy (current):
-
-- `v0.3.0` official/public recommendation: `pro` (all platforms)
-- Linux-only `standard` is internal/experimental
-
 ## Portable Bundle Build
 
 macOS/Linux:
 
 ```bash
-bash ./bundle/make_bundle.sh pro
-# Linux internal/experimental only:
-# bash ./bundle/make_bundle.sh standard
+bash ./bundle/make_bundle.sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-./bundle/make_bundle.ps1 -Profile pro
+./bundle/make_bundle.ps1
 ```
 
 Outputs:
 
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` (macOS/Linux)
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip` (Windows)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` (macOS/Linux)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
 
-Note: Linux `pro` bundles can be significantly larger due to XGBoost/NCCL dependencies.
+Note: Linux bundles can be significantly larger due to XGBoost/NCCL dependencies.
+For Linux advanced users, `uv sync --extra pro` or a conda environment is recommended.
 
 ## CLI examples
 

@@ -1,8 +1,3 @@
-param(
-  [ValidateSet("standard", "pro")]
-  [string]$Profile = "pro"
-)
-
 $ErrorActionPreference = "Stop"
 
 $RootDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -12,24 +7,18 @@ $DateTag = Get-Date -Format "yyyyMMdd"
 $OsTag = "windows"
 $ArchTag = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower()
 
-# Policy: Windows bundle uses pro only.
-if ($Profile -ne "pro") {
-  Write-Host "[ASCENDS] Note: Windows bundle uses pro only. Overriding '$Profile' -> 'pro'."
-  $Profile = "pro"
-}
-
 $PyprojectPath = Join-Path $RootDir "pyproject.toml"
 $PyprojectText = Get-Content -Raw -Path $PyprojectPath -Encoding UTF8
 $VersionMatch = [regex]::Match($PyprojectText, '(?m)^version\s*=\s*"([^"]+)"')
 $VersionTag = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value } else { "0.0.0" }
 
-$BundleName = "ASCENDS-v$VersionTag-$DateTag-$OsTag-$Profile"
+$BundleName = "ASCENDS-v$VersionTag-$DateTag-$OsTag"
 $BundleRoot = Join-Path $DistDir $BundleName
 $BundleApp = Join-Path $BundleRoot "ASCENDS"
 $ArchiveExt = "zip"
 $ArchivePath = Join-Path $DistDir "$BundleName.$ArchiveExt"
 
-Write-Host "[ASCENDS] Preparing portable bundle (profile=$Profile)..."
+Write-Host "[ASCENDS] Preparing portable bundle..."
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 if (Test-Path $BundleRoot) { Remove-Item -Recurse -Force $BundleRoot }
 New-Item -ItemType Directory -Force -Path $BundleApp | Out-Null
@@ -60,21 +49,16 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
   exit 1
 }
 
-Write-Host "[ASCENDS] Building bundled virtual environment for profile=$Profile ..."
+Write-Host "[ASCENDS] Building bundled virtual environment..."
 Push-Location $BundleApp
 try {
-  if ($Profile -eq "pro") {
-    uv sync --extra pro --no-dev
-  } else {
-    uv sync --no-dev
-  }
+  uv sync --extra pro --no-dev
 } finally {
   Pop-Location
 }
 
 @"
 name=$BundleName
-profile=$Profile
 os=$OsTag
 arch=$ArchTag
 timestamp=$Ts

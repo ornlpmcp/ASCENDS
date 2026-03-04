@@ -10,7 +10,7 @@ Key product direction:
 
 - Local/offline-first workflows
 - GUI-first experience with CLI parity
-- Portable desktop packaging roadmap (`Standard` / `Pro`)
+- Portable desktop packaging roadmap (single default package)
 
 ## Current Architecture
 
@@ -113,24 +113,23 @@ This covers:
 Create an OS-specific portable bundle (includes `.venv`):
 
 ```bash
-bash ./bundle/make_bundle.sh pro
-# Linux internal/experimental only:
-# bash ./bundle/make_bundle.sh standard
+bash ./bundle/make_bundle.sh
 ```
 
 Windows PowerShell:
 
 ```powershell
-./bundle/make_bundle.ps1 -Profile pro
+./bundle/make_bundle.ps1
 ```
 
 Outputs:
 
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>/`
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` (macOS/Linux)
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip` (Windows)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>/`
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` (macOS/Linux)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
 
-Note: Linux `pro` bundle size is expected to be larger because XGBoost can pull NVIDIA NCCL runtime wheels.
+Note: Linux bundle size is expected to be larger because XGBoost can pull NVIDIA NCCL runtime wheels.
+For Linux power users, `uv sync --extra pro` or a dedicated conda environment is recommended.
 
 Bundle usage on target machine:
 
@@ -145,9 +144,6 @@ Windows launchers are also generated:
 
 ## Known Status
 
-- Release packaging policy:
-  - `v0.3.0` is shipped as `pro` for external/public use on all platforms.
-  - `standard` profile is Linux-only internal/experimental until model-option UX and guardrails are fully aligned.
 - `parity-plot` crash path on macOS backend was fixed by forcing headless plotting in CLI.
 - GUI `train/select` route is implemented and wired to template actions.
 - Classification is enabled in GUI backend training path with:
@@ -161,13 +157,9 @@ Windows launchers are also generated:
 
 1. Improve classification consistency across CLI and GUI surfaces.
 2. Add clearer UI rendering for classification metrics in Train view.
-3. Keep external distribution simple:
-   - `Pro`: default/public package (all platforms)
-   - `Standard`: Linux-only internal/experimental track
-4. Hyperparameter tuning rollout:
-   - `pro`: expanded search + Optuna (advanced)
-   - `standard` (Linux internal): quick/limited presets only
-5. Move from browser-first to desktop-app packaging path.
+3. Hyperparameter tuning rollout:
+   - expanded search + Optuna (advanced)
+4. Move from browser-first to desktop-app packaging path.
 
 ## Dataset References
 

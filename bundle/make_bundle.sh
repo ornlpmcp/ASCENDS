@@ -4,7 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 TS="$(date +%Y%m%d_%H%M%S)"
-PROFILE="${1:-pro}" # standard | pro
 DATE_TAG="$(date +%Y%m%d)"
 VERSION_TAG="$(python3 - <<PY
 import re
@@ -25,19 +24,7 @@ case "$OS_RAW" in
 esac
 ARCH_TAG="$(echo "$ARCH_RAW" | tr '[:upper:]' '[:lower:]')"
 
-if [[ "$PROFILE" != "standard" && "$PROFILE" != "pro" ]]; then
-  echo "[ASCENDS] ERROR: profile must be 'standard' or 'pro'."
-  echo "Usage: bash ./bundle/make_bundle.sh [standard|pro]"
-  exit 1
-fi
-
-# Policy: macOS uses pro only; Linux can choose standard/pro.
-if [[ "$OS_TAG" != "linux" && "$PROFILE" != "pro" ]]; then
-  echo "[ASCENDS] Note: $OS_TAG bundle uses pro only. Overriding '$PROFILE' -> 'pro'."
-  PROFILE="pro"
-fi
-
-BUNDLE_NAME="ASCENDS-v${VERSION_TAG}-${DATE_TAG}-${OS_TAG}-${PROFILE}"
+BUNDLE_NAME="ASCENDS-v${VERSION_TAG}-${DATE_TAG}-${OS_TAG}"
 BUNDLE_ROOT="$DIST_DIR/$BUNDLE_NAME"
 BUNDLE_APP="$BUNDLE_ROOT/ASCENDS"
 if [[ "$OS_TAG" == "windows" ]]; then
@@ -47,7 +34,7 @@ else
 fi
 ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}.${ARCHIVE_EXT}"
 
-echo "[ASCENDS] Preparing portable bundle (profile=$PROFILE)..."
+echo "[ASCENDS] Preparing portable bundle..."
 mkdir -p "$DIST_DIR"
 rm -rf "$BUNDLE_ROOT"
 mkdir -p "$BUNDLE_APP"
@@ -69,24 +56,19 @@ cp "$ROOT_DIR/LICENSE" "$BUNDLE_APP/"
 cp "$ROOT_DIR/CHANGELOG.md" "$BUNDLE_APP/"
 cp "$ROOT_DIR/TODO.md" "$BUNDLE_APP/"
 
-echo "[ASCENDS] Building bundled virtual environment for profile=$PROFILE ..."
+echo "[ASCENDS] Building bundled virtual environment..."
 if ! command -v uv >/dev/null 2>&1; then
   echo "[ASCENDS] ERROR: uv is required to create bundle environments."
   exit 1
 fi
 
 pushd "$BUNDLE_APP" >/dev/null
-if [[ "$PROFILE" == "pro" ]]; then
-  uv sync --extra pro --no-dev
-else
-  uv sync --no-dev
-fi
+uv sync --extra pro --no-dev
 popd >/dev/null
 
 # Bundle metadata
 cat > "$BUNDLE_ROOT/bundle-meta.txt" <<EOF
 name=$BUNDLE_NAME
-profile=$PROFILE
 os=$OS_TAG
 arch=$ARCH_TAG
 timestamp=$TS

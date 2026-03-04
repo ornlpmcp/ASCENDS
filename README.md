@@ -54,36 +54,28 @@ uv run ascends gui
 ## Hyperparameter Tuning (Roadmap)
 
 - Planned next step:
-  - `pro`: expanded tuning + Optuna advanced mode
-  - Linux-only `standard` may get quick/limited presets
+  - expanded tuning + Optuna advanced mode
 
 ## Portable Bundle (No Setup on Target Machine)
 
 Build on your machine:
 
 ```bash
-bash ./bundle/make_bundle.sh pro
+bash ./bundle/make_bundle.sh
 ```
 
 Windows (PowerShell):
 
 ```powershell
-./bundle/make_bundle.ps1 -Profile pro
+./bundle/make_bundle.ps1
 ```
 
-- `pro`: official profile for macOS/Windows
-- `standard`: Linux-only internal/experimental profile
-
-Release policy (current):
-
-- `v0.3.0`: official/public release target is `pro` (all platforms)
-- Linux-only `standard` remains internal/experimental
-
 This creates:
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` on macOS/Linux
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.zip` on Windows
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` on macOS/Linux
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` on Windows
 
-Note: Linux `pro` bundles can be significantly larger because optional XGBoost dependencies include NVIDIA NCCL runtime packages.
+Note: Linux bundles can be significantly larger because XGBoost may pull NVIDIA NCCL runtime wheels.
+For Linux advanced users, `uv sync --extra pro` (or a dedicated conda env) is highly recommended.
 On the target machine (same OS/arch family), unpack and run:
 
 ```bash

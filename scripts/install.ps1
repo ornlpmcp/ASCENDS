@@ -1,19 +1,8 @@
-param(
-  [ValidateSet("standard", "pro")]
-  [string]$Profile = ""
-)
-
 $ErrorActionPreference = "Stop"
 $RootDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $RootDir
 
-# Policy: Windows install uses pro only.
-if (-not [string]::IsNullOrWhiteSpace($Profile) -and $Profile -ne "pro") {
-  Write-Host "[ASCENDS] Note: Windows install uses pro only. Overriding '$Profile' -> 'pro'."
-}
-$Profile = "pro"
-
-Write-Host "[ASCENDS] Starting setup for profile=$Profile ..."
+Write-Host "[ASCENDS] Starting setup..."
 
 if (-not (Get-Command python -ErrorAction SilentlyContinue) -and -not (Get-Command python3 -ErrorAction SilentlyContinue)) {
   Write-Host "[ASCENDS] ERROR: python/python3 is required but not found." -ForegroundColor Red
@@ -27,11 +16,7 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "[ASCENDS] Syncing dependencies..."
-if ($Profile -eq "pro") {
-  uv sync --extra pro
-} else {
-  uv sync
-}
+uv sync --extra pro
 if ($LASTEXITCODE -ne 0) {
   Write-Host "[ASCENDS] ERROR: dependency sync failed." -ForegroundColor Red
   exit $LASTEXITCODE

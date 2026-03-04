@@ -1,22 +1,11 @@
-param(
-  [ValidateSet("standard", "pro")]
-  [string]$Profile = "pro"
-)
-
 $ErrorActionPreference = "Stop"
 $RootDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $RootDir
 
-# Policy: Windows run uses pro only.
-if ($Profile -ne "pro") {
-  Write-Host "[ASCENDS] Note: Windows run uses pro only. Overriding '$Profile' -> 'pro'."
-  $Profile = "pro"
-}
-
 $AscendsExe = ".venv\Scripts\ascends.exe"
 if (-not (Test-Path $AscendsExe)) {
   Write-Host "[ASCENDS] Environment not ready. Running install first..."
-  & "$RootDir\scripts\install.ps1" -Profile $Profile
+  & "$RootDir\scripts\install.ps1"
 }
 
 if (-not (Test-Path $AscendsExe)) {
