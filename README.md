@@ -29,16 +29,16 @@ All processing runs locally.
 ./run_gui.sh
 ```
 
+Windows PowerShell:
+
+```powershell
+./install.ps1
+./run_gui.ps1
+```
+
 Open: `http://127.0.0.1:7777`
 
 Manual path (advanced users):
-
-```bash
-uv sync
-uv run ascends gui
-```
-
-Pro profile (includes `xgboost` + `shap`):
 
 ```bash
 uv sync --extra pro
@@ -54,34 +54,30 @@ uv run ascends gui
 ## Hyperparameter Tuning (Roadmap)
 
 - Planned next step:
-  - `standard`: quick/limited tuning presets
   - `pro`: expanded tuning + Optuna advanced mode
+  - Linux-only `standard` may get quick/limited presets
 
 ## Portable Bundle (No Setup on Target Machine)
 
 Build on your machine:
 
 ```bash
-bash ./bundle/make_bundle.sh standard
-# or
 bash ./bundle/make_bundle.sh pro
 ```
 
 Windows (PowerShell):
 
 ```powershell
-./bundle/make_bundle.ps1 -Profile standard
-# or
 ./bundle/make_bundle.ps1 -Profile pro
 ```
 
-- `standard`: lighter bundle (no `xgboost` / `shap`)
-- `pro`: includes `xgboost` + `shap`
+- `pro`: official profile for macOS/Windows
+- `standard`: Linux-only internal/experimental profile
 
 Release policy (current):
 
-- `v0.3.0`: official/public release target is `pro`
-- `standard`: experimental/internal until profile split UX is fully stabilized
+- `v0.3.0`: official/public release target is `pro` (all platforms)
+- Linux-only `standard` remains internal/experimental
 
 This creates:
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<profile>.tar.gz` on macOS/Linux

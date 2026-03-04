@@ -56,12 +56,6 @@ Typical run artifacts:
 ## Development Setup
 
 ```bash
-uv sync
-```
-
-Pro setup (includes `xgboost` + `shap`):
-
-```bash
 uv sync --extra pro
 ```
 
@@ -119,16 +113,14 @@ This covers:
 Create an OS-specific portable bundle (includes `.venv`):
 
 ```bash
-bash ./bundle/make_bundle.sh standard
-# or
 bash ./bundle/make_bundle.sh pro
+# Linux internal/experimental only:
+# bash ./bundle/make_bundle.sh standard
 ```
 
 Windows PowerShell:
 
 ```powershell
-./bundle/make_bundle.ps1 -Profile standard
-# or
 ./bundle/make_bundle.ps1 -Profile pro
 ```
 
@@ -154,8 +146,8 @@ Windows launchers are also generated:
 ## Known Status
 
 - Release packaging policy:
-  - `v0.3.0` is shipped as `pro` for external/public use.
-  - `standard` profile is currently internal/experimental until model-option UX and guardrails are fully aligned.
+  - `v0.3.0` is shipped as `pro` for external/public use on all platforms.
+  - `standard` profile is Linux-only internal/experimental until model-option UX and guardrails are fully aligned.
 - `parity-plot` crash path on macOS backend was fixed by forcing headless plotting in CLI.
 - GUI `train/select` route is implemented and wired to template actions.
 - Classification is enabled in GUI backend training path with:
@@ -169,12 +161,12 @@ Windows launchers are also generated:
 
 1. Improve classification consistency across CLI and GUI surfaces.
 2. Add clearer UI rendering for classification metrics in Train view.
-3. Split distribution into:
-   - `Standard`: lighter package (no `xgboost` / `shap`)
-   - `Pro`: includes `xgboost + shap`
+3. Keep external distribution simple:
+   - `Pro`: default/public package (all platforms)
+   - `Standard`: Linux-only internal/experimental track
 4. Hyperparameter tuning rollout:
-   - `standard`: quick/limited presets
    - `pro`: expanded search + Optuna (advanced)
+   - `standard` (Linux internal): quick/limited presets only
 5. Move from browser-first to desktop-app packaging path.
 
 ## Dataset References

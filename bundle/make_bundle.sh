@@ -31,6 +31,12 @@ if [[ "$PROFILE" != "standard" && "$PROFILE" != "pro" ]]; then
   exit 1
 fi
 
+# Policy: macOS uses pro only; Linux can choose standard/pro.
+if [[ "$OS_TAG" != "linux" && "$PROFILE" != "pro" ]]; then
+  echo "[ASCENDS] Note: $OS_TAG bundle uses pro only. Overriding '$PROFILE' -> 'pro'."
+  PROFILE="pro"
+fi
+
 BUNDLE_NAME="ASCENDS-v${VERSION_TAG}-${DATE_TAG}-${OS_TAG}-${PROFILE}"
 BUNDLE_ROOT="$DIST_DIR/$BUNDLE_NAME"
 BUNDLE_APP="$BUNDLE_ROOT/ASCENDS"

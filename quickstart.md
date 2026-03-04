@@ -7,14 +7,21 @@
 ./run_gui.sh
 ```
 
+Windows PowerShell:
+
+```powershell
+./install.ps1
+./run_gui.ps1
+```
+
 Then open:
 
 `http://127.0.0.1:7777`
 
 ## Profiles
 
-- `standard`: lighter install/bundle (no `xgboost` / `shap`)
-- `pro`: includes `xgboost` + `shap`
+- `pro` (official): includes `xgboost` + `shap`
+- `standard`: Linux-only internal/experimental profile
 
 Install `pro` profile:
 
@@ -25,24 +32,22 @@ Install `pro` profile:
 
 Release policy (current):
 
-- `v0.3.0` official/public recommendation: `pro`
-- `standard` is currently internal/experimental
+- `v0.3.0` official/public recommendation: `pro` (all platforms)
+- Linux-only `standard` is internal/experimental
 
 ## Portable Bundle Build
 
 macOS/Linux:
 
 ```bash
-bash ./bundle/make_bundle.sh standard
-# or
 bash ./bundle/make_bundle.sh pro
+# Linux internal/experimental only:
+# bash ./bundle/make_bundle.sh standard
 ```
 
 Windows (PowerShell):
 
 ```powershell
-./bundle/make_bundle.ps1 -Profile standard
-# or
 ./bundle/make_bundle.ps1 -Profile pro
 ```
 

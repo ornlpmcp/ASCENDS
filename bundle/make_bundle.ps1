@@ -12,6 +12,12 @@ $DateTag = Get-Date -Format "yyyyMMdd"
 $OsTag = "windows"
 $ArchTag = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower()
 
+# Policy: Windows bundle uses pro only.
+if ($Profile -ne "pro") {
+  Write-Host "[ASCENDS] Note: Windows bundle uses pro only. Overriding '$Profile' -> 'pro'."
+  $Profile = "pro"
+}
+
 $PyprojectPath = Join-Path $RootDir "pyproject.toml"
 $PyprojectText = Get-Content -Raw -Path $PyprojectPath -Encoding UTF8
 $VersionMatch = [regex]::Match($PyprojectText, '(?m)^version\s*=\s*"([^"]+)"')

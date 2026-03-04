@@ -156,16 +156,26 @@
                 <div class="subcard" style="color:#a33;"><strong>Error:</strong> {{ train_error }}</div>
               {% endif %}
 
-              {% if false and metrics_train and metrics_test %}
+              {% if metrics_train and metrics_test %}
                 <div class="subcard">
                   <strong>Metrics</strong>
                   <div class="mt-8">
                     <ul class="list">
-                      <li><em>Train</em> — R²={{ "%.4f"|format(metrics_train["R2"]) }}, MAE={{ "%.4f"|format(metrics_train["MAE"]) }}, RMSE={{ "%.4f"|format(metrics_train["RMSE"]) }}</li>
-                      <li><em>Test</em>  — R²={{ "%.4f"|format(metrics_test["R2"]) }}, MAE={{ "%.4f"|format(metrics_test["MAE"]) }}, RMSE={{ "%.4f"|format(metrics_test["RMSE"]) }}</li>
+                      <li>
+                        <em>Train</em> —
+                        {% for k, v in metrics_train.items() %}
+                          {{ k }}={{ "%.4f"|format(v|float) }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                      </li>
+                      <li>
+                        <em>Test</em> —
+                        {% for k, v in metrics_test.items() %}
+                          {{ k }}={{ "%.4f"|format(v|float) }}{% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                      </li>
                     </ul>
                   </div>
-                  <em>Step B complete — training ran and metrics are computed. Next: render the parity PNG.</em>
+                  <em>Training completed and metrics are computed.</em>
                 </div>
               {% endif %}
 
