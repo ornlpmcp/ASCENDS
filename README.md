@@ -29,7 +29,14 @@ All processing runs locally.
 ./scripts/run_gui.sh
 ```
 
-Windows PowerShell:
+Windows (recommended, no PowerShell policy dependency):
+
+```bat
+scripts\install.bat
+scripts\run_gui.bat
+```
+
+Windows PowerShell (optional):
 
 ```powershell
 ./scripts/install.ps1
@@ -64,7 +71,13 @@ Build on your machine:
 bash ./bundle/make_bundle.sh
 ```
 
-Windows (PowerShell):
+Windows (recommended):
+
+```bat
+bundle\make_bundle.bat
+```
+
+Windows PowerShell (optional):
 
 ```powershell
 ./bundle/make_bundle.ps1

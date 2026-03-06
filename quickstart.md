@@ -5,7 +5,7 @@
 - Common: Python 3.10+ and `uv`
 - macOS: Homebrew is recommended for easy install
   - Example: `brew install python uv`
-- Windows (PowerShell): install Python + uv first
+- Windows (cmd/PowerShell): install Python + uv first
   - Example: `winget install Python.Python.3.12` and `winget install astral-sh.uv`
 - Linux: install Python + uv from your distro or the official uv installer
 
@@ -16,7 +16,14 @@
 ./scripts/run_gui.sh
 ```
 
-Windows PowerShell:
+Windows (recommended, no PowerShell policy dependency):
+
+```bat
+scripts\install.bat
+scripts\run_gui.bat
+```
+
+Windows PowerShell (optional):
 
 ```powershell
 ./scripts/install.ps1
@@ -35,7 +42,13 @@ macOS/Linux:
 bash ./bundle/make_bundle.sh
 ```
 
-Windows (PowerShell):
+Windows (recommended):
+
+```bat
+bundle\make_bundle.bat
+```
+
+Windows PowerShell (optional):
 
 ```powershell
 ./bundle/make_bundle.ps1

@@ -116,7 +116,13 @@ Create an OS-specific portable bundle (includes `.venv`):
 bash ./bundle/make_bundle.sh
 ```
 
-Windows PowerShell:
+Windows (recommended):
+
+```bat
+bundle\make_bundle.bat
+```
+
+Windows PowerShell (optional):
 
 ```powershell
 ./bundle/make_bundle.ps1
