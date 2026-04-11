@@ -38,3 +38,6 @@ static/workspace/
 .DS_Store
 Thumbs.db
 .aider*
+
+# Internal review notes
+code_review_notes.md
