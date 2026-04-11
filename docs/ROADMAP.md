@@ -46,13 +46,13 @@
 
 ## 완료
 
-- [x] 중복 matplotlib import 제거
-- [x] 파일 업로드 50MB 크기 제한
-- [x] Path traversal 취약점 수정 (`/predict/download`)
-- [x] 중복 top_k 파싱 블록 제거 (corr 설정 덮어쓰기 버그)
-- [x] return 이후 도달 불가 코드 제거
-- [x] 중복 `_unique_preserve()` 함수 제거
-- [x] `_unique_run_name` TOCTOU 경쟁 조건 수정
-- [x] `LAST_TRAIN` 캐시 최대 20개 제한
-- [x] SHAP dual-view (ASCENDS / default beeswarm) 추가
-- [x] Classification GUI 지원
+- [x] 중복 matplotlib import 제거 `v0.4.0 · 2026-04-11`
+- [x] 파일 업로드 50MB 크기 제한 `v0.4.0 · 2026-04-11`
+- [x] Path traversal 취약점 수정 (`/predict/download`) `v0.4.0 · 2026-04-11`
+- [x] 중복 top_k 파싱 블록 제거 (corr 설정 덮어쓰기 버그) `v0.4.0 · 2026-04-11`
+- [x] return 이후 도달 불가 코드 제거 `v0.4.0 · 2026-04-11`
+- [x] 중복 `_unique_preserve()` 함수 제거 `v0.4.0 · 2026-04-11`
+- [x] `_unique_run_name` TOCTOU 경쟁 조건 수정 `v0.4.0 · 2026-04-11`
+- [x] `LAST_TRAIN` 캐시 최대 20개 제한 `v0.4.0 · 2026-04-11`
+- [x] SHAP dual-view (ASCENDS / default beeswarm) 추가 `v0.4.0 · 2026-04-11`
+- [x] Classification GUI 지원 `v0.4.0 · 2026-04-11`
