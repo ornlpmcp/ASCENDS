@@ -705,16 +705,121 @@ async def train_save(
         ws_train_dir = STATIC_DIR / "workspace" / ws_id / "train"
         parity_img = ws_train_dir / "parity.png"
         confusion_img = ws_train_dir / "confusion.png"
+        shap_img = ws_train_dir / "shap_importance_ascends.png"
         if parity_img.exists():
             shutil.copyfile(parity_img, out_dir / "parity.png")
         if confusion_img.exists():
             shutil.copyfile(confusion_img, out_dir / "confusion.png")
+        if shap_img.exists():
+            shutil.copyfile(shap_img, out_dir / "shap_importance.png")
     except Exception:
         pass
+
+    # Generate report.html
+    try:
+        _generate_report(run_name, out_dir, rec, ws_id)
+    except Exception as e:
+        logger.warning("Report generation failed for %s: %s", run_name, e)
 
     ctx["save_ok"] = f"Saved run: {run_name}"
     ctx["saved_runs"] = _list_saved_runs()
     return templates.TemplateResponse("train.html", ctx)
+
+def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: str) -> None:
+    """Render report.html into the run directory using interpret.py insights."""
+    from ascends.core.interpret import interpret_run
+
+    task = rec["params"].get("task", "r")
+    task_label = "Classification" if task == "c" else "Regression"
+    train_metrics = dict(rec.get("metrics_train") or {})
+    test_metrics = dict(rec.get("metrics_test") or {})
+    inputs = rec.get("inputs", [])
+    target = rec.get("target", "")
+    n_train = rec.get("n_train") or 0
+    n_test = rec.get("n_test") or 0
+
+    # Collect all metric keys (union of train + test)
+    metric_keys = list(dict.fromkeys(list(train_metrics.keys()) + list(test_metrics.keys())))
+
+    # Load SHAP importance if available
+    importance_rows = []
+    importance_df = None
+    shap_csv = _ws_dir(ws_id) / "train" / "shap_importance.csv"
+    if shap_csv.exists():
+        try:
+            importance_df = pd.read_csv(shap_csv)
+            importance_rows = importance_df.head(15).values.tolist()
+        except Exception:
+            pass
+
+    # Load target values for MAE context (regression only)
+    target_values = None
+    if task in ("r", "regression"):
+        try:
+            csv_path = rec.get("csv_path")
+            if csv_path:
+                df_tmp = pd.read_csv(csv_path, usecols=[target])
+                target_values = df_tmp[target].dropna().tolist()
+        except Exception:
+            pass
+
+    # Generate insights
+    raw_insights = interpret_run(
+        task=task,
+        train_metrics=train_metrics,
+        test_metrics=test_metrics,
+        n_train=n_train,
+        n_test=n_test,
+        target_values=target_values,
+        importance_df=importance_df,
+    )
+
+    # Tag each insight with a CSS level for styling
+    def _level(text: str) -> str:
+        low = text.lower()
+        if any(w in low for w in ("overfitting", "imbalance", "leakage", "worse", "low", "poor", "large error", "small training", "heavily relies")):
+            return "warn"
+        if any(w in low for w in ("very good", "excellent", "consistent", "low error", "good")):
+            return "good"
+        return ""
+
+    insights = [{"text": t, "level": _level(t)} for t in raw_insights]
+
+    # Collect available plot files (relative paths for self-contained HTML)
+    plot_files = []
+    for fname, label in [("parity.png", "Parity Plot"), ("confusion.png", "Confusion Matrix"), ("shap_importance.png", "Feature Importance")]:
+        if (out_dir / fname).exists():
+            plot_files.append({"src": fname, "label": label})
+
+    html = templates.get_template("report.html").render(
+        run_name=run_name,
+        task_label=task_label,
+        model=rec["params"].get("model", ""),
+        target=target,
+        created_at=rec.get("timestamp", ""),
+        train_metrics=train_metrics,
+        test_metrics=test_metrics,
+        metric_keys=metric_keys,
+        n_train=n_train,
+        n_test=n_test,
+        insights=insights,
+        plot_files=plot_files,
+        importance_rows=importance_rows,
+        inputs=inputs,
+        test_size=rec["params"].get("test_size", ""),
+        seed=rec["params"].get("seed", ""),
+    )
+    (out_dir / "report.html").write_text(html, encoding="utf-8")
+
+
+@app.get("/runs/{run_name}/report.html", response_class=HTMLResponse)
+async def serve_report(run_name: str) -> HTMLResponse:
+    """Serve the saved report.html for a run."""
+    report_path = RUNS_DIR / run_name / "report.html"
+    if not report_path.exists():
+        return HTMLResponse(content="Report not found.", status_code=404)
+    return HTMLResponse(content=report_path.read_text(encoding="utf-8"))
+
 
 # Delete a saved run directory
 @app.post("/train/delete", response_class=HTMLResponse)

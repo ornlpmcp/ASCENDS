@@ -318,6 +318,7 @@
                     <td class="actions-cell" style="vertical-align:top; padding:4px 6px;">
                       <div class="actions-stack">
                         <a class="btn btn-sm" href="/predict?run={{ r.name }}">Proceed</a>
+                        <a class="btn btn-sm" href="/runs/{{ r.name }}/report.html" target="_blank">Report</a>
                         <form action="/train/delete" method="post" onsubmit="return confirm('Delete run {{ r.name }}?');">
                           <input type="hidden" name="run_name" value="{{ r.name }}">
                           {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}

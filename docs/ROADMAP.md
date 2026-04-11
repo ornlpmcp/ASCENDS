@@ -1,6 +1,6 @@
 # ASCENDS Roadmap
 
-> Last updated: 2026-04-11 (v0.4.0)
+> Last updated: 2026-04-11 (v0.4.1)
 
 ## Design Philosophy
 
@@ -11,7 +11,7 @@
 
 ## v0.4.x — Stability & UX
 
-- [ ] **Run Report** — Auto-generate `runs/<name>/report.html` on Save Model; add Report button in ML Models panel
+- [x] **Run Report** — Auto-generate `runs/<name>/report.html` on Save Model; add Report button in ML Models panel `v0.4.1 · 2026-04-11`
   - Includes: metrics, parity/confusion plots, SHAP importance, rule-based interpretation text
   - Interpretation module: `ascends/core/interpret.py` — scenario-based rules for R², MAE, overfitting, F1, class imbalance, etc.
 - [ ] **Loading spinner** — Show progress indicator during Train / SHAP / Correlation runs
