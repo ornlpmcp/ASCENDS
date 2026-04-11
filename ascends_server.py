@@ -46,8 +46,6 @@ except Exception:
 
 from uuid import uuid4
 
-import matplotlib
-matplotlib.use("Agg")  # headless, no GUI windows
 import dcor
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from fastapi import FastAPI
@@ -88,10 +86,15 @@ def _safe_csv_filename(original: str) -> str:
     return f"{stem}-{uuid4().hex[:8]}.csv"
 
 
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+
+
 async def _save_csv(file: UploadFile) -> Path:
     name = _safe_csv_filename(file.filename or "data.csv")
     dest = UPLOADS_DIR / name
     content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise ValueError(f"File too large ({len(content) // (1024 * 1024)} MB). Maximum allowed is 50 MB.")
     dest.write_bytes(content)
     return dest
 
@@ -645,9 +648,8 @@ async def train_save(
 
     # Determine run name
     base = save_name or (rec["params"].get("model", "model") + "_" + datetime.now().strftime("%Y%m%d_%H%M%S"))
-    run_name = _unique_run_name(base)
+    run_name = _unique_run_name(base)  # also creates the directory atomically
     out_dir = RUNS_DIR / run_name
-    out_dir.mkdir(parents=True, exist_ok=False)
 
     # Save model
     try:
@@ -921,8 +923,12 @@ async def predict_download(
     """Serve a predictions CSV from runs/<run>/predictions/<file> with basic path safety."""
     pred_dir = (RUNS_DIR / run / "predictions").resolve()
     file_path = (pred_dir / file).resolve()
-    # Basic path traversal protection
-    if not str(file_path).startswith(str(pred_dir)) or not file_path.is_file():
+    # Prevent path traversal: raises ValueError if file_path escapes pred_dir
+    try:
+        file_path.relative_to(pred_dir)
+    except ValueError:
+        return HTMLResponse(status_code=404, content="Not found")
+    if not file_path.is_file():
         return HTMLResponse(status_code=404, content="Not found")
     return FileResponse(file_path, media_type="text/csv", filename=file)
 
@@ -1039,38 +1045,6 @@ async def correlation_run(
     corr_section["top_k"] = top_k_val
     corr_section["task"] = task
     corr_section["view"] = view
-    top_k_val = None
-    if top_k is not None and str(top_k).strip() != "":
-        try:
-            top_k_val = int(str(top_k).strip())
-            if top_k_val <= 0:
-                raise ValueError("top_k must be > 0")
-        except Exception as e:
-            # Re-render with a friendly error
-            ctx = {
-                "request": request,
-                "ws_id": ws_id,
-                "csv_path": mf.get("csv_path"),
-                "all_columns": cols,
-                "inputs": inputs,
-                "target": target,
-                "selected": mf.get("selected", []),
-                "error": f"Invalid Top-K: {e}",
-            }
-            try:
-                df = pd.read_csv(mf.get("csv_path"), nrows=10)
-                ctx["preview_headers"] = list(df.columns)
-                ctx["preview_rows"] = df.astype(object).where(pd.notnull(df), None).values.tolist()
-            except Exception:
-                pass
-            return templates.TemplateResponse("correlation.html", ctx)
-        mf["corr"] = {}
-    mf["corr"].update({
-        "metrics": chosen_metrics,
-        "top_k": top_k_val,
-        "task": task,
-        "view": view,
-    })
     # Prepare data and write cleaning log
     data_dir, img_dir = _corr_dirs(ws_id)
     df_clean, info = _prepare_corr_dataframe(mf["csv_path"], target, inputs)
@@ -1409,17 +1383,6 @@ async def correlation_download_all(ws_id: str):
     _save_manifest(ws_id, mf)
 
     return FileResponse(str(combined_path), media_type="text/csv", filename="correlation_all.csv")
-    import uvicorn  # local import to avoid E402
-    uvicorn.run("ascends_server:app", host="127.0.0.1", port=7777, reload=True)
-# Helper: unique while preserving order
-def _unique_preserve(seq: List[str]) -> List[str]:
-    seen: set[str] = set()
-    out: List[str] = []
-    for x in seq:
-        if x not in seen:
-            seen.add(x)
-            out.append(x)
-    return out
 
 # Helper: pick a regressor by key
 def _make_regressor(key: str, seed: Optional[int] = 42):
@@ -1589,14 +1552,20 @@ def _slugify_name(name: str) -> str:
     return slug.strip("_-")
 
 def _unique_run_name(base: str) -> str:
-    """Ensure run name is unique under runs/ by appending numeric suffix if needed."""
+    """Return a unique run name and atomically create its directory under runs/.
+
+    Uses mkdir(exist_ok=False) to avoid TOCTOU race conditions under concurrent requests.
+    """
     base = _slugify_name(base) or datetime.now().strftime("run_%Y%m%d_%H%M%S")
     candidate = base
     n = 2
-    while (RUNS_DIR / candidate).exists():
-        candidate = f"{base}_{n}"
-        n += 1
-    return candidate
+    while True:
+        try:
+            (RUNS_DIR / candidate).mkdir(parents=True, exist_ok=False)
+            return candidate
+        except FileExistsError:
+            candidate = f"{base}_{n}"
+            n += 1
 
 def _list_saved_runs() -> List[Dict[str, Any]]:
     """Scan runs/* and load manifest + metrics for the ML Models pane."""
@@ -1777,7 +1746,10 @@ async def train_run(
         except Exception as e:
             ctx["train_error"] = f"Failed to generate confusion matrix: {e}"
 
-    # Cache last train to enable quick "Save Model"
+    # Cache last train to enable quick "Save Model" (cap at 20 entries to prevent unbounded growth)
+    _LAST_TRAIN_MAX = 20
+    if ws_id not in LAST_TRAIN and len(LAST_TRAIN) >= _LAST_TRAIN_MAX:
+        del LAST_TRAIN[next(iter(LAST_TRAIN))]
     LAST_TRAIN[ws_id] = {
         "estimator": est,
         "params": ctx["train_params"],
