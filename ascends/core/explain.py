@@ -148,3 +148,34 @@ def save_importance_plot(
     fig.savefig(out_path, bbox_inches="tight")
     plt.close(fig)
     return out_path
+
+
+def save_default_shap_plot(
+    model: Any,
+    X: pd.DataFrame,
+    out_png: str | Path,
+    max_samples: int = 500,
+    random_state: int = 42,
+    max_display: int = 20,
+) -> Path:
+    """Save SHAP's default summary (beeswarm) plot for tree models."""
+    if X is None or len(X) == 0:
+        raise ValueError("X is empty; cannot render default SHAP plot.")
+
+    out_path = Path(out_png)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    n = min(len(X), int(max_samples))
+    Xs = X.sample(n=n, random_state=random_state) if len(X) > n else X.copy()
+
+    import shap
+
+    explainer = shap.TreeExplainer(model)
+    shap_vals = explainer.shap_values(Xs)
+
+    plt.figure(figsize=(14.0, 8.2), dpi=220)
+    shap.summary_plot(shap_vals, Xs, show=False, max_display=max(1, int(max_display)))
+    plt.tight_layout()
+    plt.savefig(out_path, bbox_inches="tight")
+    plt.close("all")
+    return out_path

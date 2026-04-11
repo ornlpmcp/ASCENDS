@@ -13,7 +13,7 @@ from fastapi import Query
 import io
 from joblib import load
 from urllib.parse import quote
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 import pandas as pd
 import numpy as np
 from math import sqrt
@@ -54,7 +54,11 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from ascends.core.explain import explain_model as core_explain, save_importance_plot
+from ascends.core.explain import (
+    explain_model as core_explain,
+    save_importance_plot,
+    save_default_shap_plot,
+)
 
 logger = logging.getLogger("ascends.gui")
 
@@ -325,18 +329,31 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
     ctx: Dict[str, Any] = {"request": request, "ws_id": ws}
     if ws:
         mf = _load_manifest(ws) or {}
+        shap_view = str(mf.get("shap_view", "ascends")).lower()
+        if shap_view not in {"ascends", "default"}:
+            shap_view = "ascends"
         ctx.update({
             "csv_path": mf.get("csv_path"),
             "all_columns": mf.get("columns", []),
             "selected": mf.get("selected", []),
             "inputs": mf.get("inputs", []),
             "target": mf.get("target"),
+            "shap_view": shap_view,
         })
-        # Load previously generated SHAP artifacts if available
-        shap_png = STATIC_DIR / "workspace" / ws / "train" / "shap_importance.png"
+
+        # DESIGN DECISION:
+        # Keep ASCENDS custom plot as the default UI because users found it more readable.
+        # If "default" plot is requested but unavailable, fallback to ASCENDS plot.
+        shap_png = STATIC_DIR / "workspace" / ws / "train" / f"shap_importance_{shap_view}.png"
+        legacy_png = STATIC_DIR / "workspace" / ws / "train" / "shap_importance.png"
+        fallback_png = STATIC_DIR / "workspace" / ws / "train" / "shap_importance_ascends.png"
         shap_csv = _ws_dir(ws) / "train" / "shap_importance.csv"
         if shap_png.exists():
-            ctx["shap_img_url"] = f"/static/workspace/{ws}/train/shap_importance.png?ts={int(time.time())}"
+            ctx["shap_img_url"] = f"/static/workspace/{ws}/train/{shap_png.name}?ts={int(time.time())}"
+        elif shap_view == "default" and fallback_png.exists():
+            ctx["shap_img_url"] = f"/static/workspace/{ws}/train/{fallback_png.name}?ts={int(time.time())}"
+        elif legacy_png.exists():
+            ctx["shap_img_url"] = f"/static/workspace/{ws}/train/{legacy_png.name}?ts={int(time.time())}"
         if shap_csv.exists():
             try:
                 df_shap = pd.read_csv(shap_csv).head(10)
@@ -353,6 +370,7 @@ async def train_shap(
     request: Request,
     ws_id: str = Form(...),
     max_samples: int = Form(300),
+    shap_view: str = Form("ascends"),
 ) -> HTMLResponse:
     """Compute SHAP/permutation importance for the latest trained model in this workspace."""
     mf = _load_manifest(ws_id) or {}
@@ -366,6 +384,10 @@ async def train_shap(
         "target": mf.get("target"),
         "saved_runs": _list_saved_runs(),
     }
+    shap_view = str(shap_view or "ascends").lower()
+    if shap_view not in {"ascends", "default"}:
+        shap_view = "ascends"
+    ctx["shap_view"] = shap_view
 
     rec = LAST_TRAIN.get(ws_id)
     if not rec:
@@ -413,17 +435,34 @@ async def train_shap(
     img_dir = _train_img_dir(ws_id)
     csv_out = data_dir / "shap_importance.csv"
     report_out = data_dir / "shap_report.json"
-    png_out = img_dir / "shap_importance.png"
+    png_ascends = img_dir / "shap_importance_ascends.png"
+    png_default = img_dir / "shap_importance_default.png"
 
     imp_df = expl["importance_df"]
     imp_df.to_csv(csv_out, index=False)
 
     save_importance_plot(
         imp_df,
-        png_out,
+        png_ascends,
         method=str(expl.get("method", "shap")),
         top_n=20,
     )
+    default_ready = False
+    if str(expl.get("method", "")).lower() == "shap":
+        try:
+            save_default_shap_plot(
+                model=est,
+                X=X,
+                out_png=png_default,
+                max_samples=max(50, int(max_samples)),
+                random_state=42,
+                max_display=20,
+            )
+            default_ready = True
+        except Exception as e:
+            warn = str(expl.get("warning") or "").strip()
+            extra = f"Default SHAP view failed ({e}); using ASCENDS view."
+            expl["warning"] = f"{warn} {extra}".strip() if warn else extra
 
     report_out.write_text(
         json.dumps(
@@ -432,17 +471,79 @@ async def train_shap(
                 "warning": expl.get("warning"),
                 "n_samples": expl.get("n_samples"),
                 "csv_path": str(csv_out),
-                "png_path": str(png_out),
+                "png_ascends_path": str(png_ascends),
+                "png_default_path": str(png_default) if default_ready else None,
             },
             indent=2,
         ),
         encoding="utf-8",
     )
 
-    ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/shap_importance.png?ts={int(time.time())}"
+    selected_png = png_default if (shap_view == "default" and default_ready) else png_ascends
+    ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
     ctx["shap_rows"] = imp_df.head(10).values.tolist()
     if expl.get("warning"):
         ctx["shap_warning"] = expl["warning"]
+
+    # Persist UI preference for next Train page load.
+    mf["shap_view"] = shap_view
+    _save_manifest(ws_id, mf)
+
+    return templates.TemplateResponse("train.html", ctx)
+
+
+@app.post("/train/shap/view", response_class=HTMLResponse)
+async def train_shap_view(
+    request: Request,
+    ws_id: str = Form(...),
+    shap_view: str = Form("ascends"),
+) -> HTMLResponse:
+    """Switch displayed SHAP image without recomputing model explanation."""
+    mf = _load_manifest(ws_id) or {}
+    shap_view = str(shap_view or "ascends").lower()
+    if shap_view not in {"ascends", "default"}:
+        shap_view = "ascends"
+    mf["shap_view"] = shap_view
+    _save_manifest(ws_id, mf)
+
+    ctx: Dict[str, Any] = {
+        "request": request,
+        "ws_id": ws_id,
+        "csv_path": mf.get("csv_path"),
+        "all_columns": mf.get("columns", []),
+        "selected": mf.get("selected", []),
+        "inputs": mf.get("inputs", []),
+        "target": mf.get("target"),
+        "saved_runs": _list_saved_runs(),
+        "shap_view": shap_view,
+    }
+
+    rec = LAST_TRAIN.get(ws_id)
+    if rec:
+        ctx["metrics_train"] = rec.get("metrics_train")
+        ctx["metrics_test"] = rec.get("metrics_test")
+        ctx["parity_img_url"] = rec.get("parity_img_url")
+
+    img_dir = _train_img_dir(ws_id)
+    selected_png = img_dir / f"shap_importance_{shap_view}.png"
+    fallback_png = img_dir / "shap_importance_ascends.png"
+    legacy_png = img_dir / "shap_importance.png"
+    if selected_png.exists():
+        ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
+    elif fallback_png.exists():
+        ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{fallback_png.name}?ts={int(time.time())}"
+        if shap_view == "default":
+            ctx["shap_warning"] = "Default SHAP view is not available for this run. Showing ASCENDS view."
+    elif legacy_png.exists():
+        ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{legacy_png.name}?ts={int(time.time())}"
+
+    shap_csv = _ws_dir(ws_id) / "train" / "shap_importance.csv"
+    if shap_csv.exists():
+        try:
+            df_shap = pd.read_csv(shap_csv).head(10)
+            ctx["shap_rows"] = df_shap.values.tolist()
+        except Exception:
+            pass
 
     return templates.TemplateResponse("train.html", ctx)
 
@@ -618,6 +719,7 @@ async def train_save(
 async def train_delete(
     request: Request,
     run_name: str = Form(...),
+    ws_id: Optional[str] = Form(None),
 ) -> HTMLResponse:
     ctx: Dict[str, Any] = {"request": request}
     target_dir = RUNS_DIR / run_name
@@ -629,7 +731,11 @@ async def train_delete(
             ctx["train_error"] = f"Failed to delete run {run_name}: {e}"
     else:
         ctx["train_error"] = f"Run not found: {run_name}"
-    # After delete, show Train page with updated list (no ws context needed to see runs)
+    # Keep workspace context after delete so Train/SHAP panels remain stable.
+    if ws_id:
+        return RedirectResponse(url=f"/train?ws_id={quote(ws_id)}", status_code=303)
+
+    # Fallback when no workspace context exists.
     ctx["saved_runs"] = _list_saved_runs()
     return templates.TemplateResponse("train.html", ctx)
 

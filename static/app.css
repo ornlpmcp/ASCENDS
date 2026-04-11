@@ -89,14 +89,14 @@ nav a:hover { color:var(--accent); }
 
 .train-page .train-top {
   display: grid;
-  grid-template-columns: 15% 15% 70%;
+  grid-template-columns: minmax(170px, 12%) minmax(180px, 13%) minmax(360px, 37.5%) minmax(360px, 37.5%);
   gap: 12px;
   align-items: stretch;
 }
 
 .train-page .train-bottom {
   display: grid;
-  grid-template-columns: 60% 40%;
+  grid-template-columns: 100%;
   gap: 12px;
   margin-top: 12px;
 }
@@ -153,7 +153,22 @@ nav a:hover { color:var(--accent); }
   gap: 8px;
 }
 
-@media (max-width: 900px) {
+.train-page .actions-cell {
+  white-space: nowrap;
+}
+
+.train-page .actions-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.train-page .actions-stack .btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
   .train-page .train-top { grid-template-columns: 100%; }
   .train-page .train-bottom { grid-template-columns: 100%; }
   .train-page .train-pane-scroll { height: auto; }
