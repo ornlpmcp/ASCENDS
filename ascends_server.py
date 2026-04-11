@@ -725,8 +725,21 @@ async def train_save(
     ctx["saved_runs"] = _list_saved_runs()
     return templates.TemplateResponse("train.html", ctx)
 
-def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: str) -> None:
-    """Render report.html into the run directory using interpret.py insights."""
+@app.get("/train/report", response_class=HTMLResponse)
+async def train_report_preview(request: Request, ws_id: str = Query(...)) -> HTMLResponse:
+    """Render a live report from LAST_TRAIN without requiring Save."""
+    rec = LAST_TRAIN.get(ws_id)
+    if not rec:
+        return HTMLResponse(content="No trained model found. Please train a model first.", status_code=404)
+    return HTMLResponse(content=_render_report_html("(unsaved)", rec, ws_id))
+
+
+def _render_report_html(run_name: str, rec: Dict[str, Any], ws_id: str, out_dir: Optional[Path] = None) -> str:
+    """Render report.html from a LAST_TRAIN record and return HTML string.
+
+    When out_dir is provided (saved run), plot src paths are relative to the
+    run directory so the report works when opened directly from the filesystem.
+    """
     from ascends.core.interpret import interpret_run
 
     task = rec["params"].get("task", "r")
@@ -738,7 +751,6 @@ def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: s
     n_train = rec.get("n_train") or 0
     n_test = rec.get("n_test") or 0
 
-    # Collect all metric keys (union of train + test)
     metric_keys = list(dict.fromkeys(list(train_metrics.keys()) + list(test_metrics.keys())))
 
     # Load SHAP importance if available
@@ -752,7 +764,7 @@ def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: s
         except Exception:
             pass
 
-    # Load target values for MAE context (regression only)
+    # Load target values for MAE context
     target_values = None
     if task in ("r", "regression"):
         try:
@@ -763,7 +775,6 @@ def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: s
         except Exception:
             pass
 
-    # Generate insights
     raw_insights = interpret_run(
         task=task,
         train_metrics=train_metrics,
@@ -774,7 +785,6 @@ def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: s
         importance_df=importance_df,
     )
 
-    # Tag each insight with a CSS level for styling
     def _level(text: str) -> str:
         low = text.lower()
         if any(w in low for w in ("overfitting", "imbalance", "leakage", "worse", "low", "poor", "large error", "small training", "heavily relies")):
@@ -785,13 +795,23 @@ def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: s
 
     insights = [{"text": t, "level": _level(t)} for t in raw_insights]
 
-    # Collect available plot files (relative paths for self-contained HTML)
+    # Plot paths: relative for saved reports, absolute URLs for live preview
     plot_files = []
-    for fname, label in [("parity.png", "Parity Plot"), ("confusion.png", "Confusion Matrix"), ("shap_importance.png", "Feature Importance")]:
-        if (out_dir / fname).exists():
-            plot_files.append({"src": fname, "label": label})
+    if out_dir is not None:
+        for fname, label in [("parity.png", "Parity Plot"), ("confusion.png", "Confusion Matrix"), ("shap_importance.png", "Feature Importance")]:
+            if (out_dir / fname).exists():
+                plot_files.append({"src": fname, "label": label})
+    else:
+        ws_train_dir = STATIC_DIR / "workspace" / ws_id / "train"
+        for fname, label, url_name in [
+            ("parity.png", "Parity Plot", "parity.png"),
+            ("confusion.png", "Confusion Matrix", "confusion.png"),
+            ("shap_importance_ascends.png", "Feature Importance", "shap_importance_ascends.png"),
+        ]:
+            if (ws_train_dir / fname).exists():
+                plot_files.append({"src": f"/static/workspace/{ws_id}/train/{url_name}", "label": label})
 
-    html = templates.get_template("report.html").render(
+    return templates.get_template("report.html").render(
         run_name=run_name,
         task_label=task_label,
         model=rec["params"].get("model", ""),
@@ -809,6 +829,17 @@ def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: s
         test_size=rec["params"].get("test_size", ""),
         seed=rec["params"].get("seed", ""),
     )
+
+
+def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: str) -> None:
+    """Render report.html into the run directory.
+
+    For saved runs, plot src attributes use relative paths so the report
+    is portable (works when opened directly from the filesystem).
+    """
+    # Build a copy of rec with plot paths pointing to the run directory
+    rec_saved = dict(rec)
+    html = _render_report_html(run_name, rec_saved, ws_id, out_dir=out_dir)
     (out_dir / "report.html").write_text(html, encoding="utf-8")
 
 
@@ -1865,6 +1896,8 @@ async def train_run(
         "metrics_test": ctx["metrics_test"],
         "parity_img_url": ctx.get("parity_img_url"),
         "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "n_train": len(X_train),
+        "n_test": len(X_test),
     }
 
     # Refresh saved runs list in the page
