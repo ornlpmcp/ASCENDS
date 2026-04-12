@@ -14,7 +14,7 @@
 - [x] **Run Report** — Auto-generate `runs/<name>/report.html` on Save Model; add Report button in ML Models panel `v0.4.1 · 2026-04-11`
   - Includes: metrics, parity/confusion plots, SHAP importance, rule-based interpretation text
   - Interpretation module: `ascends/core/interpret.py` — scenario-based rules for R², MAE, overfitting, F1, class imbalance, etc.
-- [ ] **Loading spinner** — Show progress indicator during Train / SHAP / Correlation runs
+- [x] **Loading spinner** — Show progress indicator during Train / SHAP / Correlation runs `v0.4.2 · 2026-04-11`
 - [ ] **Data quality diagnostics** — Auto-detect missing values, outliers, class imbalance; surface warnings before training
 - [ ] **Feature alignment warning** — Warn user when prediction data has different features than training (`data.py:align_to_features`)
 - [ ] **SHAP multi-class fix** — Average absolute SHAP values across classes for multi-class classification (`explain.py:save_default_shap_plot`)
