@@ -2,8 +2,8 @@ $ErrorActionPreference = "Stop"
 
 $RootDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $DistDir = Join-Path $RootDir "dist"
-$Ts = Get-Date -Format "yyyyMMdd_HHmmss"
 $DateTag = Get-Date -Format "yyyyMMdd"
+$Ts = Get-Date -Format "yyyyMMdd_HHmmss"
 $OsTag = "windows"
 $ArchTag = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLower()
 
@@ -14,19 +14,22 @@ $VersionTag = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value } else 
 
 $BundleName = "ASCENDS-v$VersionTag-$DateTag-$OsTag"
 $BundleRoot = Join-Path $DistDir $BundleName
-$BundleApp = Join-Path $BundleRoot "ASCENDS"
-$ArchiveExt = "zip"
-$ArchivePath = Join-Path $DistDir "$BundleName.$ArchiveExt"
+$BundleApp  = Join-Path $BundleRoot "ASCENDS"
+$ArchivePath = Join-Path $DistDir "$BundleName.zip"
 
-Write-Host "[ASCENDS] Preparing portable bundle..."
+Write-Host "[ASCENDS] Building portable bundle: $BundleName"
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 if (Test-Path $BundleRoot) { Remove-Item -Recurse -Force $BundleRoot }
 New-Item -ItemType Directory -Force -Path $BundleApp | Out-Null
 
+# ── Copy source files ───────────────────────────────────────────────────────
 Write-Host "[ASCENDS] Copying project files..."
-$DirsToCopy = @("ascends", "templates", "static", "examples", "test")
+$DirsToCopy = @("ascends", "templates", "static", "examples")
 foreach ($d in $DirsToCopy) {
-  Copy-Item -Recurse -Force -Path (Join-Path $RootDir $d) -Destination (Join-Path $BundleApp $d)
+  $src = Join-Path $RootDir $d
+  if (Test-Path $src) {
+    Copy-Item -Recurse -Force -Path $src -Destination (Join-Path $BundleApp $d)
+  }
 }
 
 $FilesToCopy = @(
@@ -34,109 +37,111 @@ $FilesToCopy = @(
   "pyproject.toml",
   "uv.lock",
   "README.md",
-  "README.dev.md",
   "quickstart.md",
-  "LICENSE",
-  "CHANGELOG.md",
-  "TODO.md"
+  "LICENSE"
 )
 foreach ($f in $FilesToCopy) {
-  Copy-Item -Force -Path (Join-Path $RootDir $f) -Destination (Join-Path $BundleApp $f)
+  $src = Join-Path $RootDir $f
+  if (Test-Path $src) {
+    Copy-Item -Force -Path $src -Destination (Join-Path $BundleApp $f)
+  }
 }
 
-if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
-  Write-Host "[ASCENDS] ERROR: uv is required to create bundle environments." -ForegroundColor Red
+# ── Find and copy uv.exe into bundle root ───────────────────────────────────
+Write-Host "[ASCENDS] Locating uv.exe..."
+$UvExe = (Get-Command uv -ErrorAction SilentlyContinue).Source
+if (-not $UvExe) {
+  Write-Host "[ASCENDS] ERROR: uv not found on PATH. Install uv first: https://docs.astral.sh/uv/" -ForegroundColor Red
   exit 1
 }
+Write-Host "[ASCENDS] Bundling uv.exe from: $UvExe"
+Copy-Item -Force -Path $UvExe -Destination (Join-Path $BundleRoot "uv.exe")
 
-Write-Host "[ASCENDS] Building bundled virtual environment..."
+# ── Pre-build venv on this machine to speed up first launch ─────────────────
+# The venv may have path issues on the target machine, but uv run will
+# automatically detect and repair it before launching.
+Write-Host "[ASCENDS] Pre-building virtual environment (speeds up first launch)..."
 Push-Location $BundleApp
 try {
-  uv sync --no-dev
+  & (Join-Path $BundleRoot "uv.exe") sync --no-dev
 } finally {
   Pop-Location
 }
 
+# ── Write bundle metadata ────────────────────────────────────────────────────
 @"
 name=$BundleName
+version=$VersionTag
 os=$OsTag
 arch=$ArchTag
 timestamp=$Ts
 "@ | Set-Content -Path (Join-Path $BundleRoot "bundle-meta.txt") -Encoding UTF8
 
-@'
-$ErrorActionPreference = "Stop"
-$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location (Join-Path $Root "ASCENDS")
-
-$AscendsExe = ".venv\Scripts\ascends.exe"
-if (-not (Test-Path $AscendsExe)) {
-  Write-Host "[ASCENDS] ERROR: bundled environment is missing (.venv\Scripts\ascends.exe)." -ForegroundColor Red
-  exit 1
-}
-
-Write-Host "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
-& $AscendsExe gui @args
-'@ | Set-Content -Path (Join-Path $BundleRoot "launch_gui.ps1") -Encoding UTF8
-
-@'
-$ErrorActionPreference = "Stop"
-$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location (Join-Path $Root "ASCENDS")
-
-$AscendsExe = ".venv\Scripts\ascends.exe"
-if (-not (Test-Path $AscendsExe)) {
-  Write-Host "[ASCENDS] ERROR: bundled environment is missing (.venv\Scripts\ascends.exe)." -ForegroundColor Red
-  exit 1
-}
-
-& $AscendsExe @args
-'@ | Set-Content -Path (Join-Path $BundleRoot "launch_cli.ps1") -Encoding UTF8
-
+# ── Write launch_gui.bat (cmd.exe — primary launcher) ───────────────────────
 @'
 @echo off
 setlocal
-set ROOT=%~dp0
+set "ROOT=%~dp0"
 cd /d "%ROOT%ASCENDS"
-if not exist ".venv\Scripts\ascends.exe" (
-  echo [ASCENDS] ERROR: bundled environment is missing (.venv\Scripts\ascends.exe).
-  exit /b 1
-)
+
 echo [ASCENDS] Launching GUI at http://127.0.0.1:7777
-".venv\Scripts\ascends.exe" gui %*
+echo [ASCENDS] Open your browser at: http://127.0.0.1:7777
+echo.
+
+"%ROOT%uv.exe" run ascends gui %*
 '@ | Set-Content -Path (Join-Path $BundleRoot "launch_gui.bat") -Encoding ASCII
 
+# ── Write launch_gui.ps1 (optional PowerShell launcher) ─────────────────────
 @'
-ASCENDS Portable Bundle
-=======================
+$ErrorActionPreference = "Stop"
+$Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location (Join-Path $Root "ASCENDS")
+Write-Host "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
+& (Join-Path $Root "uv.exe") run ascends gui @args
+'@ | Set-Content -Path (Join-Path $BundleRoot "launch_gui.ps1") -Encoding UTF8
 
-1) Unpack this bundle on a compatible Windows machine.
-2) Launch GUI:
-   PowerShell:
-   .\launch_gui.ps1
-   cmd:
-   launch_gui.bat
-3) Open in browser:
-   http://127.0.0.1:7777
+# ── Write launch_cli.bat ─────────────────────────────────────────────────────
+@'
+@echo off
+setlocal
+set "ROOT=%~dp0"
+cd /d "%ROOT%ASCENDS"
+"%ROOT%uv.exe" run ascends %*
+'@ | Set-Content -Path (Join-Path $BundleRoot "launch_cli.bat") -Encoding ASCII
 
-Notes:
-- This bundle is OS/architecture specific.
-- It includes a prebuilt Python environment (.venv).
-- For CLI use:
-  .\launch_cli.ps1 --help
-'@ | Set-Content -Path (Join-Path $BundleRoot "README-BUNDLE.txt") -Encoding UTF8
+# ── Write README-BUNDLE.txt ──────────────────────────────────────────────────
+@"
+ASCENDS Portable Bundle v$VersionTag
+=====================================
 
+No Python or uv installation required.
+
+QUICK START
+-----------
+1. Unzip this archive anywhere on your machine.
+2. Double-click launch_gui.bat  (or run it from cmd.exe)
+3. Open your browser at: http://127.0.0.1:7777
+
+NOTES
+-----
+- First launch may take 1-2 minutes while the environment is verified.
+- Subsequent launches are fast.
+- This bundle is Windows-only ($ArchTag).
+- For CLI use: launch_cli.bat --help
+
+"@ | Set-Content -Path (Join-Path $BundleRoot "README-BUNDLE.txt") -Encoding UTF8
+
+# ── Create zip archive ───────────────────────────────────────────────────────
 if (Test-Path $ArchivePath) {
   $n = 2
-  while (Test-Path (Join-Path $DistDir "$BundleName-$n.$ArchiveExt")) {
-    $n += 1
-  }
-  $ArchivePath = Join-Path $DistDir "$BundleName-$n.$ArchiveExt"
+  while (Test-Path (Join-Path $DistDir "$BundleName-$n.zip")) { $n += 1 }
+  $ArchivePath = Join-Path $DistDir "$BundleName-$n.zip"
 }
 
 Write-Host "[ASCENDS] Creating archive: $ArchivePath"
 Compress-Archive -Path $BundleRoot -DestinationPath $ArchivePath -Force
 
-Write-Host "[ASCENDS] Bundle complete."
-Write-Host "  Directory: $BundleRoot"
-Write-Host "  Archive:   $ArchivePath"
+Write-Host ""
+Write-Host "[ASCENDS] Bundle complete!" -ForegroundColor Green
+Write-Host "  Directory : $BundleRoot"
+Write-Host "  Archive   : $ArchivePath"
