@@ -10,6 +10,15 @@
   <link rel="alternate icon" href="/favicon.ico">
 </head>
 <body>
+
+<!-- Loading overlay (shown by common.js on slow form submit) -->
+<div id="loading-overlay" aria-hidden="true">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <p class="loading-msg">Working…</p>
+  </div>
+</div>
+<script src="/static/js/common.js"></script>
  
   {# Determine active tab from the current URL path #}
   {% set path = request.url.path if request and request.url else '' %}

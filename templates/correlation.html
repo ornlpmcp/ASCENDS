@@ -184,7 +184,7 @@
               <a class="btn btn-sm" href="/correlation/download_all?ws_id={{ ws_id }}">Download All (CSV)</a>
             {% endif %}
           </form>
-          <form action="/correlation/run" method="post">
+          <form action="/correlation/run" method="post" data-loading="true" data-loading-msg="Running correlation analysis…">
             {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
             <div class="toolbar inline">
               <label><strong>Metrics:</strong></label>
