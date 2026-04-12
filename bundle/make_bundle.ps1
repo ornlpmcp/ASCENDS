@@ -57,16 +57,31 @@ if (-not $UvExe) {
 Write-Host "[ASCENDS] Bundling uv.exe from: $UvExe"
 Copy-Item -Force -Path $UvExe -Destination (Join-Path $BundleRoot "uv.exe")
 
-# ── Pre-build venv on this machine to speed up first launch ─────────────────
-# The venv may have path issues on the target machine, but uv run will
-# automatically detect and repair it before launching.
-Write-Host "[ASCENDS] Pre-building virtual environment (speeds up first launch)..."
+# ── Pre-build venv (installs all packages into .venv\Lib\site-packages) ──────
+Write-Host "[ASCENDS] Pre-building virtual environment..."
 Push-Location $BundleApp
 try {
   & (Join-Path $BundleRoot "uv.exe") sync --no-dev
 } finally {
   Pop-Location
 }
+
+# ── Bundle the Python distribution so the launcher is fully self-contained ───
+# pyvenv.cfg bakes in an absolute 'home' path that won't exist on other PCs.
+# Fix: copy the Python distribution alongside the bundle and run python.exe
+# directly, bypassing the venv stub entirely.
+Write-Host "[ASCENDS] Locating Python distribution to bundle..."
+$PyvenvCfg  = Join-Path $BundleApp ".venv\pyvenv.cfg"
+$PythonHome = (Get-Content $PyvenvCfg |
+               Where-Object { $_ -match '^home\s*=' } |
+               ForEach-Object { ($_ -split '=', 2)[1].Trim() })
+if (-not $PythonHome -or -not (Test-Path $PythonHome)) {
+  Write-Host "[ASCENDS] ERROR: could not read Python home from pyvenv.cfg." -ForegroundColor Red
+  Write-Host "  home = $PythonHome"
+  exit 1
+}
+Write-Host "[ASCENDS] Bundling Python from: $PythonHome"
+Copy-Item -Recurse -Force -Path $PythonHome -Destination (Join-Path $BundleRoot "python")
 
 # ── Write bundle metadata ────────────────────────────────────────────────────
 @"
@@ -78,26 +93,36 @@ timestamp=$Ts
 "@ | Set-Content -Path (Join-Path $BundleRoot "bundle-meta.txt") -Encoding UTF8
 
 # ── Write launch_gui.bat (cmd.exe — primary launcher) ───────────────────────
+# Uses bundled python\python.exe directly (bypasses venv stub + pyvenv.cfg).
+# PYTHONPATH points to the pre-built site-packages so all deps are found.
 @'
 @echo off
 setlocal
 set "ROOT=%~dp0"
+set "PYTHONPATH=%ROOT%ASCENDS\.venv\Lib\site-packages"
+set "NUMBA_CACHE_DIR=%TEMP%\nc"
+if not exist "%NUMBA_CACHE_DIR%" mkdir "%NUMBA_CACHE_DIR%"
 cd /d "%ROOT%ASCENDS"
 
 echo [ASCENDS] Launching GUI at http://127.0.0.1:7777
 echo [ASCENDS] Open your browser at: http://127.0.0.1:7777
+echo [ASCENDS] First launch may take 1-2 minutes (compiling math libraries).
 echo.
 
-"%ROOT%uv.exe" run ascends gui %*
+"%ROOT%python\python.exe" -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" gui %*
 '@ | Set-Content -Path (Join-Path $BundleRoot "launch_gui.bat") -Encoding ASCII
 
 # ── Write launch_gui.ps1 (optional PowerShell launcher) ─────────────────────
 @'
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$env:PYTHONPATH = Join-Path $Root "ASCENDS\.venv\Lib\site-packages"
+$env:NUMBA_CACHE_DIR = Join-Path $env:TEMP "nc"
+if (-not (Test-Path $env:NUMBA_CACHE_DIR)) { New-Item -ItemType Directory -Force -Path $env:NUMBA_CACHE_DIR | Out-Null }
 Set-Location (Join-Path $Root "ASCENDS")
 Write-Host "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
-& (Join-Path $Root "uv.exe") run ascends gui @args
+$PyExe = Join-Path $Root "python\python.exe"
+& $PyExe -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" "gui" @args
 '@ | Set-Content -Path (Join-Path $BundleRoot "launch_gui.ps1") -Encoding UTF8
 
 # ── Write launch_cli.bat ─────────────────────────────────────────────────────
@@ -105,8 +130,9 @@ Write-Host "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
 @echo off
 setlocal
 set "ROOT=%~dp0"
+set "PYTHONPATH=%ROOT%ASCENDS\.venv\Lib\site-packages"
 cd /d "%ROOT%ASCENDS"
-"%ROOT%uv.exe" run ascends %*
+"%ROOT%python\python.exe" -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" %*
 '@ | Set-Content -Path (Join-Path $BundleRoot "launch_cli.bat") -Encoding ASCII
 
 # ── Write README-BUNDLE.txt ──────────────────────────────────────────────────
@@ -124,8 +150,7 @@ QUICK START
 
 NOTES
 -----
-- First launch may take 1-2 minutes while the environment is verified.
-- Subsequent launches are fast.
+- No internet connection required — Python and all packages are included.
 - This bundle is Windows-only ($ArchTag).
 - For CLI use: launch_cli.bat --help
 
