@@ -10,8 +10,6 @@ import re
 from typing import Optional, Dict, Any, List
 from fastapi import Request, Form, UploadFile, File
 from fastapi import Query
-import io
-from joblib import load
 from urllib.parse import quote
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 import pandas as pd
@@ -59,6 +57,7 @@ from ascends.gui_plotting import (
     save_parity_plot,
     train_img_dir,
 )
+from ascends.gui_predict_routes import create_predict_router
 
 logger = logging.getLogger("ascends.gui")
 
@@ -833,197 +832,6 @@ async def train_delete(
     ctx["saved_runs"] = _list_saved_runs()
     return templates.TemplateResponse("train.html", ctx)
 
-@app.get("/predict", response_class=HTMLResponse)
-async def predict_page(request: Request, run: Optional[str] = None) -> HTMLResponse:
-    """Render Predict tab with saved runs and (optional) preselected run via ?run=."""
-    selected_run = run or request.query_params.get("run")
-    ctx: Dict[str, Any] = {
-        "request": request,
-        "saved_runs": _list_saved_runs(),
-        "selected_run": selected_run,
-    }
-    return templates.TemplateResponse("predict.html", ctx)
-
-@app.post("/predict/run", response_class=HTMLResponse)
-async def predict_run(
-    request: Request,
-    run_name: str = Form(...),
-    csvfile: UploadFile = File(...),
-) -> HTMLResponse:
-    """Schema validation (case-insensitive), coerce/clean, predict, save CSV, preview."""
-    errors: list[str] = []
-    ctx: Dict[str, Any] = {
-        "request": request,
-        "saved_runs": _list_saved_runs(),
-        "selected_run": run_name,
-        "predict_summary": None,
-        "predict_preview_headers": None,
-        "predict_preview_rows": None,
-        "download_csv_url": None,
-        "download_xlsx_url": None,
-    }
-
-    # Basic form checks
-    if not run_name:
-        errors.append("Please select a saved model (run).")
-    if not csvfile or not csvfile.filename:
-        errors.append("Please upload a CSV file.")
-    if errors:
-        ctx["predict_errors"] = errors
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Load run manifest
-    man_path = RUNS_DIR / run_name / "manifest.json"
-    if not man_path.exists():
-        ctx["predict_errors"] = [f"Run '{run_name}' is missing manifest.json."]
-        return templates.TemplateResponse("predict.html", ctx)
-    try:
-        manifest = json.loads(man_path.read_text(encoding="utf-8"))
-    except Exception as e:
-        ctx["predict_errors"] = [f"Failed to read manifest.json for '{run_name}': {e}"]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    inputs: List[str] = manifest.get("inputs", []) or []
-    target: Optional[str] = manifest.get("target") or None
-    if not inputs:
-        ctx["predict_errors"] = [f"Run '{run_name}' has no recorded input features in manifest.json."]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Read uploaded CSV to DataFrame (in-memory)
-    try:
-        raw = await csvfile.read()
-        df = pd.read_csv(io.BytesIO(raw))
-    except Exception as e:
-        ctx["predict_errors"] = [f"Failed to parse uploaded CSV: {e}"]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    if df.empty:
-        ctx["predict_errors"] = ["Uploaded CSV is empty."]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Header mapping: exact match first, then unique case-insensitive fallback.
-    csv_cols = list(df.columns)
-    lower_candidates: Dict[str, List[str]] = {}
-    for c in csv_cols:
-        lower_candidates.setdefault(c.lower(), []).append(c)
-    mapping: Dict[str, str] = {}
-    missing: List[str] = []
-    for feat in inputs:
-        if feat in df.columns:
-            mapping[feat] = feat
-            continue
-        key = feat.lower()
-        cands = lower_candidates.get(key, [])
-        if len(cands) == 1:
-            mapping[feat] = cands[0]
-        else:
-            missing.append(feat)
-
-    if missing:
-        ctx["predict_errors"] = [
-            "Missing required feature(s) in CSV (case-insensitive match failed): "
-            + ", ".join(missing)
-        ]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Align columns in manifest order; coerce to numeric and drop NA rows on required inputs
-    aligned_cols = [mapping[f] for f in inputs]  # actual column names in csv, ordered per manifest
-    df_aligned = df[aligned_cols].copy()
-    for c in df_aligned.columns:
-        df_aligned[c] = pd.to_numeric(df_aligned[c], errors="coerce")
-
-    rows_read = len(df_aligned)
-    df_used = df_aligned.dropna(axis=0, how="any")
-    rows_used = len(df_used)
-    dropped = rows_read - rows_used
-
-    if rows_used == 0:
-        ctx["predict_errors"] = [f"All {rows_read} rows contained NA/invalid values in required inputs; nothing to predict."]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Load estimator
-    model_path = RUNS_DIR / run_name / "model.joblib"
-    if not model_path.exists():
-        ctx["predict_errors"] = [f"Run '{run_name}' is missing model.joblib."]
-        return templates.TemplateResponse("predict.html", ctx)
-    try:
-        est = load(model_path)
-    except Exception as e:
-        ctx["predict_errors"] = [f"Failed to load model.joblib: {e}"]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Predict
-    try:
-        preds = est.predict(df_used)
-    except Exception as e:
-        ctx["predict_errors"] = [f"Prediction failed: {e}"]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Build results DataFrame (inputs + prediction)
-    pred_col = f"{target}_pred" if target else "prediction"
-    result_df = df_used.copy()
-    result_df[pred_col] = preds
-
-    # Save CSV under runs/<run_name>/predictions/
-    pred_dir = RUNS_DIR / run_name / "predictions"
-    pred_dir.mkdir(parents=True, exist_ok=True)
-    # Create a safe filename based on uploaded name + timestamp
-    try:
-        stem = Path(csvfile.filename).stem if csvfile.filename else "input"
-    except Exception:
-        stem = "input"
-    safe_stem = _slugify_name(stem) or "input"
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_name = f"{safe_stem}_{ts}_pred.csv"
-    out_path = pred_dir / out_name
-    try:
-        result_df.to_csv(out_path, index=False)
-    except Exception as e:
-        ctx["predict_errors"] = [f"Failed to save predictions CSV: {e}"]
-        return templates.TemplateResponse("predict.html", ctx)
-
-    # Preview (5 rows) including prediction column — render as HTML table for consistent styling
-    preview_df = result_df.head(5)
-    try:
-        ctx["predict_preview_html"] = preview_df.to_html(
-            classes="table",
-            index=False,
-            border=0,
-            float_format=lambda x: f"{x:.3f}"
-        )
-    except Exception:
-        # Fallback to simple rows if to_html fails for any reason
-        preview = preview_df.astype(object).where(pd.notnull(preview_df), None)
-        ctx["predict_preview_headers"] = list(preview.columns)
-        ctx["predict_preview_rows"] = preview.values.tolist()
-
-    # Structured stats + download link (avoid noisy free-text summary)
-    ctx["rows_read"] = rows_read
-    ctx["rows_used"] = rows_used
-    ctx["rows_dropped"] = dropped
-    ctx["saved_relpath"] = f"runs/{run_name}/predictions/{out_name}"
-    ctx["predict_summary"] = None  # no verbose string in UI
-    ctx["download_csv_url"] = f"/predict/download?run={quote(run_name)}&file={quote(out_name)}"
-    ctx["predict_errors"] = None
-    return templates.TemplateResponse("predict.html", ctx)
-
-@app.get("/predict/download")
-async def predict_download(
-    run: str = Query(..., description="Saved run name"),
-    file: str = Query(..., description="Predictions filename in the run's predictions directory"),
-):
-    """Serve a predictions CSV from runs/<run>/predictions/<file> with basic path safety."""
-    pred_dir = (RUNS_DIR / run / "predictions").resolve()
-    file_path = (pred_dir / file).resolve()
-    # Prevent path traversal: raises ValueError if file_path escapes pred_dir
-    try:
-        file_path.relative_to(pred_dir)
-    except ValueError:
-        return HTMLResponse(status_code=404, content="Not found")
-    if not file_path.is_file():
-        return HTMLResponse(status_code=404, content="Not found")
-    return FileResponse(file_path, media_type="text/csv", filename=file)
-
 @app.get("/correlation", response_class=HTMLResponse)
 async def correlation_page(request: Request, ws_id: Optional[str] = None) -> HTMLResponse:
     ctx: Dict[str, Any] = {"request": request}
@@ -1638,6 +1446,16 @@ def _list_saved_runs() -> List[Dict[str, Any]]:
                 pass
         out.append(item)
     return out
+
+
+app.include_router(
+    create_predict_router(
+        templates=templates,
+        runs_dir=RUNS_DIR,
+        list_saved_runs=_list_saved_runs,
+        slugify_name=_slugify_name,
+    )
+)
 
 # Replace the /train/run handler to accept seed & resample and use them
 @app.post("/train/run", response_class=HTMLResponse)
