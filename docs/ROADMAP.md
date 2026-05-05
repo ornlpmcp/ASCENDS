@@ -1,6 +1,6 @@
 # ASCENDS Roadmap
 
-> Last updated: 2026-04-11 (v0.4.1)
+> Last updated: 2026-05-05 (v0.4.3)
 
 ## Design Philosophy
 
@@ -15,6 +15,8 @@
   - Includes: metrics, parity/confusion plots, SHAP importance, rule-based interpretation text
   - Interpretation module: `ascends/core/interpret.py` — scenario-based rules for R², MAE, overfitting, F1, class imbalance, etc.
 - [x] **Loading spinner** — Show progress indicator during Train / SHAP / Correlation runs `v0.4.2 · 2026-04-11`
+- [x] **Prediction feature alignment fix** — Align prediction CSVs to saved training feature order and add regression coverage `v0.4.3 · 2026-05-05`
+- [x] **Dependency security refresh** — Update vulnerable locked dependencies with minimal churn and preserve Starlette template compatibility `v0.4.3 · 2026-05-05`
 - [ ] **Data quality diagnostics** — Auto-detect missing values, outliers, class imbalance; surface warnings before training
 - [ ] **Feature alignment warning** — Warn user when prediction data has different features than training (`data.py:align_to_features`)
 - [ ] **SHAP multi-class fix** — Average absolute SHAP values across classes for multi-class classification (`explain.py:save_default_shap_plot`)
@@ -24,11 +26,13 @@
 
 ## v0.5.0 — Architecture Cleanup
 
-> Scheduled after Run Report to avoid the server file growing further before the split.
+> Most GUI route splitting was completed in v0.4.3. Remaining work should focus on shared domain logic, typing, and small testable helpers.
 
-- [ ] **Remove core duplication** — Delete `_compute_correlations()` from `ascends_server.py`; import from `ascends/core/correlation.py` instead
+- [x] **Split `ascends_server.py`** — Move correlation / train / predict flows into separate router files `v0.4.3 · 2026-05-05`
+- [x] **Move plotting/run-registry helpers** — Move GUI plotting and saved-run registry helpers out of `ascends_server.py` `v0.4.3 · 2026-05-05`
+- [ ] **Promote correlation domain logic** — Move correlation computation from GUI router into `ascends/core/correlation.py` and share with CLI
 - [ ] **Unify `task` representation** — Consistently apply `canonicalize_task()` at all entry points (server + CLI)
-- [ ] **Split `ascends_server.py`** — Move correlation / train / predict into separate router files
+- [ ] **App factory cleanup** — Convert `ascends_server.py` wiring into a cleaner app-factory pattern if needed for tests/packaging
 
 ---
 
@@ -37,7 +41,7 @@
 - [ ] **Baseline comparison** — Show performance vs. dummy model (mean prediction) to give context
 - [ ] **Model comparison view** — Side-by-side view of multiple runs in `runs/`
 - [ ] **Hyperparameter tuning** — Currently a placeholder; Optuna integration (keep UI simple — one "Tune" button)
-- [ ] **Windows packaging improvements** — Stabilize bat scripts and bundle workflow (`docs/windows_handoff.md`)
+- [ ] **Packaging follow-up** — Tighten macOS/Linux bundle expectations and keep Windows double-click bundle fully self-contained
 
 ---
 

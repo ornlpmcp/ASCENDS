@@ -24,13 +24,23 @@ ASCENDS/
 │   │   ├── predict.py
 │   │   ├── models.py
 │   │   └── ...
+│   ├── gui_correlation_routes.py
+│   ├── gui_predict_routes.py
+│   ├── gui_saved_run_routes.py
+│   ├── gui_shap_routes.py
+│   ├── gui_train_run_routes.py
+│   ├── gui_train_select_routes.py
+│   ├── gui_plotting.py
+│   ├── gui_run_registry.py
 │   └── utils/
-├── ascends_server.py          # FastAPI GUI backend
+├── ascends_server.py          # FastAPI app setup, shared wiring, page routes
 ├── templates/                 # Jinja templates
 ├── static/                    # CSS/JS/images + generated plots
 ├── examples/                  # Sample datasets
 └── test/                      # Smoke scripts
 ```
+
+The GUI backend is intentionally split by workflow. `ascends_server.py` owns app initialization, workspace manifests, shared `LAST_TRAIN` state, and router registration; workflow-specific request handling lives in the `ascends/gui_*_routes.py` modules.
 
 ## Runtime Flow (GUI)
 
@@ -39,8 +49,9 @@ ASCENDS/
 3. Run `Train`:
    - Regression: metrics + parity plot
    - Classification: metrics + confusion matrix
-4. Save model run into `runs/<name>/`.
-5. Use `Predict` tab for new CSV scoring.
+4. Optionally run SHAP/feature importance.
+5. Save model run into `runs/<name>/` and generate `report.html`.
+6. Use `Predict` tab for new CSV scoring.
 
 ## Artifacts
 
@@ -52,6 +63,7 @@ Typical run artifacts:
 - `parity_train.csv`, `parity_test.csv`, `parity_all.csv` (regression path)
 - `predictions.csv`
 - Plot images (`parity.png` or `confusion.png` depending on task/path)
+- `report.html` for saved GUI runs
 
 ## Development Setup
 
@@ -134,7 +146,7 @@ Outputs:
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` (macOS/Linux)
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
 
-Note: Linux bundle size is expected to be larger because XGBoost can pull NVIDIA NCCL runtime wheels.
+Note: Windows bundles include a copied Python distribution and are intended for double-click launch. macOS/Linux bundles include `uv` plus a prebuilt environment for the build platform. Linux bundle size is expected to be larger because XGBoost can pull NVIDIA NCCL runtime wheels.
 For Linux power users, `uv sync` or a dedicated conda environment is recommended.
 
 Bundle usage on target machine:
@@ -151,7 +163,13 @@ Windows launchers are also generated:
 ## Known Status
 
 - `parity-plot` crash path on macOS backend was fixed by forcing headless plotting in CLI.
-- GUI `train/select` route is implemented and wired to template actions.
+- GUI workflow routes are split into focused router modules:
+  - correlation
+  - train selection
+  - train execution
+  - SHAP
+  - saved run/report/delete
+  - prediction
 - Classification is enabled in GUI backend training path with:
   - `Accuracy`, `Precision`, `Recall`, `F1`
   - optional `ROC_AUC` for binary classification
@@ -161,11 +179,12 @@ Windows launchers are also generated:
 
 ## Product Roadmap (Active)
 
-1. Improve classification consistency across CLI and GUI surfaces.
-2. Add clearer UI rendering for classification metrics in Train view.
-3. Hyperparameter tuning rollout:
+1. Move remaining shared domain logic out of GUI routers where it should be reused by CLI/core.
+2. Improve classification consistency across CLI and GUI surfaces.
+3. Add clearer UI rendering for classification metrics in Train view.
+4. Hyperparameter tuning rollout:
    - expanded search + Optuna (advanced)
-4. Move from browser-first to desktop-app packaging path.
+5. Tighten portable bundle behavior and documentation across platforms.
 
 ## Dataset References
 

@@ -2,7 +2,7 @@
 
 ## Before you start (Prerequisites)
 
-- Common: Python 3.10+ and `uv`
+- Common: Python 3.11+ and `uv`
 - macOS: Homebrew is recommended for easy install
   - Example: `brew install python uv`
 - Windows (cmd/PowerShell): install Python + uv first
@@ -58,6 +58,8 @@ Outputs:
 
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` (macOS/Linux)
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
+
+Windows bundles include Python and are intended for double-click launch with `launch_gui.bat`. macOS/Linux bundles include `uv` and a prebuilt environment for the build platform.
 
 ## CLI examples
 

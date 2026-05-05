@@ -16,20 +16,20 @@ All processing runs locally — no data leaves your machine.
 
 ---
 
-## For End Users — Portable Bundle (No Setup Required)
+## For End Users — Portable Bundle
 
-Download the zip for your platform from the Releases page, unzip anywhere, and run:
+Download the archive for your platform from the Releases page, unpack it anywhere, and run:
 
 | Platform | Launcher |
 |----------|----------|
-| Windows  | Double-click `launch_gui.bat` |
+| Windows | Double-click `launch_gui.bat` |
 | macOS / Linux | `./launch_gui.sh` |
 
 Then open `http://127.0.0.1:7777` in your browser.
 
 > **First launch on Windows** may take 1–2 minutes while math libraries compile. Subsequent launches are fast.
 
-No Python, no uv, no installation needed. Everything is bundled.
+The Windows bundle includes Python and the package environment. macOS/Linux bundles include the app, `uv`, and a prebuilt environment for the build platform.
 
 ---
 
@@ -91,8 +91,7 @@ Output:
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-macOS.tar.gz`
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-windows.zip`
 
-The Windows bundle includes a full Python distribution — no dependencies needed on the target machine.
-See [`docs/windows_bundle_handoff.md`](docs/windows_bundle_handoff.md) for architecture details.
+The Windows bundle includes a full Python distribution. macOS/Linux bundles include `uv` and a prebuilt environment for the build platform.
 
 > **Note:** Linux bundles can be significantly larger because XGBoost may pull NVIDIA NCCL runtime wheels. For Linux, `uv sync` in a dedicated environment is often preferred over the bundle.
 
