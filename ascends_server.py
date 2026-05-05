@@ -27,7 +27,6 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
-    ConfusionMatrixDisplay,
 )
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -35,9 +34,6 @@ from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegresso
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
-import matplotlib
-matplotlib.use("Agg")  # headless
-import matplotlib.pyplot as plt
 import time
 try:
     import xgboost as xgb  # type: ignore
@@ -56,6 +52,12 @@ from ascends.core.explain import (
     explain_model as core_explain,
     save_importance_plot,
     save_default_shap_plot,
+)
+from ascends.gui_plotting import (
+    plot_metric_bars as _plot_metric_bars,
+    save_confusion_plot,
+    save_parity_plot,
+    train_img_dir,
 )
 
 logger = logging.getLogger("ascends.gui")
@@ -189,52 +191,6 @@ def _compute_correlations(
         out["dcor"] = dcor_df
 
     return out
-
-
-def _plot_metric_bars(
-    scores: pd.DataFrame,
-    metric: str,
-    target: str,
-    n_used: int,
-    out_png: Path,
-    top_k: Optional[int] = None,
-) -> None:
-    # Sort & limit to Top-K
-    dfp = scores.copy()
-    if metric in {"pearson", "spearman"}:
-        dfp = dfp.sort_values(by="score", key=lambda s: np.abs(s), ascending=False)
-    else:
-        dfp = dfp.sort_values(by="score", ascending=False)
-    if top_k and top_k > 0:
-        dfp = dfp.head(top_k)
-
-    # Figure size (golden ratio), tuned a bit for readability
-    fig_w = 8.0
-    fig_h = fig_w / 1.618  # golden ratio
-    fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=300)
-
-    # Vertical bars: features on X axis
-    x = np.arange(len(dfp))
-    ax.bar(x, dfp["score"])
-    ax.set_xticks(x)
-    ax.set_xticklabels(list(dfp["feature"]), rotation=55, ha="right")
-
-    ax.set_xlabel("Feature")
-    ax.set_ylabel("Score")
-    ax.set_title(f"{metric.title()} vs. {target}  (N={n_used})")
-
-    # Grid and baseline for signed metrics
-    ax.grid(axis="y", linestyle=":", alpha=0.4)
-    if metric in {"pearson", "spearman"}:
-        ax.axhline(0.0, linewidth=0.8, alpha=0.6, color="black")
-
-    # Tight layout with extra bottom room for labels
-    fig.tight_layout()
-    fig.subplots_adjust(bottom=0.28)
-
-    out_png.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_png, bbox_inches="tight")
-    plt.close(fig)
 
 
 def _prepare_corr_dataframe(csv_path: str, target: str, inputs: List[str]) -> tuple[pd.DataFrame, Dict[str, Any]]:
@@ -1585,9 +1541,7 @@ def _make_classifier(key: str, seed: Optional[int] = 42):
     return RandomForestClassifier(n_estimators=300, random_state=seed, n_jobs=-1)
 
 def _train_img_dir(ws_id: str) -> Path:
-    d = STATIC_DIR / "workspace" / ws_id / "train"
-    d.mkdir(parents=True, exist_ok=True)
-    return d
+    return train_img_dir(STATIC_DIR, ws_id)
 
 def _save_parity_plot(
     ws_id: str,
@@ -1595,53 +1549,16 @@ def _save_parity_plot(
     y_test: np.ndarray,  y_pred_test: np.ndarray,
     metrics_train: Dict[str, float], metrics_test: Dict[str, float],
 ) -> str:
-    """Save a parity plot PNG under static/workspace/<ws_id>/train and return its URL."""
-    img_dir = _train_img_dir(ws_id)
-    out_png = img_dir / "parity.png"
-
-    # Golden ratio figure (w x h) with reasonable height for the UI
-    phi = (1 + 5 ** 0.5) / 2
-    width = 8.0
-    height = width / phi  # ~4.94
-
-    # Limits
-    all_actual = np.concatenate([y_train, y_test])
-    all_pred   = np.concatenate([y_pred_train, y_pred_test])
-    vmin = float(np.nanmin([all_actual.min(), all_pred.min()]))
-    vmax = float(np.nanmax([all_actual.max(), all_pred.max()]))
-    pad = 0.02 * (vmax - vmin) if vmax > vmin else 1.0
-    lo, hi = vmin - pad, vmax + pad
-
-    fig, ax = plt.subplots(figsize=(width, height), dpi=300)
-    # 45-degree reference
-    ax.plot([lo, hi], [lo, hi], linestyle="--", linewidth=1.0, alpha=0.8)
-    # Points
-    ax.scatter(y_train, y_pred_train, s=14, alpha=0.7, label="Train")
-    ax.scatter(y_test,  y_pred_test,  s=18, alpha=0.8, marker="x", label="Test")
-    ax.set_xlim(lo, hi)
-    ax.set_ylim(lo, hi)
-    ax.set_xlabel("Actual")
-    ax.set_ylabel("Predicted")
-    ax.legend(loc="upper left", frameon=True)
-
-    # Metrics box (embedded)
-    box_text = (
-        f"Train — R²={metrics_train['R2']:.3f}, MAE={metrics_train['MAE']:.3f}, RMSE={metrics_train['RMSE']:.3f}\n"
-        f"Test  — R²={metrics_test['R2']:.3f}, MAE={metrics_test['MAE']:.3f}, RMSE={metrics_test['RMSE']:.3f}"
+    return save_parity_plot(
+        STATIC_DIR,
+        ws_id,
+        y_train,
+        y_pred_train,
+        y_test,
+        y_pred_test,
+        metrics_train,
+        metrics_test,
     )
-    ax.text(
-        0.98, 0.02, box_text,
-        transform=ax.transAxes, fontsize=16,  # ~2x larger
-        ha="right", va="bottom",             # bottom-right corner
-        bbox=dict(boxstyle="round,pad=0.35", facecolor="white", alpha=0.9, linewidth=0.5),
-        zorder=5,
-    )
-
-    fig.tight_layout()
-    fig.savefig(out_png, bbox_inches="tight")
-    plt.close(fig)
-    # Cache-bust
-    return f"/static/workspace/{ws_id}/train/parity.png?ts={int(time.time())}"
 
 
 def _save_confusion_plot(
@@ -1650,25 +1567,7 @@ def _save_confusion_plot(
     y_pred: np.ndarray,
     labels: List[Any],
 ) -> str:
-    """Save confusion matrix PNG under static/workspace/<ws_id>/train and return its URL."""
-    img_dir = _train_img_dir(ws_id)
-    out_png = img_dir / "confusion.png"
-
-    fig, ax = plt.subplots(figsize=(7.2, 5.0), dpi=300)
-    disp = ConfusionMatrixDisplay.from_predictions(
-        y_true,
-        y_pred,
-        display_labels=labels,
-        cmap="Blues",
-        colorbar=True,
-        xticks_rotation=30,
-        ax=ax,
-    )
-    disp.ax_.set_title("Confusion Matrix")
-    fig.tight_layout()
-    fig.savefig(out_png, bbox_inches="tight")
-    plt.close(fig)
-    return f"/static/workspace/{ws_id}/train/confusion.png?ts={int(time.time())}"
+    return save_confusion_plot(STATIC_DIR, ws_id, y_true, y_pred, labels)
 
 # --------------------------
 # Runs/save helpers & state
