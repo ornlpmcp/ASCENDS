@@ -720,7 +720,7 @@ def predict(
     Path(out).mkdir(parents=True, exist_ok=True)
     model = joblib.load(model_path)
     try:
-        y_pred = model.predict(X)
+        model.predict(X)
     except Exception as e:
         typer.secho(f"Prediction failed: {e}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)

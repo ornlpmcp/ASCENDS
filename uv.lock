@@ -40,7 +40,7 @@ wheels = [
 
 [[package]]
 name = "ascends"
-version = "0.3.0"
+version = "0.4.3"
 source = { editable = "." }
 dependencies = [
     { name = "dcor" },

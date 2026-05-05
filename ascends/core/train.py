@@ -90,7 +90,7 @@ def train_eval(
 
         model.fit(X_train, y_train)
         test_r2 = model.score(X_test, y_test)
-        test_mae = -np.mean(np.abs(y_test - model.predict(X_test)))
+        test_mae = np.mean(np.abs(y_test - model.predict(X_test)))
         test_metrics = {
             "r2": float(test_r2),
             "mae": float(test_mae),
@@ -116,17 +116,16 @@ def train_eval(
 
 def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off", tune_trials=None, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
     """Train and evaluate a model."""
-    import time
+    import json
+    import joblib
     import os
-    from pathlib import Path
-    import json, joblib
+    import time
+
     import numpy as np
     import pandas as pd
     from sklearn.model_selection import train_test_split
 
     # Determine random seed
-    import time
-    import numpy as np
     if isinstance(random_state, str) and random_state.lower() == "auto":
         random_state = int(time.time() * 1000) % (2**32 - 1)
 
@@ -139,12 +138,18 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     if target not in df.columns:
         raise ValueError(f"Target '{target}' not in columns.")
 
+    task = canonicalize_task(task)
+
+    stratify = None
+    if task == "classification":
+        class_counts = df[target].value_counts(dropna=True)
+        if len(class_counts) > 1 and int(class_counts.min()) >= 2:
+            stratify = df[target]
+
     # simple split
     train_df, test_df = train_test_split(
-        df, test_size=float(test_size), random_state=random_state
+        df, test_size=float(test_size), random_state=random_state, stratify=stratify
     )
-
-    task = canonicalize_task(task)
 
     result = train_eval(
         train_df=train_df,

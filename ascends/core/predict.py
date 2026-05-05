@@ -1,14 +1,58 @@
-"""Batch inference, feature alignment."""
+"""Batch inference with manifest-based feature alignment."""
 
-from typing import Any, List
+from typing import Any
 import pandas as pd
 from pathlib import Path
 
 
 import joblib
-import os
+from ascends.core.data import align_to_features
 
-def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str = ".") -> List[Any]:
+
+def _load_manifest(run_dir: str) -> dict[str, Any]:
+    manifest_path = Path(run_dir) / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    try:
+        import json
+
+        with open(manifest_path) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _casefold_columns_to_features(data: pd.DataFrame, features: list[str]) -> pd.DataFrame:
+    feature_by_lower: dict[str, list[str]] = {}
+    for feature in features:
+        feature_by_lower.setdefault(str(feature).lower(), []).append(feature)
+
+    rename: dict[str, str] = {}
+    existing = set(data.columns)
+    for col in data.columns:
+        matches = feature_by_lower.get(str(col).lower(), [])
+        if len(matches) == 1 and col != matches[0] and matches[0] not in existing:
+            rename[col] = matches[0]
+    if not rename:
+        return data
+    return data.rename(columns=rename)
+
+
+def _prepare_prediction_frame(data: pd.DataFrame, manifest: dict[str, Any]) -> pd.DataFrame:
+    features = (
+        manifest.get("features")
+        or manifest.get("inputs")
+        or manifest.get("input_features")
+        or manifest.get("X_features")
+        or manifest.get("X_cols")
+    )
+    if not features:
+        return data
+    normalized = _casefold_columns_to_features(data, list(features))
+    return align_to_features(normalized, list(features))
+
+
+def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str = ".") -> dict[str, str]:
     """Perform batch predictions with the model.
 
     Args:
@@ -34,20 +78,14 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
             "Re-train or convert the artifact so it contains a fitted estimator."
         )
 
+    manifest = _load_manifest(run_dir)
+    X_pred = _prepare_prediction_frame(data, manifest)
+
     # --- Generate predictions ---
-    y_pred = est.predict(data)
+    y_pred = est.predict(X_pred)
 
     # --- Load the manifest to get the target ---
-    manifest_path = Path(run_dir) / "manifest.json"
-    target = None
-    if manifest_path.exists():
-        try:
-            import json
-            with open(manifest_path) as f:
-                manifest = json.load(f)
-            target = manifest.get("target", None)
-        except Exception:
-            pass
+    target = manifest.get("target", None)
 
     # --- Decide the output column name ---
     pred_col = f"{target}_pred" if target else "prediction"
