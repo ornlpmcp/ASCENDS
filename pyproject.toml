@@ -27,7 +27,7 @@ ascends = "ascends.cli:app"
 dev = [
     "black>=25.9.0",
     "pre-commit>=4.3.0",
-    "pytest>=8.4.2",
+    "pytest>=9.0.3",
     "ruff>=0.13.3",
 ]
 
