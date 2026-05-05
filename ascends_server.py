@@ -40,11 +40,6 @@ except Exception:
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from ascends.core.explain import (
-    explain_model as core_explain,
-    save_importance_plot,
-    save_default_shap_plot,
-)
 from ascends.gui_plotting import save_confusion_plot, save_parity_plot, train_img_dir
 from ascends.gui_correlation_routes import create_correlation_router
 from ascends.gui_predict_routes import create_predict_router
@@ -54,6 +49,7 @@ from ascends.gui_run_registry import (
     slugify_name as _slugify_name,
     unique_run_name as _unique_run_name,
 )
+from ascends.gui_shap_routes import create_shap_router
 
 logger = logging.getLogger("ascends.gui")
 
@@ -187,189 +183,6 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
                 pass
     # Always include saved runs for the bottom-right pane
     ctx["saved_runs"] = _list_saved_runs()
-    return templates.TemplateResponse("train.html", ctx)
-
-
-@app.post("/train/shap", response_class=HTMLResponse)
-async def train_shap(
-    request: Request,
-    ws_id: str = Form(...),
-    max_samples: int = Form(300),
-    shap_view: str = Form("ascends"),
-) -> HTMLResponse:
-    """Compute SHAP/permutation importance for the latest trained model in this workspace."""
-    mf = _load_manifest(ws_id) or {}
-    ctx: Dict[str, Any] = {
-        "request": request,
-        "ws_id": ws_id,
-        "csv_path": mf.get("csv_path"),
-        "all_columns": mf.get("columns", []),
-        "selected": mf.get("selected", []),
-        "inputs": mf.get("inputs", []),
-        "target": mf.get("target"),
-        "saved_runs": _list_saved_runs(),
-    }
-    shap_view = str(shap_view or "ascends").lower()
-    if shap_view not in {"ascends", "default"}:
-        shap_view = "ascends"
-    ctx["shap_view"] = shap_view
-
-    rec = LAST_TRAIN.get(ws_id)
-    if not rec:
-        ctx["train_error"] = "No trained model found in this workspace. Train first, then run SHAP."
-        return templates.TemplateResponse("train.html", ctx)
-
-    # Keep showing existing train outputs if present
-    ctx["metrics_train"] = rec.get("metrics_train")
-    ctx["metrics_test"] = rec.get("metrics_test")
-    ctx["parity_img_url"] = rec.get("parity_img_url")
-
-    csv_path = rec.get("csv_path")
-    inputs = rec.get("inputs", [])
-    target = rec.get("target")
-    task = rec.get("params", {}).get("task", "r")
-    est = rec.get("estimator")
-    if not csv_path or not est or not inputs or not target:
-        ctx["train_error"] = "Insufficient training context for SHAP. Re-train and try again."
-        return templates.TemplateResponse("train.html", ctx)
-
-    try:
-        df = pd.read_csv(csv_path)
-        required = [c for c in inputs if c in df.columns] + ([target] if target in df.columns else [])
-        if target not in required:
-            raise ValueError("Target column missing in source CSV.")
-        df2 = df[required].dropna(axis=0, how="any")
-        X = df2[inputs]
-        y = df2[target]
-        task_name = "classification" if str(task).lower() == "c" else "regression"
-        expl = core_explain(
-            model=est,
-            X=X,
-            y=y,
-            task=task_name,
-            max_samples=max(50, int(max_samples)),
-            random_state=42,
-        )
-    except Exception as e:
-        ctx["train_error"] = f"SHAP failed: {e}"
-        return templates.TemplateResponse("train.html", ctx)
-
-    # Save artifacts
-    data_dir = _ws_dir(ws_id) / "train"
-    data_dir.mkdir(parents=True, exist_ok=True)
-    img_dir = _train_img_dir(ws_id)
-    csv_out = data_dir / "shap_importance.csv"
-    report_out = data_dir / "shap_report.json"
-    png_ascends = img_dir / "shap_importance_ascends.png"
-    png_default = img_dir / "shap_importance_default.png"
-
-    imp_df = expl["importance_df"]
-    imp_df.to_csv(csv_out, index=False)
-
-    save_importance_plot(
-        imp_df,
-        png_ascends,
-        method=str(expl.get("method", "shap")),
-        top_n=20,
-    )
-    default_ready = False
-    if str(expl.get("method", "")).lower() == "shap":
-        try:
-            save_default_shap_plot(
-                model=est,
-                X=X,
-                out_png=png_default,
-                max_samples=max(50, int(max_samples)),
-                random_state=42,
-                max_display=20,
-            )
-            default_ready = True
-        except Exception as e:
-            warn = str(expl.get("warning") or "").strip()
-            extra = f"Default SHAP view failed ({e}); using ASCENDS view."
-            expl["warning"] = f"{warn} {extra}".strip() if warn else extra
-
-    report_out.write_text(
-        json.dumps(
-            {
-                "method": expl.get("method"),
-                "warning": expl.get("warning"),
-                "n_samples": expl.get("n_samples"),
-                "csv_path": str(csv_out),
-                "png_ascends_path": str(png_ascends),
-                "png_default_path": str(png_default) if default_ready else None,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-    selected_png = png_default if (shap_view == "default" and default_ready) else png_ascends
-    ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
-    ctx["shap_rows"] = imp_df.head(10).values.tolist()
-    if expl.get("warning"):
-        ctx["shap_warning"] = expl["warning"]
-
-    # Persist UI preference for next Train page load.
-    mf["shap_view"] = shap_view
-    _save_manifest(ws_id, mf)
-
-    return templates.TemplateResponse("train.html", ctx)
-
-
-@app.post("/train/shap/view", response_class=HTMLResponse)
-async def train_shap_view(
-    request: Request,
-    ws_id: str = Form(...),
-    shap_view: str = Form("ascends"),
-) -> HTMLResponse:
-    """Switch displayed SHAP image without recomputing model explanation."""
-    mf = _load_manifest(ws_id) or {}
-    shap_view = str(shap_view or "ascends").lower()
-    if shap_view not in {"ascends", "default"}:
-        shap_view = "ascends"
-    mf["shap_view"] = shap_view
-    _save_manifest(ws_id, mf)
-
-    ctx: Dict[str, Any] = {
-        "request": request,
-        "ws_id": ws_id,
-        "csv_path": mf.get("csv_path"),
-        "all_columns": mf.get("columns", []),
-        "selected": mf.get("selected", []),
-        "inputs": mf.get("inputs", []),
-        "target": mf.get("target"),
-        "saved_runs": _list_saved_runs(),
-        "shap_view": shap_view,
-    }
-
-    rec = LAST_TRAIN.get(ws_id)
-    if rec:
-        ctx["metrics_train"] = rec.get("metrics_train")
-        ctx["metrics_test"] = rec.get("metrics_test")
-        ctx["parity_img_url"] = rec.get("parity_img_url")
-
-    img_dir = _train_img_dir(ws_id)
-    selected_png = img_dir / f"shap_importance_{shap_view}.png"
-    fallback_png = img_dir / "shap_importance_ascends.png"
-    legacy_png = img_dir / "shap_importance.png"
-    if selected_png.exists():
-        ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
-    elif fallback_png.exists():
-        ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{fallback_png.name}?ts={int(time.time())}"
-        if shap_view == "default":
-            ctx["shap_warning"] = "Default SHAP view is not available for this run. Showing ASCENDS view."
-    elif legacy_png.exists():
-        ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{legacy_png.name}?ts={int(time.time())}"
-
-    shap_csv = _ws_dir(ws_id) / "train" / "shap_importance.csv"
-    if shap_csv.exists():
-        try:
-            df_shap = pd.read_csv(shap_csv).head(10)
-            ctx["shap_rows"] = df_shap.values.tolist()
-        except Exception:
-            pass
-
     return templates.TemplateResponse("train.html", ctx)
 
 
@@ -805,6 +618,19 @@ def _save_confusion_plot(
 
 # Cache the last trained estimator & context by workspace (for quick Save)
 LAST_TRAIN: Dict[str, Any] = {}
+
+
+app.include_router(
+    create_shap_router(
+        templates=templates,
+        static_dir=STATIC_DIR,
+        ws_dir=_ws_dir,
+        load_manifest=_load_manifest,
+        save_manifest=_save_manifest,
+        list_saved_runs=_list_saved_runs,
+        last_train=LAST_TRAIN,
+    )
+)
 
 
 app.include_router(
