@@ -2,15 +2,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from joblib import dump
 from datetime import datetime
-import shutil
 import json
 from typing import Optional, Dict, Any, List
 from fastapi import Request, Form
-from fastapi import Query
-from urllib.parse import quote
-from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, FileResponse
 import pandas as pd
 import numpy as np
 from math import sqrt
@@ -50,6 +46,7 @@ from ascends.gui_run_registry import (
     unique_run_name as _unique_run_name,
 )
 from ascends.gui_shap_routes import create_shap_router
+from ascends.gui_saved_run_routes import create_saved_run_router
 
 logger = logging.getLogger("ascends.gui")
 
@@ -257,261 +254,6 @@ async def train_select(
     }
     return templates.TemplateResponse("train.html", ctx)
 
-# Save the current trained model and artifacts into runs/<name>/
-@app.post("/train/save", response_class=HTMLResponse)
-async def train_save(
-    request: Request,
-    ws_id: str = Form(...),
-    save_name: Optional[str] = Form(None),
-) -> HTMLResponse:
-    ctx: Dict[str, Any] = {"request": request, "ws_id": ws_id}
-    # Load manifest to re-populate panes
-    mf = _load_manifest(ws_id) or {}
-    ctx.update({
-        "csv_path": mf.get("csv_path"),
-        "all_columns": mf.get("columns", []),
-        "selected": mf.get("selected", []),
-        "inputs": mf.get("inputs", []),
-        "target": mf.get("target"),
-    })
-
-    rec = LAST_TRAIN.get(ws_id)
-    if not rec:
-        ctx["train_error"] = "No trained model available to save. Please Train first."
-        ctx["saved_runs"] = _list_saved_runs()
-        return templates.TemplateResponse("train.html", ctx)
-
-    # Determine run name
-    base = save_name or (rec["params"].get("model", "model") + "_" + datetime.now().strftime("%Y%m%d_%H%M%S"))
-    run_name = _unique_run_name(base)  # also creates the directory atomically
-    out_dir = RUNS_DIR / run_name
-
-    # Save model
-    try:
-        dump(rec["estimator"], out_dir / "model.joblib")
-    except Exception as e:
-        ctx["train_error"] = f"Failed to save model: {e}"
-        shutil.rmtree(out_dir, ignore_errors=True)
-        ctx["saved_runs"] = _list_saved_runs()
-        return templates.TemplateResponse("train.html", ctx)
-
-    # Save metrics.csv (supports both regression and classification metric keys)
-    try:
-        import pandas as _pd
-        train_metrics = dict(rec.get("metrics_train", {}))
-        test_metrics = dict(rec.get("metrics_test", {}))
-        dfm = _pd.DataFrame(
-            [
-                {"split": "Train", **train_metrics},
-                {"split": "Test", **test_metrics},
-            ]
-        )
-        dfm.to_csv(out_dir / "metrics.csv", index=False)
-    except Exception as e:
-        ctx["train_error"] = f"Failed to write metrics.csv: {e}"
-        shutil.rmtree(out_dir, ignore_errors=True)
-        ctx["saved_runs"] = _list_saved_runs()
-        return templates.TemplateResponse("train.html", ctx)
-
-    # Save manifest.json for the run
-    manifest = {
-        "name": run_name,
-        "created_at": rec["timestamp"],
-        "task": rec["params"].get("task", "r"),
-        "model": rec["params"].get("model"),
-        "seed": rec["params"].get("seed"),
-        "test_size": rec["params"].get("test_size"),
-        "tune": rec["params"].get("tune"),
-        "inputs": rec.get("inputs", []),
-        "target": rec.get("target"),
-        "csv_path": rec.get("csv_path"),
-        "ws_id": ws_id,
-    }
-    try:
-        (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    except Exception as e:
-        ctx["train_error"] = f"Failed to write manifest.json: {e}"
-        shutil.rmtree(out_dir, ignore_errors=True)
-        ctx["saved_runs"] = _list_saved_runs()
-        return templates.TemplateResponse("train.html", ctx)
-
-    # Copy train visualization (parity/confusion) if present
-    try:
-        ws_train_dir = STATIC_DIR / "workspace" / ws_id / "train"
-        parity_img = ws_train_dir / "parity.png"
-        confusion_img = ws_train_dir / "confusion.png"
-        shap_img = ws_train_dir / "shap_importance_ascends.png"
-        if parity_img.exists():
-            shutil.copyfile(parity_img, out_dir / "parity.png")
-        if confusion_img.exists():
-            shutil.copyfile(confusion_img, out_dir / "confusion.png")
-        if shap_img.exists():
-            shutil.copyfile(shap_img, out_dir / "shap_importance.png")
-    except Exception:
-        pass
-
-    # Generate report.html
-    try:
-        _generate_report(run_name, out_dir, rec, ws_id)
-    except Exception as e:
-        logger.warning("Report generation failed for %s: %s", run_name, e)
-
-    ctx["save_ok"] = f"Saved run: {run_name}"
-    ctx["saved_runs"] = _list_saved_runs()
-    return templates.TemplateResponse("train.html", ctx)
-
-@app.get("/train/report", response_class=HTMLResponse)
-async def train_report_preview(request: Request, ws_id: str = Query(...)) -> HTMLResponse:
-    """Render a live report from LAST_TRAIN without requiring Save."""
-    rec = LAST_TRAIN.get(ws_id)
-    if not rec:
-        return HTMLResponse(content="No trained model found. Please train a model first.", status_code=404)
-    return HTMLResponse(content=_render_report_html("(unsaved)", rec, ws_id))
-
-
-def _render_report_html(run_name: str, rec: Dict[str, Any], ws_id: str, out_dir: Optional[Path] = None) -> str:
-    """Render report.html from a LAST_TRAIN record and return HTML string.
-
-    When out_dir is provided (saved run), plot src paths are relative to the
-    run directory so the report works when opened directly from the filesystem.
-    """
-    from ascends.core.interpret import interpret_run
-
-    task = rec["params"].get("task", "r")
-    task_label = "Classification" if task == "c" else "Regression"
-    train_metrics = dict(rec.get("metrics_train") or {})
-    test_metrics = dict(rec.get("metrics_test") or {})
-    inputs = rec.get("inputs", [])
-    target = rec.get("target", "")
-    n_train = rec.get("n_train") or 0
-    n_test = rec.get("n_test") or 0
-
-    metric_keys = list(dict.fromkeys(list(train_metrics.keys()) + list(test_metrics.keys())))
-
-    # Load SHAP importance if available
-    importance_rows = []
-    importance_df = None
-    shap_csv = _ws_dir(ws_id) / "train" / "shap_importance.csv"
-    if shap_csv.exists():
-        try:
-            importance_df = pd.read_csv(shap_csv)
-            importance_rows = importance_df.head(15).values.tolist()
-        except Exception:
-            pass
-
-    # Load target values for MAE context
-    target_values = None
-    if task in ("r", "regression"):
-        try:
-            csv_path = rec.get("csv_path")
-            if csv_path:
-                df_tmp = pd.read_csv(csv_path, usecols=[target])
-                target_values = df_tmp[target].dropna().tolist()
-        except Exception:
-            pass
-
-    raw_insights = interpret_run(
-        task=task,
-        train_metrics=train_metrics,
-        test_metrics=test_metrics,
-        n_train=n_train,
-        n_test=n_test,
-        target_values=target_values,
-        importance_df=importance_df,
-    )
-
-    def _level(text: str) -> str:
-        low = text.lower()
-        if any(w in low for w in ("overfitting", "imbalance", "leakage", "worse", "low", "poor", "large error", "small training", "heavily relies")):
-            return "warn"
-        if any(w in low for w in ("very good", "excellent", "consistent", "low error", "good")):
-            return "good"
-        return ""
-
-    insights = [{"text": t, "level": _level(t)} for t in raw_insights]
-
-    # Plot paths: relative for saved reports, absolute URLs for live preview
-    plot_files = []
-    if out_dir is not None:
-        for fname, label in [("parity.png", "Parity Plot"), ("confusion.png", "Confusion Matrix"), ("shap_importance.png", "Feature Importance")]:
-            if (out_dir / fname).exists():
-                plot_files.append({"src": fname, "label": label})
-    else:
-        ws_train_dir = STATIC_DIR / "workspace" / ws_id / "train"
-        for fname, label, url_name in [
-            ("parity.png", "Parity Plot", "parity.png"),
-            ("confusion.png", "Confusion Matrix", "confusion.png"),
-            ("shap_importance_ascends.png", "Feature Importance", "shap_importance_ascends.png"),
-        ]:
-            if (ws_train_dir / fname).exists():
-                plot_files.append({"src": f"/static/workspace/{ws_id}/train/{url_name}", "label": label})
-
-    return templates.get_template("report.html").render(
-        run_name=run_name,
-        task_label=task_label,
-        model=rec["params"].get("model", ""),
-        target=target,
-        created_at=rec.get("timestamp", ""),
-        train_metrics=train_metrics,
-        test_metrics=test_metrics,
-        metric_keys=metric_keys,
-        n_train=n_train,
-        n_test=n_test,
-        insights=insights,
-        plot_files=plot_files,
-        importance_rows=importance_rows,
-        inputs=inputs,
-        test_size=rec["params"].get("test_size", ""),
-        seed=rec["params"].get("seed", ""),
-    )
-
-
-def _generate_report(run_name: str, out_dir: Path, rec: Dict[str, Any], ws_id: str) -> None:
-    """Render report.html into the run directory.
-
-    For saved runs, plot src attributes use relative paths so the report
-    is portable (works when opened directly from the filesystem).
-    """
-    # Build a copy of rec with plot paths pointing to the run directory
-    rec_saved = dict(rec)
-    html = _render_report_html(run_name, rec_saved, ws_id, out_dir=out_dir)
-    (out_dir / "report.html").write_text(html, encoding="utf-8")
-
-
-@app.get("/runs/{run_name}/report.html", response_class=HTMLResponse)
-async def serve_report(run_name: str) -> HTMLResponse:
-    """Serve the saved report.html for a run."""
-    report_path = RUNS_DIR / run_name / "report.html"
-    if not report_path.exists():
-        return HTMLResponse(content="Report not found.", status_code=404)
-    return HTMLResponse(content=report_path.read_text(encoding="utf-8"))
-
-
-# Delete a saved run directory
-@app.post("/train/delete", response_class=HTMLResponse)
-async def train_delete(
-    request: Request,
-    run_name: str = Form(...),
-    ws_id: Optional[str] = Form(None),
-) -> HTMLResponse:
-    ctx: Dict[str, Any] = {"request": request}
-    target_dir = RUNS_DIR / run_name
-    if target_dir.exists() and target_dir.is_dir():
-        try:
-            shutil.rmtree(target_dir)
-            ctx["save_ok"] = f"Deleted run: {run_name}"
-        except Exception as e:
-            ctx["train_error"] = f"Failed to delete run {run_name}: {e}"
-    else:
-        ctx["train_error"] = f"Run not found: {run_name}"
-    # Keep workspace context after delete so Train/SHAP panels remain stable.
-    if ws_id:
-        return RedirectResponse(url=f"/train?ws_id={quote(ws_id)}", status_code=303)
-
-    # Fallback when no workspace context exists.
-    ctx["saved_runs"] = _list_saved_runs()
-    return templates.TemplateResponse("train.html", ctx)
-
 app.include_router(
     create_correlation_router(
         templates=templates,
@@ -628,6 +370,20 @@ app.include_router(
         load_manifest=_load_manifest,
         save_manifest=_save_manifest,
         list_saved_runs=_list_saved_runs,
+        last_train=LAST_TRAIN,
+    )
+)
+
+
+app.include_router(
+    create_saved_run_router(
+        templates=templates,
+        runs_dir=RUNS_DIR,
+        static_dir=STATIC_DIR,
+        ws_dir=_ws_dir,
+        load_manifest=_load_manifest,
+        list_saved_runs=_list_saved_runs,
+        unique_run_name=_unique_run_name,
         last_train=LAST_TRAIN,
     )
 )
