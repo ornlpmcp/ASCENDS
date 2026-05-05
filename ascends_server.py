@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from datetime import datetime
 import json
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from fastapi import Request, Form
 from fastapi.responses import HTMLResponse, FileResponse
 import pandas as pd
@@ -47,6 +47,7 @@ from ascends.gui_run_registry import (
 )
 from ascends.gui_shap_routes import create_shap_router
 from ascends.gui_saved_run_routes import create_saved_run_router
+from ascends.gui_train_select_routes import create_train_select_router
 
 logger = logging.getLogger("ascends.gui")
 
@@ -128,16 +129,6 @@ async def ui_lab(request: Request) -> HTMLResponse:
     return templates.TemplateResponse("ui_lab.html", {"request": request})
 
 
-# Helper to preserve order & uniqueness
-def _unique_preserve(seq: List[str]) -> List[str]:
-    seen = set()
-    out: List[str] = []
-    for x in seq:
-        if x not in seen:
-            seen.add(x)
-            out.append(x)
-    return out
-
 # Replace /train GET with context that loads manifest using ws_id or cookie
 # Replace the /train GET to load manifest by ws_id (from query or cookie)
 # Replace the /train GET with a version that logs what it sees
@@ -183,76 +174,15 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
     return templates.TemplateResponse("train.html", ctx)
 
 
-@app.post("/train/select", response_class=HTMLResponse)
-async def train_select(
-    request: Request,
-    ws_id: str = Form(...),
-    action: str = Form(...),
-    columns: Optional[List[str]] = Form(None),
-    rm_inputs: Optional[List[str]] = Form(None),
-    target_choice: Optional[str] = Form(None),
-) -> HTMLResponse:
-    """Handle Train tab selection state (columns/inputs/target)."""
-    mf = _load_manifest(ws_id)
-    if not mf:
-        return templates.TemplateResponse(
-            "train.html",
-            {
-                "request": request,
-                "ws_id": ws_id,
-                "train_error": "Invalid session. Please upload/select data from Correlation tab first.",
-                "saved_runs": _list_saved_runs(),
-            },
-        )
+app.include_router(
+    create_train_select_router(
+        templates=templates,
+        load_manifest=_load_manifest,
+        save_manifest=_save_manifest,
+        list_saved_runs=_list_saved_runs,
+    )
+)
 
-    all_columns: List[str] = list(mf.get("columns", []))
-    selected = set(mf.get("selected", []))
-    inputs = set(mf.get("inputs", []))
-    target = mf.get("target")
-
-    chosen_cols = columns or []
-    to_remove = rm_inputs or []
-
-    if action == "select_all":
-        selected = set(all_columns)
-    elif action == "select_none":
-        selected = set()
-    elif action == "to_inputs":
-        selected = set(chosen_cols)
-        for c in chosen_cols:
-            if c in all_columns:
-                inputs.add(c)
-        if target in inputs:
-            inputs.discard(target)
-    elif action == "remove_inputs":
-        for c in to_remove:
-            inputs.discard(c)
-    elif action == "set_target":
-        selected = set(chosen_cols)
-        if target_choice and target_choice in all_columns:
-            target = target_choice
-            if target in inputs:
-                inputs.discard(target)
-
-    ordered_inputs = sorted(inputs, key=lambda c: all_columns.index(c)) if all_columns else list(inputs)
-    ordered_selected = sorted(selected, key=lambda c: all_columns.index(c)) if all_columns else list(selected)
-
-    mf["inputs"] = ordered_inputs
-    mf["target"] = target
-    mf["selected"] = ordered_selected
-    _save_manifest(ws_id, mf)
-
-    ctx: Dict[str, Any] = {
-        "request": request,
-        "ws_id": ws_id,
-        "csv_path": mf.get("csv_path"),
-        "all_columns": all_columns,
-        "inputs": ordered_inputs,
-        "target": target,
-        "selected": ordered_selected,
-        "saved_runs": _list_saved_runs(),
-    }
-    return templates.TemplateResponse("train.html", ctx)
 
 app.include_router(
     create_correlation_router(
@@ -354,7 +284,7 @@ def _save_confusion_plot(
     ws_id: str,
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    labels: List[Any],
+    labels: list[Any],
 ) -> str:
     return save_confusion_plot(STATIC_DIR, ws_id, y_true, y_pred, labels)
 
