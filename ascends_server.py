@@ -74,7 +74,21 @@ STATIC_DIR.mkdir(exist_ok=True)
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+class ASCENDSJinja2Templates(Jinja2Templates):
+    """Keep existing template calls compatible with Starlette 1.0."""
+
+    def TemplateResponse(self, *args, **kwargs):  # noqa: N802
+        if args and isinstance(args[0], str):
+            name = args[0]
+            context = args[1] if len(args) > 1 else kwargs.pop("context", None)
+            request = (context or {}).get("request")
+            return super().TemplateResponse(request, name, context, *args[2:], **kwargs)
+        return super().TemplateResponse(*args, **kwargs)
+
+
+templates = ASCENDSJinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 def _manifest_path(ws_id: str) -> Path:
