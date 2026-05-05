@@ -18,6 +18,9 @@ runs/
 logs/
 *.log
 
+# Local archived presentation materials
+archive/lunch_and_learn/
+
 # Node/JS (if any)
 node_modules/
 
