@@ -61,8 +61,8 @@ def test_train_eval_regression_reports_positive_mae() -> None:
         test_df=test_df,
         target="target",
         task="r",
-        model_kind="linear",
+        model_kind="ridge",
         random_state=42,
     )
 
-    assert result["test_metrics"]["mae"] >= 0
+    assert result["test_metrics"]["mae"] > 0
