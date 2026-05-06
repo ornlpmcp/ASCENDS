@@ -15,6 +15,7 @@
 - Disabled reload mode in end-user launcher scripts.
 - Updated portable bundle filenames to include OS and architecture.
 - Updated bundle documentation to make `uv` a build-time tool only for release bundles.
+- Made the Unix bundle script fail fast on Linux instead of trying to copy `/usr` as a Python runtime.
 
 ## 0.4.3 - 2026-05-05
 

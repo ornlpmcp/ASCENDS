@@ -77,7 +77,7 @@ uv run ascends predict runs/boston_rf --csv examples/BostonHousing_test.csv --ou
 ## Building a Portable Bundle
 
 ```bash
-# macOS / Linux
+# macOS
 bash ./bundle/make_bundle.sh
 
 # Windows (cmd)
@@ -93,7 +93,7 @@ Output:
 
 The Windows and macOS bundles include a Python runtime and launch without `uv` on the target machine. `uv` is only required on the build machine.
 
-> **Note:** Linux users should normally use the developer workflow (`git pull`, `uv sync`, `uv run ascends gui`) rather than a portable bundle.
+> **Note:** Linux portable bundles are intentionally not supported right now. Linux users should use the developer workflow (`git pull`, `uv sync`, `uv run ascends gui`).
 
 ---
 

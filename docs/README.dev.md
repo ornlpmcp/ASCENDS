@@ -145,7 +145,7 @@ Outputs:
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<arch>/`
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<arch>.zip`
 
-Note: `uv` is required on the build machine but is not copied into the release bundle. Linux power users should usually use `uv sync` or a dedicated conda environment instead of the portable bundle path.
+Note: `uv` is required on the build machine but is not copied into the release bundle. Linux self-contained bundles are intentionally not supported right now; Linux power users should use `uv sync` or a dedicated conda environment instead.
 
 Bundle usage on target machine:
 
@@ -153,8 +153,8 @@ Bundle usage on target machine:
 # macOS
 open ./launch_gui.command
 
-# Linux, if a bundle is built
-./launch_gui.sh
+# Linux
+uv run ascends gui
 ```
 
 Windows launchers are also generated:

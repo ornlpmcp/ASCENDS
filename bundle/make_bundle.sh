@@ -29,6 +29,12 @@ BUNDLE_ROOT="$DIST_DIR/$BUNDLE_NAME"
 BUNDLE_APP="$BUNDLE_ROOT/ASCENDS"
 ARCHIVE_PATH="$DIST_DIR/${BUNDLE_NAME}.zip"
 
+if [[ "$OS_TAG" == "linux" ]]; then
+  echo "[ASCENDS] Linux self-contained bundles are not supported by this script." >&2
+  echo "[ASCENDS] Use the developer workflow instead: git pull && uv sync && uv run ascends gui" >&2
+  exit 1
+fi
+
 echo "[ASCENDS] Building portable bundle: $BUNDLE_NAME"
 mkdir -p "$DIST_DIR"
 rm -rf "$BUNDLE_ROOT"
@@ -59,8 +65,11 @@ echo "[ASCENDS] Using uv for build only: $UV_BIN"
 
 # ── Pre-build venv using build-machine uv ─────────────────────────────────────
 echo "[ASCENDS] Pre-building virtual environment (speeds up first launch)..."
+BUILD_UV_CACHE="$DIST_DIR/.uv-build-cache"
+rm -rf "$BUILD_UV_CACHE"
+mkdir -p "$BUILD_UV_CACHE"
 pushd "$BUNDLE_APP" >/dev/null
-"$UV_BIN" sync --no-dev
+UV_CACHE_DIR="$BUILD_UV_CACHE" UV_LINK_MODE=copy "$UV_BIN" sync --no-dev --link-mode=copy
 popd >/dev/null
 
 # ── Bundle the Python runtime used by the venv ────────────────────────────────
