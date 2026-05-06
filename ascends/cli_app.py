@@ -16,4 +16,4 @@ class _CmdOrder(_typer_main.TyperGroup):
         return ordered + remainder
 
 
-app = typer.Typer(cls=_CmdOrder, no_args_is_help=True)
+app = typer.Typer(cls=_CmdOrder, no_args_is_help=True, add_completion=False)
