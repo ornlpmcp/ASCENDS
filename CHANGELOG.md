@@ -12,6 +12,7 @@
 
 - Bumped the project version to 0.5.0 after the GUI route modularization work.
 - Made SHAP beeswarm the default GUI view when Tree SHAP is available.
+- Split the CLI command implementations into focused `ascends/cli_*` modules.
 - Disabled reload mode in end-user launcher scripts.
 - Updated portable bundle filenames to include OS and architecture.
 - Updated bundle documentation to make `uv` a build-time tool only for release bundles.

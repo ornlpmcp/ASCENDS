@@ -18,6 +18,13 @@ Key product direction:
 ASCENDS/
 ├── ascends/
 │   ├── cli.py                 # Typer CLI entrypoint
+│   ├── cli_app.py             # Shared Typer app wiring
+│   ├── cli_correlation.py     # Correlation CLI command
+│   ├── cli_gui.py             # GUI launcher CLI command
+│   ├── cli_parity.py          # Parity plotting CLI command
+│   ├── cli_predict.py         # Prediction CLI command
+│   ├── cli_shap.py            # SHAP/explain CLI command
+│   ├── cli_train.py           # Training CLI command
 │   ├── core/
 │   │   ├── correlation.py
 │   │   ├── train.py
@@ -41,6 +48,8 @@ ASCENDS/
 ```
 
 The GUI backend is intentionally split by workflow. `ascends_server.py` owns app initialization, workspace manifests, shared `LAST_TRAIN` state, and router registration; workflow-specific request handling lives in the `ascends/gui_*_routes.py` modules.
+
+The CLI mirrors the same workflow split. `ascends/cli.py` only imports the command modules for Typer registration; command implementations live in `ascends/cli_*` modules and share reusable logic through `ascends/core/`.
 
 ## Runtime Flow (GUI)
 
