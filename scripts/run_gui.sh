@@ -10,4 +10,4 @@ if [[ ! -x ".venv/bin/ascends" ]]; then
 fi
 
 echo "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
-exec .venv/bin/ascends gui "$@"
+exec .venv/bin/ascends gui --no-reload --open-browser "$@"

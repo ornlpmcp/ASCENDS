@@ -1,6 +1,6 @@
 # ASCENDS Roadmap
 
-> Last updated: 2026-05-05 (v0.4.3)
+> Last updated: 2026-05-06 (v0.5.0)
 
 ## Design Philosophy
 
@@ -24,12 +24,15 @@
 
 ---
 
-## v0.5.0 — Architecture Cleanup
+## v0.5.0 — Architecture Cleanup & Portable Release
 
-> Most GUI route splitting was completed in v0.4.3. Remaining work should focus on shared domain logic, typing, and small testable helpers.
+> GUI route splitting and first-pass self-contained Windows/macOS bundle work were completed in v0.5.0. Remaining work should focus on shared domain logic, typing, and real-machine release validation.
 
-- [x] **Split `ascends_server.py`** — Move correlation / train / predict flows into separate router files `v0.4.3 · 2026-05-05`
-- [x] **Move plotting/run-registry helpers** — Move GUI plotting and saved-run registry helpers out of `ascends_server.py` `v0.4.3 · 2026-05-05`
+- [x] **Split `ascends_server.py`** — Move correlation / train / predict flows into separate router files `v0.5.0 · 2026-05-06`
+- [x] **Move plotting/run-registry helpers** — Move GUI plotting and saved-run registry helpers out of `ascends_server.py` `v0.5.0 · 2026-05-06`
+- [x] **Self-contained Windows/macOS bundles** — Build release launchers around bundled Python, not target-machine Python/uv `v0.5.0 · 2026-05-06`
+- [x] **macOS double-click launcher** — Generate `launch_gui.command` for Finder startup `v0.5.0 · 2026-05-06`
+- [x] **SHAP beeswarm default** — Make the SHAP beeswarm the default GUI explanation view when Tree SHAP is available `v0.5.0 · 2026-05-06`
 - [ ] **Promote correlation domain logic** — Move correlation computation from GUI router into `ascends/core/correlation.py` and share with CLI
 - [ ] **Unify `task` representation** — Consistently apply `canonicalize_task()` at all entry points (server + CLI)
 - [ ] **App factory cleanup** — Convert `ascends_server.py` wiring into a cleaner app-factory pattern if needed for tests/packaging
@@ -41,7 +44,7 @@
 - [ ] **Baseline comparison** — Show performance vs. dummy model (mean prediction) to give context
 - [ ] **Model comparison view** — Side-by-side view of multiple runs in `runs/`
 - [ ] **Hyperparameter tuning** — Currently a placeholder; Optuna integration (keep UI simple — one "Tune" button)
-- [ ] **Packaging follow-up** — Tighten macOS/Linux bundle expectations and keep Windows double-click bundle fully self-contained
+- [ ] **Packaging follow-up** — Validate Windows/macOS bundles on clean machines and document Gatekeeper/SmartScreen expectations
 
 ---
 

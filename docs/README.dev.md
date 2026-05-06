@@ -122,7 +122,7 @@ This covers:
 
 ## Portable Bundle Build
 
-Create an OS-specific portable bundle (includes `.venv`):
+Create an OS-specific portable bundle. Windows and macOS bundles include a copied Python runtime plus the prebuilt package environment, so target users do not need Python or `uv`.
 
 ```bash
 bash ./bundle/make_bundle.sh
@@ -142,23 +142,25 @@ Windows PowerShell (optional):
 
 Outputs:
 
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>/`
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` (macOS/Linux)
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<arch>/`
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>-<arch>.zip`
 
-Note: Windows bundles include a copied Python distribution and are intended for double-click launch. macOS/Linux bundles include `uv` plus a prebuilt environment for the build platform. Linux bundle size is expected to be larger because XGBoost can pull NVIDIA NCCL runtime wheels.
-For Linux power users, `uv sync` or a dedicated conda environment is recommended.
+Note: `uv` is required on the build machine but is not copied into the release bundle. Linux power users should usually use `uv sync` or a dedicated conda environment instead of the portable bundle path.
 
 Bundle usage on target machine:
 
 ```bash
+# macOS
+open ./launch_gui.command
+
+# Linux, if a bundle is built
 ./launch_gui.sh
 ```
 
 Windows launchers are also generated:
 
-- `launch_gui.ps1` / `launch_cli.ps1`
-- `launch_gui.bat`
+- `launch_gui.bat` / `launch_cli.bat`
+- `launch_gui.ps1`
 
 ## Known Status
 

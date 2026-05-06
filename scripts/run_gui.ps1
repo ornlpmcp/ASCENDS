@@ -14,4 +14,4 @@ if (-not (Test-Path $AscendsExe)) {
 }
 
 Write-Host "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
-& $AscendsExe gui @args
+& $AscendsExe gui --no-reload --open-browser @args

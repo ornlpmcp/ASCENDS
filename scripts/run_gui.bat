@@ -17,5 +17,5 @@ if not exist ".venv\Scripts\ascends.exe" (
 )
 
 echo [ASCENDS] Launching GUI at http://127.0.0.1:7777
-".venv\Scripts\ascends.exe" gui %*
+".venv\Scripts\ascends.exe" gui --no-reload --open-browser %*
 exit /b %errorlevel%

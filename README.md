@@ -23,13 +23,14 @@ Download the archive for your platform from the Releases page, unpack it anywher
 | Platform | Launcher |
 |----------|----------|
 | Windows | Double-click `launch_gui.bat` |
-| macOS / Linux | `./launch_gui.sh` |
+| macOS | Double-click `launch_gui.command` |
+| Linux | Use the developer setup below |
 
-Then open `http://127.0.0.1:7777` in your browser.
+The browser opens automatically at `http://127.0.0.1:7777`.
 
 > **First launch on Windows** may take 1–2 minutes while math libraries compile. Subsequent launches are fast.
 
-The Windows bundle includes Python and the package environment. macOS/Linux bundles include the app, `uv`, and a prebuilt environment for the build platform.
+The Windows and macOS bundles include Python and the package environment. End users do not need Python or `uv`.
 
 ---
 
@@ -87,13 +88,12 @@ bundle\make_bundle.bat
 ```
 
 Output:
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-linux.tar.gz`
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-macOS.tar.gz`
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-windows.zip`
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-macOS-<arch>.zip`
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-windows-<arch>.zip`
 
-The Windows bundle includes a full Python distribution. macOS/Linux bundles include `uv` and a prebuilt environment for the build platform.
+The Windows and macOS bundles include a Python runtime and launch without `uv` on the target machine. `uv` is only required on the build machine.
 
-> **Note:** Linux bundles can be significantly larger because XGBoost may pull NVIDIA NCCL runtime wheels. For Linux, `uv sync` in a dedicated environment is often preferred over the bundle.
+> **Note:** Linux users should normally use the developer workflow (`git pull`, `uv sync`, `uv run ascends gui`) rather than a portable bundle.
 
 ---
 

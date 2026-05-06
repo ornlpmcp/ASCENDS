@@ -1,7 +1,7 @@
 [project]
 name = "ascends"
-version = "0.4.3"
-description = "ASCENDS v0.4 with FastAPI backend and CLI"
+version = "0.5.0"
+description = "ASCENDS v0.5 with modular FastAPI GUI and self-contained bundles"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "numpy",

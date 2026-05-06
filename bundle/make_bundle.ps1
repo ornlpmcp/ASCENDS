@@ -12,7 +12,7 @@ $PyprojectText = Get-Content -Raw -Path $PyprojectPath -Encoding UTF8
 $VersionMatch = [regex]::Match($PyprojectText, '(?m)^version\s*=\s*"([^"]+)"')
 $VersionTag = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value } else { "0.0.0" }
 
-$BundleName = "ASCENDS-v$VersionTag-$DateTag-$OsTag"
+$BundleName = "ASCENDS-v$VersionTag-$DateTag-$OsTag-$ArchTag"
 $BundleRoot = Join-Path $DistDir $BundleName
 $BundleApp  = Join-Path $BundleRoot "ASCENDS"
 $ArchivePath = Join-Path $DistDir "$BundleName.zip"
@@ -47,21 +47,20 @@ foreach ($f in $FilesToCopy) {
   }
 }
 
-# ── Find and copy uv.exe into bundle root ───────────────────────────────────
+# ── Find uv.exe for build-time environment creation ─────────────────────────
 Write-Host "[ASCENDS] Locating uv.exe..."
 $UvExe = (Get-Command uv -ErrorAction SilentlyContinue).Source
 if (-not $UvExe) {
   Write-Host "[ASCENDS] ERROR: uv not found on PATH. Install uv first: https://docs.astral.sh/uv/" -ForegroundColor Red
   exit 1
 }
-Write-Host "[ASCENDS] Bundling uv.exe from: $UvExe"
-Copy-Item -Force -Path $UvExe -Destination (Join-Path $BundleRoot "uv.exe")
+Write-Host "[ASCENDS] Using uv.exe for build only: $UvExe"
 
 # ── Pre-build venv (installs all packages into .venv\Lib\site-packages) ──────
 Write-Host "[ASCENDS] Pre-building virtual environment..."
 Push-Location $BundleApp
 try {
-  & (Join-Path $BundleRoot "uv.exe") sync --no-dev
+  & $UvExe sync --no-dev
 } finally {
   Pop-Location
 }
@@ -105,11 +104,11 @@ if not exist "%NUMBA_CACHE_DIR%" mkdir "%NUMBA_CACHE_DIR%"
 cd /d "%ROOT%ASCENDS"
 
 echo [ASCENDS] Launching GUI at http://127.0.0.1:7777
-echo [ASCENDS] Open your browser at: http://127.0.0.1:7777
+echo [ASCENDS] Browser should open automatically at http://127.0.0.1:7777
 echo [ASCENDS] First launch may take 1-2 minutes (compiling math libraries).
 echo.
 
-"%ROOT%python\python.exe" -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" gui %*
+"%ROOT%python\python.exe" -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" gui --no-reload --open-browser %*
 '@ | Set-Content -Path (Join-Path $BundleRoot "launch_gui.bat") -Encoding ASCII
 
 # ── Write launch_gui.ps1 (optional PowerShell launcher) ─────────────────────
@@ -122,7 +121,7 @@ if (-not (Test-Path $env:NUMBA_CACHE_DIR)) { New-Item -ItemType Directory -Force
 Set-Location (Join-Path $Root "ASCENDS")
 Write-Host "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
 $PyExe = Join-Path $Root "python\python.exe"
-& $PyExe -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" "gui" @args
+& $PyExe -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" "gui" "--no-reload" "--open-browser" @args
 '@ | Set-Content -Path (Join-Path $BundleRoot "launch_gui.ps1") -Encoding UTF8
 
 # ── Write launch_cli.bat ─────────────────────────────────────────────────────
@@ -146,7 +145,7 @@ QUICK START
 -----------
 1. Unzip this archive anywhere on your machine.
 2. Double-click launch_gui.bat  (or run it from cmd.exe)
-3. Open your browser at: http://127.0.0.1:7777
+3. Your browser should open automatically at http://127.0.0.1:7777
 
 NOTES
 -----

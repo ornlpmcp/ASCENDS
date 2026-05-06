@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0 - 2026-05-06
+
+### Added
+
+- Added self-contained Windows/macOS bundle launchers that run from bundled Python without requiring target users to install Python or `uv`.
+- Added macOS `launch_gui.command` for Finder double-click startup.
+- Added browser auto-open support for the GUI via `ascends gui --open-browser`.
+
+### Changed
+
+- Bumped the project version to 0.5.0 after the GUI route modularization work.
+- Made SHAP beeswarm the default GUI view when Tree SHAP is available.
+- Disabled reload mode in end-user launcher scripts.
+- Updated portable bundle filenames to include OS and architecture.
+- Updated bundle documentation to make `uv` a build-time tool only for release bundles.
+
 ## 0.4.3 - 2026-05-05
 
 ### Fixed
