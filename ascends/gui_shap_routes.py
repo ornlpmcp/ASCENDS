@@ -75,14 +75,14 @@ def create_shap_router(
         request: Request,
         ws_id: str = Form(...),
         max_samples: int = Form(300),
-        shap_view: str = Form("ascends"),
+        shap_view: str = Form("default"),
     ) -> HTMLResponse:
         """Compute SHAP/permutation importance for the latest trained model."""
         mf = load_manifest(ws_id) or {}
         ctx = _train_context(request, ws_id, mf, list_saved_runs())
-        shap_view = str(shap_view or "ascends").lower()
+        shap_view = str(shap_view or "default").lower()
         if shap_view not in {"ascends", "default"}:
-            shap_view = "ascends"
+            shap_view = "default"
         ctx["shap_view"] = shap_view
 
         rec = last_train.get(ws_id)
@@ -155,7 +155,7 @@ def create_shap_router(
                 default_ready = True
             except Exception as e:
                 warn = str(expl.get("warning") or "").strip()
-                extra = f"Default SHAP view failed ({e}); using ASCENDS view."
+                extra = f"SHAP beeswarm view failed ({e}); using ASCENDS bar view."
                 expl["warning"] = f"{warn} {extra}".strip() if warn else extra
 
         report_out.write_text(
@@ -187,13 +187,13 @@ def create_shap_router(
     async def train_shap_view(
         request: Request,
         ws_id: str = Form(...),
-        shap_view: str = Form("ascends"),
+        shap_view: str = Form("default"),
     ) -> HTMLResponse:
         """Switch displayed SHAP image without recomputing model explanation."""
         mf = load_manifest(ws_id) or {}
-        shap_view = str(shap_view or "ascends").lower()
+        shap_view = str(shap_view or "default").lower()
         if shap_view not in {"ascends", "default"}:
-            shap_view = "ascends"
+            shap_view = "default"
         mf["shap_view"] = shap_view
         save_manifest(ws_id, mf)
 
@@ -210,7 +210,7 @@ def create_shap_router(
         elif fallback_png.exists():
             ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{fallback_png.name}?ts={int(time.time())}"
             if shap_view == "default":
-                ctx["shap_warning"] = "Default SHAP view is not available for this run. Showing ASCENDS view."
+                ctx["shap_warning"] = "SHAP beeswarm view is not available for this run. Showing ASCENDS bar view."
         elif legacy_png.exists():
             ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{legacy_png.name}?ts={int(time.time())}"
 

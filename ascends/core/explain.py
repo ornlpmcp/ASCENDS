@@ -35,6 +35,32 @@ def _mean_abs_shap_per_feature(shap_values: Any, n_features: int) -> np.ndarray:
     raise ValueError(f"Unsupported SHAP value shape: {arr.shape}")
 
 
+def _shap_values_for_beeswarm(shap_values: Any, n_features: int) -> np.ndarray:
+    """Return a 2-D SHAP matrix that summary_plot can render as a beeswarm."""
+    if isinstance(shap_values, list):
+        mats = [np.asarray(v) for v in shap_values]
+        if not mats:
+            raise ValueError("SHAP returned an empty value list.")
+        class_index = 1 if len(mats) == 2 else 0
+        arr = mats[class_index]
+    else:
+        arr = np.asarray(shap_values)
+
+    if arr.ndim == 2 and arr.shape[1] == n_features:
+        return arr
+    if arr.ndim == 3:
+        # SHAP may return either (n_samples, n_features, n_classes)
+        # or (n_classes, n_samples, n_features), depending on model/version.
+        if arr.shape[1] == n_features:
+            class_index = 1 if arr.shape[2] == 2 else 0
+            return arr[:, :, class_index]
+        if arr.shape[2] == n_features:
+            class_index = 1 if arr.shape[0] == 2 else 0
+            return arr[class_index, :, :]
+
+    raise ValueError(f"Unsupported SHAP value shape for beeswarm: {arr.shape}")
+
+
 def explain_model(
     model: Any,
     X: pd.DataFrame,
@@ -173,8 +199,17 @@ def save_default_shap_plot(
     explainer = shap.TreeExplainer(model)
     shap_vals = explainer.shap_values(Xs)
 
+    plot_vals = _shap_values_for_beeswarm(shap_vals, Xs.shape[1])
+
     plt.figure(figsize=(14.0, 8.2), dpi=220)
-    shap.summary_plot(shap_vals, Xs, show=False, max_display=max(1, int(max_display)))
+    shap.summary_plot(
+        plot_vals,
+        Xs,
+        plot_type="dot",
+        show=False,
+        max_display=max(1, int(max_display)),
+        color_bar=True,
+    )
     plt.tight_layout()
     plt.savefig(out_path, bbox_inches="tight")
     plt.close("all")

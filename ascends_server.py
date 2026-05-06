@@ -114,9 +114,9 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
     ctx: Dict[str, Any] = {"request": request, "ws_id": ws}
     if ws:
         mf = _load_manifest(ws) or {}
-        shap_view = str(mf.get("shap_view", "ascends")).lower()
+        shap_view = str(mf.get("shap_view", "default")).lower()
         if shap_view not in {"ascends", "default"}:
-            shap_view = "ascends"
+            shap_view = "default"
         ctx.update({
             "csv_path": mf.get("csv_path"),
             "all_columns": mf.get("columns", []),
@@ -126,9 +126,7 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
             "shap_view": shap_view,
         })
 
-        # DESIGN DECISION:
-        # Keep ASCENDS custom plot as the default UI because users found it more readable.
-        # If "default" plot is requested but unavailable, fallback to ASCENDS plot.
+        # Prefer SHAP's beeswarm view, then fall back to ASCENDS' bar view for older runs.
         shap_png = STATIC_DIR / "workspace" / ws / "train" / f"shap_importance_{shap_view}.png"
         legacy_png = STATIC_DIR / "workspace" / ws / "train" / "shap_importance.png"
         fallback_png = STATIC_DIR / "workspace" / ws / "train" / "shap_importance_ascends.png"

@@ -218,8 +218,8 @@
               <input id="shap-samples" name="max_samples" class="input" type="number" min="50" max="5000" step="50" value="300">
               <label for="shap-view"><strong>View:</strong></label>
               <select id="shap-view" name="shap_view" class="input">
-                <option value="ascends" {% if shap_view != "default" %}selected{% endif %}>ASCENDS View (default)</option>
-                <option value="default" {% if shap_view == "default" %}selected{% endif %}>Default SHAP</option>
+                <option value="default" {% if shap_view != "ascends" %}selected{% endif %}>SHAP Beeswarm (default)</option>
+                <option value="ascends" {% if shap_view == "ascends" %}selected{% endif %}>ASCENDS Bar</option>
               </select>
               <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled{% endif %}>Run SHAP</button>
             </form>
@@ -227,8 +227,8 @@
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
               <label for="shap-view-only"><strong>Switch View:</strong></label>
               <select id="shap-view-only" name="shap_view" class="input">
-                <option value="ascends" {% if shap_view != "default" %}selected{% endif %}>ASCENDS View (default)</option>
-                <option value="default" {% if shap_view == "default" %}selected{% endif %}>Default SHAP</option>
+                <option value="default" {% if shap_view != "ascends" %}selected{% endif %}>SHAP Beeswarm (default)</option>
+                <option value="ascends" {% if shap_view == "ascends" %}selected{% endif %}>ASCENDS Bar</option>
               </select>
               <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled{% endif %}>Apply</button>
             </form>
