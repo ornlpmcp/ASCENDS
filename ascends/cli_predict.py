@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Dict, List
 
 import click
-import joblib
 import pandas as pd
 import typer
 
@@ -78,15 +77,12 @@ def predict(
         )
         raise typer.Exit(code=1)
 
-    X = df[ordered_cols]
     Path(out).mkdir(parents=True, exist_ok=True)
-    model = joblib.load(model_path)
     try:
-        model.predict(X)
+        result = core_predict(model_path=model_path, data=df, out_dir=out, run_dir=run_dir)
     except Exception as e:
         typer.secho(f"Prediction failed: {e}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)
 
-    result = core_predict(model_path=model_path, data=df, out_dir=out, run_dir=run_dir)
     pred_col = result.get("pred_col", "prediction")
     click.echo(f"Predictions saved to {out}/predictions.csv ({pred_col})")

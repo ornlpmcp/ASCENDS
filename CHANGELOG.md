@@ -22,6 +22,7 @@
 
 ### Fixed
 
+- Removed a redundant CLI prediction preflight that could fail before the shared prediction core handled saved-model compatibility.
 - Fixed prediction feature alignment so prediction CSVs are aligned to the saved training feature order.
 - Added regression coverage for prediction alignment and positive MAE reporting.
 

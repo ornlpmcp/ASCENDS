@@ -79,14 +79,14 @@ def parity_plot(
     scope: str = typer.Option("both", help="Scope of the plot: test|train|both|combined"),
     out: str = typer.Option(None, help="Output path for the plot(s)"),
     dpi: int = typer.Option(300, help="DPI for the plot"),
-    figsize_str: str = typer.Option("6,3.7", help="Figure size as 'W,H'"),
+    figsize: str = typer.Option("6,3.7", "--figsize", help="Figure size as 'W,H'"),
     alpha: float = typer.Option(0.8, help="Alpha for plot points"),
     train_marker: str = typer.Option("o", help="Marker for train points"),
     test_marker: str = typer.Option("s", help="Marker for test points"),
     train_color: Optional[str] = typer.Option(None, help="Color for train points"),
     test_color: Optional[str] = typer.Option(None, help="Color for test points"),
-    no_identity: bool = typer.Option(False, help="Do not draw the y=x line"),
-    equal_axes: bool = typer.Option(False, help="Set equal axes"),
+    identity: bool = typer.Option(True, "--identity/--no-identity", help="Draw the y=x line"),
+    equal_axes: bool = typer.Option(False, "--equal-axes/--auto-axes", help="Use equal x/y axes"),
     limit: Optional[float] = typer.Option(None, help="Limit for axes"),
     save_parity_if_missing: bool = typer.Option(False, help="Regenerate parity data if missing")
 ):
@@ -178,7 +178,7 @@ def parity_plot(
 
     # Parse figsize once
     try:
-        figsize = _parse_figsize(figsize_str)
+        figsize_tuple = _parse_figsize(figsize)
     except ValueError:
         raise typer.BadParameter("figsize must be 'W,H' (e.g., '6,3.7')")
     # Set default colors if not provided
@@ -188,32 +188,32 @@ def parity_plot(
         test_color = "C1"
 
     if scope in {"train", "both", "combined"}:
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+        fig, ax = plt.subplots(figsize=figsize_tuple, dpi=dpi)
         metrics_train = _compute_metrics(df_train['actual'], df_train['predicted'])
         title_train = f"Parity Plot — Train (model={model_kind}, target={target_name}, n={len(df_train)})"
-        _plot_single(ax, df_train, "Train", train_color, train_marker, alpha, not no_identity, equal_axes, limit, title_train, _build_metrics_box_text(metrics_train), draw_metrics=True, metrics=metrics_train)
+        _plot_single(ax, df_train, "Train", train_color, train_marker, alpha, identity, equal_axes, limit, title_train, _build_metrics_box_text(metrics_train), draw_metrics=True, metrics=metrics_train)
         train_out_path = os.path.join(out, "parity_train.png") if os.path.isdir(out) else out
         fig.savefig(train_out_path)
         plt.close(fig)
         typer.echo(f"Saved train parity plot to {train_out_path}")
 
     if scope in {"test", "both", "combined"}:
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+        fig, ax = plt.subplots(figsize=figsize_tuple, dpi=dpi)
         metrics_test = _compute_metrics(df_test['actual'], df_test['predicted'])
         title_test = f"Parity Plot — Test (model={model_kind}, target={target_name}, n={len(df_test)})"
-        _plot_single(ax, df_test, "Test", test_color, test_marker, alpha, not no_identity, equal_axes, limit, title_test, _build_metrics_box_text(metrics_test), draw_metrics=True, metrics=metrics_test)
+        _plot_single(ax, df_test, "Test", test_color, test_marker, alpha, identity, equal_axes, limit, title_test, _build_metrics_box_text(metrics_test), draw_metrics=True, metrics=metrics_test)
         test_out_path = os.path.join(out, "parity_test.png") if os.path.isdir(out) else out
         fig.savefig(test_out_path)
         plt.close(fig)
         typer.echo(f"Saved test parity plot to {test_out_path}")
 
     if scope == "combined":
-        fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
+        fig, ax = plt.subplots(figsize=figsize_tuple, dpi=dpi)
         metrics_train = _compute_metrics(df_train['actual'], df_train['predicted'])
         metrics_test = _compute_metrics(df_test['actual'], df_test['predicted'])
         title_combined = f"Parity Plot — Combined (model={model_kind}, target={target_name}, n_train={len(df_train)}, n_test={len(df_test)})"
-        _plot_single(ax, df_train, "Train", train_color, train_marker, alpha, not no_identity, equal_axes, limit, title_combined, _build_metrics_box_text(metrics_train), label="Train", draw_metrics=False)
-        _plot_single(ax, df_test, "Test", test_color, test_marker, alpha, not no_identity, equal_axes, limit, title_combined, _build_metrics_box_text(metrics_test), label="Test", draw_metrics=False)
+        _plot_single(ax, df_train, "Train", train_color, train_marker, alpha, identity, equal_axes, limit, title_combined, _build_metrics_box_text(metrics_train), label="Train", draw_metrics=False)
+        _plot_single(ax, df_test, "Test", test_color, test_marker, alpha, identity, equal_axes, limit, title_combined, _build_metrics_box_text(metrics_test), label="Test", draw_metrics=False)
         _draw_metrics_box(ax, metrics_train, "lower left")
         _draw_metrics_box(ax, metrics_test, "lower right")
         ax.legend(
