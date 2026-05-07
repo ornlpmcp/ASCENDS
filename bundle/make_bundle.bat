@@ -6,5 +6,5 @@ setlocal
 set "ROOT=%~dp0.."
 cd /d "%ROOT%"
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$script = Get-Content -LiteralPath '%ROOT%\bundle\make_bundle.ps1' -Raw; $block = [scriptblock]::Create($script); & $block"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\bundle\make_bundle.ps1"
 exit /b %errorlevel%
