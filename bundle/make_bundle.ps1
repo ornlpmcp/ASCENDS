@@ -97,8 +97,10 @@ timestamp=$Ts
 @'
 @echo off
 setlocal
+chcp 65001 >nul
 set "ROOT=%~dp0"
 set "PYTHONPATH=%ROOT%ASCENDS\.venv\Lib\site-packages"
+set "PYTHONUTF8=1"
 set "NUMBA_CACHE_DIR=%TEMP%\nc"
 if not exist "%NUMBA_CACHE_DIR%" mkdir "%NUMBA_CACHE_DIR%"
 cd /d "%ROOT%ASCENDS"
@@ -128,8 +130,10 @@ $PyExe = Join-Path $Root "python\python.exe"
 @'
 @echo off
 setlocal
+chcp 65001 >nul
 set "ROOT=%~dp0"
 set "PYTHONPATH=%ROOT%ASCENDS\.venv\Lib\site-packages"
+set "PYTHONUTF8=1"
 cd /d "%ROOT%ASCENDS"
 "%ROOT%python\python.exe" -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" %*
 '@ | Set-Content -Path (Join-Path $BundleRoot "launch_cli.bat") -Encoding ASCII
