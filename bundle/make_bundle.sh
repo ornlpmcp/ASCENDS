@@ -69,7 +69,7 @@ BUILD_UV_CACHE="$DIST_DIR/.uv-build-cache"
 rm -rf "$BUILD_UV_CACHE"
 mkdir -p "$BUILD_UV_CACHE"
 pushd "$BUNDLE_APP" >/dev/null
-UV_CACHE_DIR="$BUILD_UV_CACHE" UV_LINK_MODE=copy "$UV_BIN" sync --no-dev --link-mode=copy
+UV_CACHE_DIR="$BUILD_UV_CACHE" UV_LINK_MODE=copy "$UV_BIN" sync --no-dev --link-mode=copy --python-preference managed
 popd >/dev/null
 
 # ── Bundle the Python runtime used by the venv ────────────────────────────────
