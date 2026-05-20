@@ -28,7 +28,7 @@ Download the archive for your platform from the Releases page, unpack it anywher
 
 The browser opens automatically at `http://127.0.0.1:7777`.
 
-> **First launch on Windows** may take 1–2 minutes while math libraries compile. Subsequent launches are fast.
+> **First launch on Windows/macOS** may take 1–2 minutes while math libraries compile. Subsequent launches are fast.
 
 The Windows and macOS bundles include Python and the package environment. End users do not need Python or `uv`.
 

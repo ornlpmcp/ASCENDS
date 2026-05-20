@@ -118,6 +118,9 @@ export NUMBA_CACHE_DIR="\${TMPDIR:-/tmp}/ascends_numba_cache"
 mkdir -p "\$NUMBA_CACHE_DIR"
 cd "\$ROOT_DIR/ASCENDS"
 echo "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
+echo "[ASCENDS] Browser should open automatically at http://127.0.0.1:7777"
+echo "[ASCENDS] First launch may take 1-2 minutes (compiling math libraries)."
+echo
 exec "\$PYTHON_BIN" -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" gui --no-reload --open-browser "\$@"
 EOF
 
