@@ -8,7 +8,7 @@
   <div class="card">
     <div class="card-title">Model &amp; Input Data</div>
     <div class="card-body">
-      <form action="/predict/run" method="post" enctype="multipart/form-data" class="toolbar inline">
+      <form action="/predict/run" method="post" enctype="multipart/form-data" class="toolbar inline" data-loading="true" data-loading-msg="Running predictions… (~10s for small datasets)">
         <label for="run_name"><strong>Saved Model:</strong></label>
         <select id="run_name" name="run_name" class="select select-wide">
           <option value="">(choose a run)</option>

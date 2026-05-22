@@ -104,7 +104,7 @@
               {% set current_seed = (train_params['seed'] if train_params and 'seed' in train_params else 42) %}
               {% set current_resample = (train_params['resample'] if train_params and 'resample' in train_params else False) %}
 
-              <form action="/train/run" method="post" class="acc-toolbar" data-loading="true" data-loading-msg="Training model… this may take a moment.">
+              <form action="/train/run" method="post" class="acc-toolbar" data-loading="true" data-loading-msg="Training model… (~30s for small datasets)">
                 {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
 
                 <strong>Task:</strong>
@@ -214,7 +214,7 @@
         <div class="card">
           <div class="card-title">SHAP (SHapley Additive exPlanations)</div>
           <div class="card-body train-accuracy-body">
-            <form action="/train/shap" method="post" class="form-row mb-2" data-loading="true" data-loading-msg="Computing SHAP values… this may take a while for large datasets.">
+            <form action="/train/shap" method="post" class="form-row mb-2" data-loading="true" data-loading-msg="Computing SHAP values… (can take 30s+ for large datasets)">
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
               <label for="shap-samples"><strong>SHAP samples:</strong></label>
               <input id="shap-samples" name="max_samples" class="input" type="number" min="50" max="5000" step="50" value="300">
