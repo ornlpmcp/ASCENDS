@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.0] - 2026-05-22
+
+### Added
+
+- Added dataset summary cards on the Correlation page with row, column, type, and missing-value counts.
+- Added conservative metric interpretation labels for regression and classification training results.
+- Added 3-fold cross-validation summaries for GUI training when data size and class balance allow it.
+- Added explicit CV-unavailable warning messages for small datasets and class imbalance.
+- Added plot reading guidance for parity plots, confusion matrices, and reports.
+- Added ML metric help text for Train and Report views.
+
+### Changed
+
+- Updated Train loading copy to mention cross-validation.
+- Bumped the project version to 0.8.0 for the Phase 3 result interpretation release.
+
 ## [0.7.0] - 2026-05-22
 
 ### Added
