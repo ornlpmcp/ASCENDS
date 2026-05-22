@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 
 from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.gui_interpretation import small_dataset_warning, summarize_dataframe
 from ascends.gui_messages import (
     append_notice,
     attach_error_recovery,
@@ -180,9 +181,11 @@ def _add_preview(ctx: dict[str, Any], csv_path: str | None, nrows: int = PREVIEW
     if not csv_path:
         return
     try:
-        df = pd.read_csv(csv_path, nrows=nrows)
-        ctx["preview_headers"] = list(df.columns)
-        ctx["preview_rows"] = df.astype(object).where(pd.notnull(df), None).values.tolist()
+        df_preview = pd.read_csv(csv_path, nrows=nrows)
+        ctx["preview_headers"] = list(df_preview.columns)
+        ctx["preview_rows"] = df_preview.astype(object).where(pd.notnull(df_preview), None).values.tolist()
+        df_summary = pd.read_csv(csv_path)
+        ctx["data_summary"] = summarize_dataframe(df_summary)
     except Exception:
         pass
 
@@ -328,6 +331,9 @@ def create_correlation_router(
         (data_dir / "corr_log.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
 
         ctx = {**base_ctx, "corr_info": info}
+        small_warning = small_dataset_warning(info.get("rows_used", 0))
+        if small_warning:
+            append_notice(ctx, small_warning, level="warning")
         if info.get("rows_dropped", 0) > 0:
             append_notice(ctx, rows_removed_message(info["rows_dropped"]), level="info")
         skipped_inputs = info.get("skipped_inputs", [])
@@ -494,17 +500,22 @@ def create_correlation_router(
             "selected": [],
         }
         save_manifest(ws_id, manifest)
+        data_summary = summarize_dataframe(pd.read_csv(saved))
         ctx: dict[str, Any] = {
             "request": request,
             "ws_id": ws_id,
             "csv_path": str(saved),
             "preview_headers": headers,
             "preview_rows": rows,
+            "data_summary": data_summary,
             "all_columns": headers,
             "inputs": [],
             "target": None,
             "selected": [],
         }
+        small_warning = small_dataset_warning(data_summary["total_rows"])
+        if small_warning:
+            append_notice(ctx, small_warning, level="warning")
         _add_non_ascii_notice(ctx, headers)
         return templates.TemplateResponse("correlation.html", ctx)
 

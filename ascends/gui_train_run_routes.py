@@ -25,13 +25,23 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score, train_test_split
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
 from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.gui_interpretation import (
+    CV_UNAVAILABLE_FAILED,
+    cv_unavailable_reason,
+    format_cv_summary,
+    get_metric_help,
+    get_plot_guidance,
+    interpret_classification_metrics,
+    interpret_regression_metrics,
+    small_dataset_warning,
+)
 from ascends.gui_messages import (
     append_notice,
     attach_error_recovery,
@@ -148,6 +158,32 @@ def _save_confusion_plot(
     return save_confusion_plot(static_dir, ws_id, y_true, y_pred, labels)
 
 
+def _compute_cv_summary(est, X, y, task: str, seed: int) -> tuple[dict[str, float | str] | None, str | None]:
+    class_counts = None
+    if task == "c":
+        class_counts = {label: int(count) for label, count in pd.Series(y).value_counts(dropna=True).items()}
+    reason = cv_unavailable_reason(row_count=len(X), task=task, class_counts=class_counts)
+    if reason:
+        return None, reason
+
+    if task == "c":
+        cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+        scoring = "accuracy"
+        metric = "Accuracy"
+    else:
+        cv = KFold(n_splits=3, shuffle=True, random_state=seed)
+        scoring = "r2"
+        metric = "R2"
+    try:
+        scores = cross_val_score(est, X, y, cv=cv, scoring=scoring)
+    except Exception:
+        return None, CV_UNAVAILABLE_FAILED
+    scores = np.asarray(scores, dtype=np.float64)
+    if not np.isfinite(scores).all():
+        return None, CV_UNAVAILABLE_FAILED
+    return {"metric": metric, "mean": float(np.mean(scores)), "std": float(np.std(scores))}, None
+
+
 def create_train_run_router(
     *,
     templates: Jinja2Templates,
@@ -242,6 +278,9 @@ def create_train_run_router(
         rows_dropped = len(df[needed]) - len(df2)
         if rows_dropped > 0:
             append_notice(ctx, rows_removed_message(rows_dropped), level="info")
+        small_warning = small_dataset_warning(len(df2))
+        if small_warning:
+            append_notice(ctx, small_warning, level="warning")
         X = df2[inputs]
         y = df2[target]
 
@@ -261,6 +300,12 @@ def create_train_run_router(
         )
 
         est = _make_regressor(model, seed=seed_val) if task == "r" else _make_classifier(model, seed=seed_val)
+        cv_summary, cv_warning = _compute_cv_summary(est, X, y, task, seed_val)
+        if cv_summary:
+            ctx["cv_summary"] = cv_summary
+            ctx["cv_summary_text"] = format_cv_summary(cv_summary)
+        if cv_warning:
+            append_notice(ctx, cv_warning, level="warning")
         try:
             est.fit(X_train, y_train)
             y_pred_train = est.predict(X_train)
@@ -280,6 +325,9 @@ def create_train_run_router(
 
             ctx["metrics_train"] = _metrics_reg(y_train, y_pred_train)
             ctx["metrics_test"] = _metrics_reg(y_test, y_pred_test)
+            ctx["metric_interpretation"] = interpret_regression_metrics(ctx["metrics_test"])
+            ctx["metric_help"] = {metric: get_metric_help(metric) for metric in ctx["metrics_test"]}
+            ctx["plot_guidance"] = get_plot_guidance("regression")
             try:
                 ctx["parity_img_url"] = _save_parity_plot(
                     static_dir,
@@ -314,6 +362,9 @@ def create_train_run_router(
 
             ctx["metrics_train"] = _metrics_clf(y_train, y_pred_train, est, X_train)
             ctx["metrics_test"] = _metrics_clf(y_test, y_pred_test, est, X_test)
+            ctx["metric_interpretation"] = interpret_classification_metrics(ctx["metrics_test"])
+            ctx["metric_help"] = {metric: get_metric_help(metric) for metric in ctx["metrics_test"]}
+            ctx["plot_guidance"] = get_plot_guidance("classification")
             try:
                 labels = sorted(pd.Series(y).dropna().unique().tolist())
                 ctx["parity_img_url"] = _save_confusion_plot(
@@ -338,6 +389,7 @@ def create_train_run_router(
             "csv_path": csv_path,
             "metrics_train": ctx["metrics_train"],
             "metrics_test": ctx["metrics_test"],
+            "cv_summary": ctx.get("cv_summary"),
             "parity_img_url": ctx.get("parity_img_url"),
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "n_train": len(X_train),

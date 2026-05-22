@@ -39,6 +39,23 @@
       <div class="card">
         <div class="card-title">Data Table</div>
         <div class="card-body">
+          {% if data_summary %}
+            <div class="stats-strip">
+              <span class="stat-chip"><strong>Rows:</strong> {{ data_summary.total_rows }}</span>
+              <span class="stat-chip"><strong>Columns:</strong> {{ data_summary.total_columns }}</span>
+              <span class="stat-chip"><strong>Numeric:</strong> {{ data_summary.numeric_columns }}</span>
+              <span class="stat-chip"><strong>Categorical:</strong> {{ data_summary.categorical_columns }}</span>
+              <span class="stat-chip"><strong>Missing columns:</strong> {{ data_summary.missing_columns }}</span>
+            </div>
+            {% if data_summary.top_missing_columns %}
+              <div class="notice notice-info">
+                <strong>Most missing:</strong>
+                {% for item in data_summary.top_missing_columns %}
+                  {{ item.column }} ({{ item.percent }}%){% if not loop.last %}, {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endif %}
           <div class="table-wrap table-scroll-sm">
             {% if preview_headers %}
               <table class="table">

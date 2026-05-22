@@ -104,7 +104,7 @@
               {% set current_seed = (train_params['seed'] if train_params and 'seed' in train_params else 42) %}
               {% set current_resample = (train_params['resample'] if train_params and 'resample' in train_params else False) %}
 
-              <form action="/train/run" method="post" class="acc-toolbar" data-loading="true" data-loading-msg="Training model… (~30s for small datasets)">
+              <form action="/train/run" method="post" class="acc-toolbar" data-loading="true" data-loading-msg="Training model with cross-validation… (~30s for small datasets)">
                 {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
 
                 <strong>Task:</strong>
@@ -181,11 +181,26 @@
                       <li>
                         <em>Test</em> —
                         {% for k, v in metrics_test.items() %}
-                          {{ k }}={{ "%.4f"|format(v|float) }}{% if not loop.last %}, {% endif %}
+                          <abbr title="{{ metric_help[k] if metric_help and metric_help.get(k) else '' }}">{{ k }}</abbr>={{ "%.4f"|format(v|float) }}
+                          {% if metric_interpretation and metric_interpretation.metrics.get(k) %}
+                            <span class="metric-badge metric-badge-{{ metric_interpretation.metrics[k].label|lower }}">{{ metric_interpretation.metrics[k].label }}</span>
+                          {% endif %}
+                          {% if not loop.last %}, {% endif %}
                         {% endfor %}
                       </li>
                     </ul>
                   </div>
+                  {% if metric_interpretation %}
+                    <div class="notice notice-info">
+                      <strong>Overall:</strong> {{ metric_interpretation.overall.label }}.
+                      {{ metric_interpretation.overall.note }}
+                    </div>
+                  {% endif %}
+                  {% if cv_summary_text %}
+                    <div class="notice notice-info">
+                      <strong>{{ cv_summary_text }}</strong>
+                    </div>
+                  {% endif %}
                   <em>Training completed and metrics are computed.</em>
                 </div>
               {% endif %}
@@ -197,6 +212,9 @@
                   <em>Parity plot with embedded metrics will render here after training.</em>
                 {% endif %}
               </div>
+              {% if plot_guidance %}
+                <div class="notice notice-info">{{ plot_guidance }}</div>
+              {% endif %}
 
               <div class="save-strip mt-2">
                 {% if save_ok %}
@@ -245,6 +263,9 @@
                 <strong>SHAP Warning:</strong> {{ shap_warning }}
               </div>
             {% endif %}
+            <div class="notice notice-info">
+              <abbr title="SHAP is a feature contribution estimate for individual model predictions.">SHAP</abbr> helps explain which features influence predictions.
+            </div>
 
             <div class="plot-box shap-box mt-2">
               {% if shap_img_url %}
