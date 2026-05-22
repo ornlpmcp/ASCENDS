@@ -31,7 +31,15 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
-from ascends.gui_messages import format_missing_columns_message
+from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.gui_messages import (
+    append_notice,
+    attach_error_recovery,
+    format_missing_columns_message,
+    friendly_error,
+    rows_removed_message,
+    stratify_disabled_message,
+)
 from ascends.gui_plotting import save_confusion_plot, save_parity_plot
 
 try:
@@ -151,6 +159,15 @@ def create_train_run_router(
     """Create the Train tab model-fitting route."""
     router = APIRouter()
 
+    def _add_non_ascii_notice(ctx: dict[str, Any], columns) -> None:
+        columns_with_non_ascii = warn_non_ascii_columns(columns)
+        if columns_with_non_ascii:
+            append_notice(
+                ctx,
+                f"{NON_ASCII_COLUMN_MESSAGE} Columns: {', '.join(columns_with_non_ascii)}",
+                level="warning",
+            )
+
     @router.post("/train/run", response_class=HTMLResponse)
     async def train_run(
         request: Request,
@@ -197,26 +214,34 @@ def create_train_run_router(
         task = (task or "r").lower()
         if task not in {"r", "c"}:
             ctx["train_error"] = "Task must be 'r' (regression) or 'c' (classification)."
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
         if not inputs or not target:
             ctx["train_error"] = "Please select at least one input and a target."
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
 
         csv_path = mf.get("csv_path")
         try:
             df = pd.read_csv(csv_path)
         except Exception as e:
-            ctx["train_error"] = f"Failed to read CSV: {e}"
+            ctx["train_error"] = friendly_error(e, "train")
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
+        _add_non_ascii_notice(ctx, df.columns)
 
         selected_columns = list(inputs) + [target]
         missing_columns = [column for column in selected_columns if column not in df.columns]
         if missing_columns:
             ctx["train_error"] = format_missing_columns_message(missing_columns)
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
         needed = list(inputs) + [target]
 
         df2 = df[needed].dropna(axis=0, how="any")
+        rows_dropped = len(df[needed]) - len(df2)
+        if rows_dropped > 0:
+            append_notice(ctx, rows_removed_message(rows_dropped), level="info")
         X = df2[inputs]
         y = df2[target]
 
@@ -225,6 +250,8 @@ def create_train_run_router(
         except Exception:
             ts = 0.2
         stratify_vec = y if task == "c" and y.nunique(dropna=True) > 1 else None
+        if task == "c" and stratify_vec is None:
+            append_notice(ctx, stratify_disabled_message(), level="warning")
         X_train, X_test, y_train, y_test = train_test_split(
             X,
             y,
@@ -239,7 +266,8 @@ def create_train_run_router(
             y_pred_train = est.predict(X_train)
             y_pred_test = est.predict(X_test)
         except Exception as e:
-            ctx["train_error"] = f"Model training failed: {e}"
+            ctx["train_error"] = friendly_error(e, "train")
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
 
         if task == "r":
@@ -264,7 +292,8 @@ def create_train_run_router(
                     ctx["metrics_test"],
                 )
             except Exception as e:
-                ctx["train_error"] = f"Failed to generate parity plot: {e}"
+                ctx["train_error"] = friendly_error(e, "train")
+                attach_error_recovery(ctx, "train", ws_id=ws_id)
         else:
 
             def _metrics_clf(y_true, y_pred, estm, X_eval):
@@ -295,7 +324,8 @@ def create_train_run_router(
                     labels,
                 )
             except Exception as e:
-                ctx["train_error"] = f"Failed to generate confusion matrix: {e}"
+                ctx["train_error"] = friendly_error(e, "train")
+                attach_error_recovery(ctx, "train", ws_id=ws_id)
 
         last_train_max = 20
         if ws_id not in last_train and len(last_train) >= last_train_max:

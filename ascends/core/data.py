@@ -1,5 +1,6 @@
 """CSV I/O, schema checks, train/test splits."""
 
+import logging
 from typing import Tuple, Optional
 import pandas as pd
 from dataclasses import dataclass
@@ -8,6 +9,11 @@ from sklearn.model_selection import (
     StratifiedShuffleSplit,
     GroupShuffleSplit,
     TimeSeriesSplit,
+)
+
+logger = logging.getLogger(__name__)
+NON_ASCII_COLUMN_MESSAGE = (
+    "Some columns contain non-ASCII characters; use ASCII column names for best compatibility."
 )
 
 
@@ -77,11 +83,25 @@ def split_train_test(
     return split_group_or_time(df, cfg)
 
 
+def find_non_ascii_columns(columns) -> list[str]:
+    """Return column names containing non-ASCII characters."""
+    return [str(column) for column in columns if not str(column).isascii()]
+
+
+def warn_non_ascii_columns(columns) -> list[str]:
+    """Log and return non-ASCII column names for caller-visible notices."""
+    non_ascii = find_non_ascii_columns(columns)
+    if non_ascii:
+        logger.warning("%s Columns: %s", NON_ASCII_COLUMN_MESSAGE, ", ".join(non_ascii))
+    return non_ascii
+
+
 def align_to_features(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:
     """
     One-hot encode categoricals (drop_first=False), reindex to the given features (fill_value=0),
     return DataFrame with columns ordered as features.
     """
+    warn_non_ascii_columns(df.columns)
     df_dum = pd.get_dummies(df, drop_first=False)
     return df_dum.reindex(columns=features, fill_value=0)
 

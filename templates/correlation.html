@@ -4,7 +4,13 @@
   <h2>Feature Selection</h2>
 
   <!-- Upload form -->
-  <form class="toolbar" action="/correlation/upload" method="post" enctype="multipart/form-data">
+  <form
+    class="toolbar"
+    action="/correlation/upload"
+    method="post"
+    enctype="multipart/form-data"
+    {% if ws_id %}onsubmit="return confirm('Uploading a new CSV will reset your current selections. Continue?');"{% endif %}
+  >
     <label>Upload CSV:</label>
     <input type="file" name="csvfile" accept=".csv">
     <button class="btn btn-sm" type="submit">Preview</button>
@@ -14,7 +20,17 @@
   </form>
 
   {% if error %}
-    <div class="notice notice-error"><strong>Error:</strong> {{ error }}</div>
+    <div class="notice notice-error">
+      <strong>Error:</strong> {{ error }}
+      {% if error_recovery_url %}
+        <div class="mt-2"><a class="btn btn-sm btn-ghost" href="{{ error_recovery_url }}">{{ error_recovery_label }}</a></div>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if notices %}
+    {% for item in notices %}
+      <div class="notice notice-{{ item.level }}">{{ item.message }}</div>
+    {% endfor %}
   {% endif %}
 
   <!-- Row 1: Data Table (full width) -->
@@ -182,7 +198,7 @@
               <a class="btn btn-sm" href="/correlation/download_all?ws_id={{ ws_id }}">Download All (CSV)</a>
             {% endif %}
           </form>
-          <form action="/correlation/run" method="post" data-loading="true" data-loading-msg="Running correlation analysis…">
+          <form action="/correlation/run" method="post" data-loading="true" data-loading-msg="Computing correlations…">
             {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
             <div class="toolbar inline">
               <label><strong>Metrics:</strong></label>
@@ -209,7 +225,7 @@
               <select class="select" id="avail-chart-list"><option>Charts appear after run.</option></select>
             </div>
           </form>
-          {% if notice %}<div class="notice notice-info">{{ notice }}</div>{% endif %}
+          {% if notice and not notices %}<div class="notice notice-info">{{ notice }}</div>{% endif %}
           {% if chart_url %}
           <div class="subcard mt-3">
             <strong>Metric:</strong> {{ active_metric|upper }}

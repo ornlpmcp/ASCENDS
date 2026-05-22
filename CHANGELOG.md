@@ -1,14 +1,32 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.0] - 2026-05-22
 
-### Changed (internal)
+### Added
 
+- Added a Train page guidance banner when no workspace is active.
+- Added "from Correlation step" indicators for Train page inputs and target.
+- Added a confirmation prompt before replacing an existing Correlation workspace CSV.
+- Added estimated-time hints to Training, SHAP, Correlation, and Predict loading overlays.
+- Added recovery links to GUI error notices.
 - Introduced design tokens (`:root` CSS variables) for colors, spacing, radius, shadows, and typography.
 - Added button hierarchy (`.btn-primary`, `.btn-danger`, `.btn-ghost`) and applied it to core GUI actions.
 - Added semantic notice classes (`.notice-success`, `.notice-warning`, `.notice-error`, `.notice-info`).
+
+### Changed
+
+- Centralized GUI error message formatting through `gui_messages.friendly_error()`.
+- Surfaced previously silent data cleanup actions: dropped rows, constant-column exclusion, stratify fallback, and non-ASCII column warnings.
+- Bumped the project version to 0.7.0 for the Phase 2 user guidance release.
+
+### Changed (internal)
+
 - Migrated frequently repeated inline styles in Train, Correlation, and Predict templates to utility classes.
 - Applied a shared typography scale to body text, headings, and card titles.
+
+### Removed
+
+- Removed the duplicate "Switch View" SHAP control from the Train page.
 
 ## [0.6.0] - 2026-05-22
 
