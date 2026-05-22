@@ -249,9 +249,7 @@ nav a:hover { color:var(--accent); }
 }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 .btn-sm { font-size:0.9rem; padding:4px 8px; }
-.input { padding:6px 8px; border:1px solid #ccc; border-radius:6px; width:120px; }
 .input-inline { display:inline-flex; gap:6px; align-items:center; margin:0 8px; }
-.select { padding:6px 8px; border:1px solid #ccc; border-radius:6px; }
 .list { margin: 0; padding-left: 18px; }
 .list li { padding:6px 8px; border-bottom:1px solid #eee; background:#fff; }
 .chart-placeholder { border:1px dashed #ccc; padding:24px; text-align:center; background:#fff; border-radius:8px; }
