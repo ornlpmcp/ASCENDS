@@ -69,11 +69,17 @@
         <div class="card">
           <div class="card-title">Input / Target</div>
           <div class="card-body train-pane-scroll">
-            <div><strong>Target:</strong> {{ target if target else "(not set)" }}</div>
+            <div>
+              <strong>Target:</strong> {{ target if target else "(not set)" }}
+              {% if ws_id and target %}<small>(from Correlation step)</small>{% endif %}
+            </div>
 
             <form action="/train/select" method="post" class="mt-8">
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
-              <div><strong>Inputs ({{ inputs|length if inputs else 0 }}):</strong></div>
+              <div>
+                <strong>Inputs ({{ inputs|length if inputs else 0 }}):</strong>
+                {% if ws_id and inputs %}<small>(from Correlation step)</small>{% endif %}
+              </div>
               {% if inputs %}
                 <ul class="list">
                   {% for c in inputs %}
