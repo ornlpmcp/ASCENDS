@@ -73,7 +73,7 @@
     <tbody>
       {% for key in metric_keys %}
       <tr>
-        <td>{{ key }}</td>
+        <td><abbr title="{{ metric_help[key] if metric_help and metric_help.get(key) else '' }}">{{ key }}</abbr></td>
         <td>{{ "%.4f"|format(train_metrics[key]|float) if key in train_metrics else "—" }}</td>
         <td>{{ "%.4f"|format(test_metrics[key]|float) if key in test_metrics else "—" }}</td>
       </tr>
@@ -83,6 +83,11 @@
   <div class="meta" style="margin-top:6px;">
     Train samples: {{ n_train }} &nbsp;·&nbsp; Test samples: {{ n_test }}
   </div>
+  {% if cv_summary_text %}
+  <div class="meta" style="margin-top:6px;">
+    {{ cv_summary_text }}
+  </div>
+  {% endif %}
 
   <!-- Insights -->
   {% if insights %}
@@ -97,6 +102,9 @@
   <!-- Plots -->
   {% if plot_files %}
   <h2>Plots</h2>
+  {% if plot_guidance %}
+  <p class="meta">{{ plot_guidance }}</p>
+  {% endif %}
   <div class="plots">
     {% for p in plot_files %}
     <img src="{{ p.src }}" alt="{{ p.label }}">

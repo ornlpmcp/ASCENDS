@@ -17,6 +17,7 @@ from fastapi.templating import Jinja2Templates
 from joblib import dump
 
 from ascends.core.interpret import interpret_run
+from ascends.gui_interpretation import format_cv_summary, get_metric_help, get_plot_guidance
 
 logger = logging.getLogger("ascends.gui")
 
@@ -57,6 +58,10 @@ def _render_report_html(
     n_train = rec.get("n_train") or 0
     n_test = rec.get("n_test") or 0
     metric_keys = list(dict.fromkeys(list(train_metrics.keys()) + list(test_metrics.keys())))
+    cv_summary = rec.get("cv_summary")
+    cv_summary_text = format_cv_summary(cv_summary) if cv_summary else None
+    metric_help = {metric: get_metric_help(metric) for metric in metric_keys}
+    plot_guidance = get_plot_guidance("classification" if task == "c" else "regression")
 
     importance_rows = []
     importance_df = None
@@ -139,10 +144,13 @@ def _render_report_html(
         train_metrics=train_metrics,
         test_metrics=test_metrics,
         metric_keys=metric_keys,
+        metric_help=metric_help,
+        cv_summary_text=cv_summary_text,
         n_train=n_train,
         n_test=n_test,
         insights=insights,
         plot_files=plot_files,
+        plot_guidance=plot_guidance,
         importance_rows=importance_rows,
         inputs=inputs,
         test_size=rec["params"].get("test_size", ""),
