@@ -5,6 +5,12 @@
 <div class="train-page">
   <section class="panel">
     <h2>ML Performance Training &amp; Test</h2>
+    {% if not ws_id %}
+      <div id="workspace-guidance" class="notice notice-info">
+        Please start from the Correlation step to upload data and select features.
+        <a href="/correlation">Go to Correlation</a>
+      </div>
+    {% endif %}
 
     <!-- Top row: Feature columns | Training | SHAP -->
     <div class="train-top">
@@ -18,8 +24,8 @@
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
 
               <div class="toolbar inline">
-                <button class="btn btn-sm" type="submit" name="action" value="select_all" {% if not ws_id %}disabled{% endif %}>Select all</button>
-                <button class="btn btn-sm" type="submit" name="action" value="select_none" {% if not ws_id %}disabled{% endif %}>Select none</button>
+                <button class="btn btn-sm" type="submit" name="action" value="select_all" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Select all</button>
+                <button class="btn btn-sm" type="submit" name="action" value="select_none" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Select none</button>
               </div>
 
               <div class="subcard">
@@ -31,7 +37,7 @@
                         <label>
                           <input type="checkbox" name="columns" value="{{ c }}"
                                  {% if selected and c in selected %}checked{% endif %}
-                                 {% if not ws_id %}disabled{% endif %}>
+                                 {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>
                           {{ c }}
                         </label>
                       </li>
@@ -42,16 +48,16 @@
 
               <div class="mt-8">
                 <label for="target-choice"><strong>Target choice:</strong></label>
-                <select id="target-choice" name="target_choice" class="select" {% if not ws_id %}disabled{% endif %}>
+                <select id="target-choice" name="target_choice" class="select" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>
                   {% for c in all_columns or [] %}
                     <option value="{{ c }}" {% if target and target == c %}selected{% endif %}>{{ c }}</option>
                   {% endfor %}
                 </select>
-                <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled{% endif %}>Set target</button>
+                <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Set target</button>
               </div>
 
               <div class="toolbar inline mt-8">
-                <button class="btn btn-sm" type="submit" name="action" value="to_inputs" {% if not ws_id %}disabled{% endif %}>→ Use selected as inputs</button>
+                <button class="btn btn-sm" type="submit" name="action" value="to_inputs" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>→ Use selected as inputs</button>
               </div>
             </form>
           </div>
@@ -74,7 +80,7 @@
                     <li><label><input type="checkbox" name="rm_inputs" value="{{ c }}"> {{ c }}</label></li>
                   {% endfor %}
                 </ul>
-                <button class="btn btn-sm" type="submit" name="action" value="remove_inputs" {% if not ws_id %}disabled{% endif %}>Remove selected</button>
+                <button class="btn btn-sm" type="submit" name="action" value="remove_inputs" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Remove selected</button>
               {% else %}
                 <em>No inputs selected.</em>
               {% endif %}
@@ -98,17 +104,17 @@
                 <strong>Task:</strong>
                 <label>
                   <input type="radio" name="task" value="r"
-                         {% if not ws_id %}disabled{% endif %}
+                         {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}
                          {% if current_task and current_task == 'r' %}checked{% endif %}> Regression
                 </label>
                 <label>
                   <input type="radio" name="task" value="c"
-                         {% if not ws_id %}disabled{% endif %}
+                         {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}
                          {% if current_task and current_task == 'c' %}checked{% endif %}> Classification
                 </label>
 
                 <strong>Model:</strong>
-                <select class="select" name="model" {% if not ws_id %}disabled{% endif %}>
+                <select class="select" name="model" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>
                   {% set current_model = (train_params['model'] if train_params and 'model' in train_params else 'rf') %}
                   <option value="rf"   {% if current_model and current_model=='rf' %}selected{% endif %}>RandomForest</option>
                   <option value="xgb"  {% if current_model and current_model=='xgb' %}selected{% endif %}>XGBoost</option>
@@ -124,19 +130,19 @@
                 <strong>Test size:</strong>
                 {% set current_ts = (train_params['test_size'] if train_params and 'test_size' in train_params else 0.20) %}
                 <input class="input" type="number" name="test_size" min="0.05" max="0.5" step="0.05"
-                       value="{{ '%.2f'|format(current_ts|float) }}" {% if not ws_id %}disabled{% endif %}>
+                       value="{{ '%.2f'|format(current_ts|float) }}" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>
 
                 <strong>Seed:</strong>
                 <input class="input" type="number" name="seed" min="0" step="1"
-                       value="{{ current_seed }}" {% if not ws_id %}disabled{% endif %}>
+                       value="{{ current_seed }}" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>
 
                 <label title="Use a fresh time-based seed each run">
                   <input type="checkbox" name="resample" {% if current_resample %}checked{% endif %}
-                         {% if not ws_id %}disabled{% endif %}>
+                         {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>
                   Resample each run
                 </label>
 
-                <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id or not target or not inputs %}disabled{% endif %}>
+                <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id or not target or not inputs %}disabled{% if not ws_id %} aria-describedby="workspace-guidance"{% endif %}{% endif %}>
                   Train
                 </button>
               </form>
@@ -211,7 +217,7 @@
                 <option value="default" {% if shap_view != "ascends" %}selected{% endif %}>SHAP Beeswarm (default)</option>
                 <option value="ascends" {% if shap_view == "ascends" %}selected{% endif %}>ASCENDS Bar</option>
               </select>
-              <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id %}disabled{% endif %}>Run SHAP</button>
+              <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Run SHAP</button>
             </form>
             <form action="/train/shap/view" method="post" class="form-row mb-2">
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
@@ -220,7 +226,7 @@
                 <option value="default" {% if shap_view != "ascends" %}selected{% endif %}>SHAP Beeswarm (default)</option>
                 <option value="ascends" {% if shap_view == "ascends" %}selected{% endif %}>ASCENDS Bar</option>
               </select>
-              <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled{% endif %}>Apply</button>
+              <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Apply</button>
             </form>
 
             {% if shap_warning %}
