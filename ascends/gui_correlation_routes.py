@@ -62,7 +62,10 @@ def _compute_correlations(
     metrics: list[str],
     task: str,
 ) -> dict[str, pd.DataFrame]:
-    y = df[target].values
+    if task == "c":
+        y = pd.Series(df[target]).astype("category").cat.codes.values
+    else:
+        y = df[target].values
     x_frame = df[inputs]
     out: dict[str, pd.DataFrame] = {}
 
@@ -95,8 +98,7 @@ def _compute_correlations(
 
     if "mi" in metrics:
         if task == "c":
-            y_disc = pd.Series(y).astype("category").cat.codes.values
-            mi_vals = mutual_info_classif(x_frame.values, y_disc, random_state=0)
+            mi_vals = mutual_info_classif(x_frame.values, y, random_state=0)
         else:
             mi_vals = mutual_info_regression(x_frame.values, y, random_state=0)
         out["mi"] = pd.DataFrame({"feature": inputs, "score": mi_vals}).sort_values(
@@ -132,6 +134,7 @@ def _prepare_corr_dataframe(
     csv_path: str,
     target: str,
     inputs: list[str],
+    task: str = "r",
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     raw = pd.read_csv(csv_path)
     cols = list(inputs) + [target]
@@ -139,11 +142,14 @@ def _prepare_corr_dataframe(
     existing = [column for column in cols if column in raw.columns]
     df = raw.loc[:, existing].copy()
     for column in existing:
+        if task == "c" and column == target:
+            continue
         df[column] = pd.to_numeric(df[column], errors="coerce")
     rows_before = len(df)
     df = df.dropna(axis=0, how="any")
     rows_after = len(df)
-    df = df.astype("float64")
+    numeric_columns = [column for column in df.columns if not (task == "c" and column == target)]
+    df.loc[:, numeric_columns] = df.loc[:, numeric_columns].astype("float64")
     dropped = rows_before - rows_after
 
     skipped: list[str] = []
@@ -317,7 +323,7 @@ def create_correlation_router(
         corr_section["view"] = view
 
         data_dir, img_dir = _corr_dirs(workspace_dir, static_dir, ws_id)
-        df_clean, info = _prepare_corr_dataframe(mf["csv_path"], target, inputs)
+        df_clean, info = _prepare_corr_dataframe(mf["csv_path"], target, inputs, task=task)
         mf["corr"]["used_inputs"] = info.get("used_inputs", [])
         (data_dir / "corr_log.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
 
