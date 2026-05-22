@@ -32,6 +32,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
 from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.gui_interpretation import (
+    interpret_classification_metrics,
+    interpret_regression_metrics,
+    small_dataset_warning,
+)
 from ascends.gui_messages import (
     append_notice,
     attach_error_recovery,
@@ -242,6 +247,9 @@ def create_train_run_router(
         rows_dropped = len(df[needed]) - len(df2)
         if rows_dropped > 0:
             append_notice(ctx, rows_removed_message(rows_dropped), level="info")
+        small_warning = small_dataset_warning(len(df2))
+        if small_warning:
+            append_notice(ctx, small_warning, level="warning")
         X = df2[inputs]
         y = df2[target]
 
@@ -280,6 +288,7 @@ def create_train_run_router(
 
             ctx["metrics_train"] = _metrics_reg(y_train, y_pred_train)
             ctx["metrics_test"] = _metrics_reg(y_test, y_pred_test)
+            ctx["metric_interpretation"] = interpret_regression_metrics(ctx["metrics_test"])
             try:
                 ctx["parity_img_url"] = _save_parity_plot(
                     static_dir,
@@ -314,6 +323,7 @@ def create_train_run_router(
 
             ctx["metrics_train"] = _metrics_clf(y_train, y_pred_train, est, X_train)
             ctx["metrics_test"] = _metrics_clf(y_test, y_pred_test, est, X_test)
+            ctx["metric_interpretation"] = interpret_classification_metrics(ctx["metrics_test"])
             try:
                 labels = sorted(pd.Series(y).dropna().unique().tolist())
                 ctx["parity_img_url"] = _save_confusion_plot(

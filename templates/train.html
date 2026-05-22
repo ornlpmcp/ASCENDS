@@ -181,11 +181,21 @@
                       <li>
                         <em>Test</em> —
                         {% for k, v in metrics_test.items() %}
-                          {{ k }}={{ "%.4f"|format(v|float) }}{% if not loop.last %}, {% endif %}
+                          {{ k }}={{ "%.4f"|format(v|float) }}
+                          {% if metric_interpretation and metric_interpretation.metrics.get(k) %}
+                            <span class="metric-badge metric-badge-{{ metric_interpretation.metrics[k].label|lower }}">{{ metric_interpretation.metrics[k].label }}</span>
+                          {% endif %}
+                          {% if not loop.last %}, {% endif %}
                         {% endfor %}
                       </li>
                     </ul>
                   </div>
+                  {% if metric_interpretation %}
+                    <div class="notice notice-info">
+                      <strong>Overall:</strong> {{ metric_interpretation.overall.label }}.
+                      {{ metric_interpretation.overall.note }}
+                    </div>
+                  {% endif %}
                   <em>Training completed and metrics are computed.</em>
                 </div>
               {% endif %}

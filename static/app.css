@@ -397,6 +397,32 @@ nav a:hover { color:var(--accent); }
   border-radius: 999px;
   background: var(--color-gray-50);
 }
+.metric-badge {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border-radius: 999px;
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-gray-50);
+  color: var(--color-gray-700);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  vertical-align: middle;
+}
+.metric-badge-strong {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-fg);
+}
+.metric-badge-caution {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-fg);
+}
+.metric-badge-weak {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-fg);
+}
 .placeholder-pad { padding: 10px; }
 .input, .select {
   padding: 6px 8px;
