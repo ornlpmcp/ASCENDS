@@ -157,7 +157,6 @@ def create_train_run_router(
         task: str = Form(...),
         model: str = Form(...),
         test_size: float = Form(...),
-        tune: str = Form(...),
         seed: Optional[str] = Form(None),
         resample: Optional[str] = Form(None),
     ) -> HTMLResponse:
@@ -188,7 +187,6 @@ def create_train_run_router(
                     "task": task,
                     "model": model,
                     "test_size": test_size,
-                    "tune": tune,
                     "seed": seed_val,
                     "resample": bool(resample),
                 },

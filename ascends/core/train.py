@@ -24,7 +24,6 @@ def train_eval(
     target: str,
     task: str,
     model_kind: str,
-    tune_mode: str = "off",
     random_state: int = 42,
 ) -> Dict[str, Any]:
     """Train/evaluate a model for regression or classification."""
@@ -114,7 +113,7 @@ def train_eval(
         "random_state": random_state,
     }
 
-def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off", tune_trials=None, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
+def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
     """Train and evaluate a model."""
     import json
     import joblib
@@ -157,7 +156,6 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         target=target,
         task=task,
         model_kind=model,
-        tune_mode=tune or "off",
         random_state=random_state,
     )
 
@@ -299,7 +297,6 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
                 "task": task,
                 "model": model,
                 "test_size": test_size,
-                "tune": tune,
                 "random_state": random_state,
                 "model_path": model_path,
                 "metrics_csv": metrics_csv,

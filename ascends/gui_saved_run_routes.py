@@ -235,7 +235,6 @@ def create_saved_run_router(
             "model": rec["params"].get("model"),
             "seed": rec["params"].get("seed"),
             "test_size": rec["params"].get("test_size"),
-            "tune": rec["params"].get("tune"),
             "inputs": rec.get("inputs", []),
             "target": rec.get("target"),
             "csv_path": rec.get("csv_path"),
