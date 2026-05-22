@@ -3,8 +3,12 @@
 from ascends.gui_interpretation import (
     CLASSIFICATION_CAUTION,
     CLASSIFICATION_STRONG,
+    CV_UNAVAILABLE_CLASS_IMBALANCE,
+    CV_UNAVAILABLE_SMALL_DATA,
     REGRESSION_R2_CAUTION,
     REGRESSION_R2_STRONG,
+    cv_unavailable_reason,
+    format_cv_summary,
     interpret_classification_metrics,
     interpret_regression_metrics,
 )
@@ -36,3 +40,16 @@ def test_interpret_classification_metrics_uses_accuracy_and_f1() -> None:
     assert caution["overall"]["label"] == "Caution"
     assert weak["overall"]["label"] == "Weak"
     assert strong["metrics"]["Accuracy"]["label"] == "Strong"
+
+
+def test_cv_unavailable_reason_catches_small_data_and_class_imbalance() -> None:
+    assert cv_unavailable_reason(row_count=299, task="r") == CV_UNAVAILABLE_SMALL_DATA
+    assert (
+        cv_unavailable_reason(row_count=300, task="c", class_counts={"a": 20, "b": 2})
+        == CV_UNAVAILABLE_CLASS_IMBALANCE
+    )
+    assert cv_unavailable_reason(row_count=300, task="c", class_counts={"a": 150, "b": 150}) is None
+
+
+def test_format_cv_summary_uses_mean_plus_minus_std() -> None:
+    assert format_cv_summary({"metric": "R2", "mean": 0.81234, "std": 0.04567}) == "CV R2: 0.8123 ± 0.0457"
