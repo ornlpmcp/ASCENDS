@@ -25,7 +25,10 @@ def test_append_notice_preserves_multiple_levels() -> None:
 
     assert ctx["notices"] == [
         {"level": "info", "message": "Removed 2 rows containing missing values."},
-        {"level": "warning", "message": "Excluded constant columns: flat."},
+        {
+            "level": "warning",
+            "message": "Excluded constant columns (only one unique value): flat.",
+        },
     ]
     assert ctx["notice"] == "Removed 2 rows containing missing values."
 
@@ -33,9 +36,11 @@ def test_append_notice_preserves_multiple_levels() -> None:
 def test_silent_warning_message_text_is_user_facing() -> None:
     assert rows_removed_message(1) == "Removed 1 row containing missing values."
     assert rows_removed_message(3) == "Removed 3 rows containing missing values."
-    assert constant_columns_message(["a", "b"]) == "Excluded constant columns: a, b."
+    assert constant_columns_message(["a", "b"]) == (
+        "Excluded constant columns (only one unique value): a, b."
+    )
     assert stratify_disabled_message() == (
-        "Only one class found in the target column; stratified split was disabled."
+        "Only one class found in target; stratified split disabled. Results may be unreliable."
     )
 
 

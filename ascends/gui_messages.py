@@ -29,11 +29,11 @@ def rows_removed_message(count: int) -> str:
 
 
 def constant_columns_message(columns: list[str]) -> str:
-    return f"Excluded constant columns: {', '.join(columns)}."
+    return f"Excluded constant columns (only one unique value): {', '.join(columns)}."
 
 
 def stratify_disabled_message() -> str:
-    return "Only one class found in the target column; stratified split was disabled."
+    return "Only one class found in target; stratified split disabled. Results may be unreliable."
 
 
 def attach_error_recovery(ctx: dict[str, object], context: str, *, ws_id: str | None = None) -> None:
