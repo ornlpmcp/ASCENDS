@@ -13,7 +13,7 @@ from sklearn.ensemble import (
     HistGradientBoostingClassifier,
     RandomForestClassifier,
 )
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
 
 try:
     from xgboost import XGBRegressor, XGBClassifier  # type: ignore
@@ -101,7 +101,7 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
         if kind == "linear":
             return LogisticRegression(max_iter=2000, random_state=random_state)
         if kind == "ridge":
-            return LogisticRegression(max_iter=2000, random_state=random_state)
+            return RidgeClassifier(random_state=random_state)
         if kind == "hgb":
             return HistGradientBoostingClassifier(random_state=random_state)
         if kind == "knn":

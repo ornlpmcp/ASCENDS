@@ -76,7 +76,7 @@ def _make_regressor(key: str, seed: Optional[int] = 42):
 
 def _make_classifier(key: str, seed: Optional[int] = 42):
     from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
-    from sklearn.linear_model import LogisticRegression
+    from sklearn.linear_model import LogisticRegression, RidgeClassifier
     from sklearn.neighbors import KNeighborsClassifier
 
     k = (key or "rf").lower()
@@ -103,7 +103,7 @@ def _make_classifier(key: str, seed: Optional[int] = 42):
     if k == "linear":
         return LogisticRegression(max_iter=2000, random_state=seed)
     if k == "ridge":
-        return LogisticRegression(max_iter=2000, random_state=seed)
+        return RidgeClassifier(random_state=seed)
     return RandomForestClassifier(n_estimators=300, random_state=seed, n_jobs=-1)
 
 
