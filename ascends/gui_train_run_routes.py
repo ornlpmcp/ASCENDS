@@ -36,6 +36,8 @@ from ascends.gui_interpretation import (
     CV_UNAVAILABLE_FAILED,
     cv_unavailable_reason,
     format_cv_summary,
+    get_metric_help,
+    get_plot_guidance,
     interpret_classification_metrics,
     interpret_regression_metrics,
     small_dataset_warning,
@@ -324,6 +326,8 @@ def create_train_run_router(
             ctx["metrics_train"] = _metrics_reg(y_train, y_pred_train)
             ctx["metrics_test"] = _metrics_reg(y_test, y_pred_test)
             ctx["metric_interpretation"] = interpret_regression_metrics(ctx["metrics_test"])
+            ctx["metric_help"] = {metric: get_metric_help(metric) for metric in ctx["metrics_test"]}
+            ctx["plot_guidance"] = get_plot_guidance("regression")
             try:
                 ctx["parity_img_url"] = _save_parity_plot(
                     static_dir,
@@ -359,6 +363,8 @@ def create_train_run_router(
             ctx["metrics_train"] = _metrics_clf(y_train, y_pred_train, est, X_train)
             ctx["metrics_test"] = _metrics_clf(y_test, y_pred_test, est, X_test)
             ctx["metric_interpretation"] = interpret_classification_metrics(ctx["metrics_test"])
+            ctx["metric_help"] = {metric: get_metric_help(metric) for metric in ctx["metrics_test"]}
+            ctx["plot_guidance"] = get_plot_guidance("classification")
             try:
                 labels = sorted(pd.Series(y).dropna().unique().tolist())
                 ctx["parity_img_url"] = _save_confusion_plot(

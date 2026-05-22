@@ -181,7 +181,7 @@
                       <li>
                         <em>Test</em> —
                         {% for k, v in metrics_test.items() %}
-                          {{ k }}={{ "%.4f"|format(v|float) }}
+                          <abbr title="{{ metric_help[k] if metric_help and metric_help.get(k) else '' }}">{{ k }}</abbr>={{ "%.4f"|format(v|float) }}
                           {% if metric_interpretation and metric_interpretation.metrics.get(k) %}
                             <span class="metric-badge metric-badge-{{ metric_interpretation.metrics[k].label|lower }}">{{ metric_interpretation.metrics[k].label }}</span>
                           {% endif %}
@@ -212,6 +212,9 @@
                   <em>Parity plot with embedded metrics will render here after training.</em>
                 {% endif %}
               </div>
+              {% if plot_guidance %}
+                <div class="notice notice-info">{{ plot_guidance }}</div>
+              {% endif %}
 
               <div class="save-strip mt-2">
                 {% if save_ok %}
@@ -260,6 +263,9 @@
                 <strong>SHAP Warning:</strong> {{ shap_warning }}
               </div>
             {% endif %}
+            <div class="notice notice-info">
+              <abbr title="SHAP is a feature contribution estimate for individual model predictions.">SHAP</abbr> helps explain which features influence predictions.
+            </div>
 
             <div class="plot-box shap-box mt-2">
               {% if shap_img_url %}

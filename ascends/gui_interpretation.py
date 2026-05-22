@@ -18,6 +18,23 @@ CLASSIFICATION_STRONG = 0.85
 CLASSIFICATION_CAUTION = 0.70
 DOMAIN_VALIDATION_NOTE = "Domain validation required."
 LOWER_IS_BETTER_NOTE = "Lower is better; compare against domain tolerance."
+PLOT_GUIDANCE = {
+    "regression": "Points closer to the diagonal indicate more accurate predictions.",
+    "classification": "Most counts should appear on the diagonal; off-diagonal counts are mistakes.",
+    "shap_default": "Features near the top usually have stronger influence on predictions.",
+    "shap_ascends": "Longer bars indicate larger average feature influence.",
+}
+METRIC_HELP = {
+    "R2": "R2 estimates the share of target variance explained by the model; higher is usually better.",
+    "MAE": "MAE is the average absolute prediction error; lower is better.",
+    "RMSE": "RMSE penalizes large prediction errors more strongly; lower is better.",
+    "Accuracy": "Accuracy is the fraction of correct predictions.",
+    "Precision": "Precision measures how often predicted positives are correct.",
+    "Recall": "Recall measures how many actual positives are found.",
+    "F1": "F1 balances precision and recall for classification.",
+    "ROC_AUC": "ROC-AUC summarizes binary ranking ability when probabilities are available.",
+    "SHAP": "SHAP is a feature contribution estimate for individual model predictions.",
+}
 
 
 def _label_from_score(score: float, *, strong: float, caution: float) -> str:
@@ -93,6 +110,14 @@ def format_cv_summary(summary: dict[str, float | str]) -> str:
     mean = float(summary["mean"])
     std = float(summary["std"])
     return f"CV {metric}: {mean:.4f} ± {std:.4f}"
+
+
+def get_plot_guidance(kind: str) -> str:
+    return PLOT_GUIDANCE.get(kind, "")
+
+
+def get_metric_help(metric: str) -> str:
+    return METRIC_HELP.get(metric, "")
 
 
 def summarize_dataframe(df: pd.DataFrame, *, top_n: int = 3) -> dict[str, Any]:
