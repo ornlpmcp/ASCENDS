@@ -59,7 +59,7 @@ def _draw_metrics_box(ax, metrics: Dict[str, float], corner: str) -> None:
     )
 
 
-def _split_config_from_manifest(manifest: dict) -> "SplitConfig":
+def _split_config_from_manifest(manifest: dict):
     from ascends.core.data import SplitConfig
 
     split_cfg = manifest.get("split", {}) if isinstance(manifest.get("split"), dict) else {}
