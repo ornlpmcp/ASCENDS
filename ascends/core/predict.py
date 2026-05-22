@@ -1,12 +1,15 @@
 """Batch inference with manifest-based feature alignment."""
 
+import logging
 from typing import Any
 import pandas as pd
 from pathlib import Path
 
 
 import joblib
-from ascends.core.data import align_to_features
+
+
+logger = logging.getLogger(__name__)
 
 
 def _load_manifest(run_dir: str) -> dict[str, Any]:
@@ -48,8 +51,17 @@ def _prepare_prediction_frame(data: pd.DataFrame, manifest: dict[str, Any]) -> p
     )
     if not features:
         return data
-    normalized = _casefold_columns_to_features(data, list(features))
-    return align_to_features(normalized, list(features))
+    feature_list = list(features)
+    normalized = _casefold_columns_to_features(data, feature_list)
+    pred_dummies = pd.get_dummies(normalized, drop_first=False)
+    ignored = sorted(set(pred_dummies.columns) - set(feature_list))
+    if ignored:
+        logger.warning(
+            "Prediction data contains values not seen during training; "
+            "some encoded features were ignored: %s",
+            ignored,
+        )
+    return pred_dummies.reindex(columns=feature_list, fill_value=0)
 
 
 def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str = ".") -> dict[str, str]:
