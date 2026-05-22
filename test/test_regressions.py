@@ -52,7 +52,7 @@ def test_batch_predict_uses_manifest_features_and_preserves_input_output(tmp_pat
     assert out_df["y_pred"].tolist() == [0, 1]
 
 
-def test_train_eval_regression_reports_positive_mae() -> None:
+def test_train_eval_regression_reports_positive_cv_mae() -> None:
     train_df = pd.DataFrame({"x": np.arange(10, dtype=float), "target": np.arange(10, dtype=float) * 2})
     test_df = pd.DataFrame({"x": np.arange(10, 13, dtype=float), "target": np.arange(10, 13, dtype=float) * 2})
 
@@ -65,4 +65,5 @@ def test_train_eval_regression_reports_positive_mae() -> None:
         random_state=42,
     )
 
-    assert result["test_metrics"]["mae"] > 0
+    assert "test_metrics" not in result
+    assert result["cv_scores"]["mae_mean"] > 0

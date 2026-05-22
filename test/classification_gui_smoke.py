@@ -58,7 +58,6 @@ async def run_smoke(csv_path: Path, target: str, model: str, test_size: float) -
         task="c",
         model=model,
         test_size=test_size,
-        tune="off",
         seed="42",
         resample=None,
     )

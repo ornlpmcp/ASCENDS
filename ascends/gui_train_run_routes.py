@@ -31,6 +31,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
+from ascends.gui_messages import format_missing_columns_message
 from ascends.gui_plotting import save_confusion_plot, save_parity_plot
 
 try:
@@ -76,7 +77,7 @@ def _make_regressor(key: str, seed: Optional[int] = 42):
 
 def _make_classifier(key: str, seed: Optional[int] = 42):
     from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
-    from sklearn.linear_model import LogisticRegression
+    from sklearn.linear_model import LogisticRegression, RidgeClassifier
     from sklearn.neighbors import KNeighborsClassifier
 
     k = (key or "rf").lower()
@@ -103,7 +104,7 @@ def _make_classifier(key: str, seed: Optional[int] = 42):
     if k == "linear":
         return LogisticRegression(max_iter=2000, random_state=seed)
     if k == "ridge":
-        return LogisticRegression(max_iter=2000, random_state=seed)
+        return RidgeClassifier(random_state=seed)
     return RandomForestClassifier(n_estimators=300, random_state=seed, n_jobs=-1)
 
 
@@ -157,7 +158,6 @@ def create_train_run_router(
         task: str = Form(...),
         model: str = Form(...),
         test_size: float = Form(...),
-        tune: str = Form(...),
         seed: Optional[str] = Form(None),
         resample: Optional[str] = Form(None),
     ) -> HTMLResponse:
@@ -188,7 +188,6 @@ def create_train_run_router(
                     "task": task,
                     "model": model,
                     "test_size": test_size,
-                    "tune": tune,
                     "seed": seed_val,
                     "resample": bool(resample),
                 },
@@ -210,12 +209,12 @@ def create_train_run_router(
             ctx["train_error"] = f"Failed to read CSV: {e}"
             return templates.TemplateResponse("train.html", ctx)
 
-        needed = [column for column in inputs if column in df.columns]
-        if target in df.columns:
-            needed.append(target)
-        if not needed or target not in needed:
-            ctx["train_error"] = "Selected columns not found in CSV. (Case sensitivity or mismatch.)"
+        selected_columns = list(inputs) + [target]
+        missing_columns = [column for column in selected_columns if column not in df.columns]
+        if missing_columns:
+            ctx["train_error"] = format_missing_columns_message(missing_columns)
             return templates.TemplateResponse("train.html", ctx)
+        needed = list(inputs) + [target]
 
         df2 = df[needed].dropna(axis=0, how="any")
         X = df2[inputs]

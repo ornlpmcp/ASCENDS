@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.6.0] - 2026-05-22
+
+### Removed (BREAKING)
+
+- Removed `--tune` and `--tune-trials` CLI options because tuning was never wired.
+- Removed the no-op Tuning select control from the GUI Train page.
+- Removed the unused `core/tune.py` stub.
+
+### Changed (BREAKING)
+
+- Changed `model=ridge` classification to use `sklearn.linear_model.RidgeClassifier` instead of `LogisticRegression`. Existing saved models still load and predict, but re-training `model=ridge` produces different estimator behavior.
+- Ridge classification may omit ROC-AUC from `metrics.csv` because `RidgeClassifier` does not provide `predict_proba`.
+
+### Changed
+
+- Bumped the project version to 0.6.0 for the Phase 1 reliability recovery release.
+
+### Changed (internal)
+
+- Updated `train_eval()` to return CV metrics, fitted model, and features only. Final train/test metrics are computed once in `train_model()`.
+
+### Fixed
+
+- Fixed `split_train_test` so random splitting applies `stratify_col` when class counts allow it.
+- Added clear missing-column messages for correlation and train pages when selected columns are absent from the CSV.
+- Added prediction-path warnings when encoded prediction columns are ignored because they were not present during training.
+- Removed duplicate `.input`/`.select` CSS rules that forced all inputs toward stale styling and fixed width.
+- Added visual styling for the active GUI tab.
+
+### Added
+
+- Added `split` metadata to new `manifest.json` files, including method, test size, and stratify column. Older manifests still work through fallback behavior.
+
 ## 0.5.0 - 2026-05-06
 
 ### Added

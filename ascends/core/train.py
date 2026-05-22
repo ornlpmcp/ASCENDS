@@ -24,7 +24,6 @@ def train_eval(
     target: str,
     task: str,
     model_kind: str,
-    tune_mode: str = "off",
     random_state: int = 42,
 ) -> Dict[str, Any]:
     """Train/evaluate a model for regression or classification."""
@@ -41,9 +40,7 @@ def train_eval(
     X_train = X_train_dum.reindex(
         columns=X_train_dum.columns.union(X_test_dum.columns), fill_value=0
     )
-    X_test = X_test_dum.reindex(columns=X_train.columns, fill_value=0)
     y_train = train_df[target]
-    y_test = test_df[target]
 
     # 2) Create model
     model = make_model(task, model_kind, random_state=random_state)
@@ -59,21 +56,6 @@ def train_eval(
         cv_f1 = cross_val_score(model, X_train, y_train, cv=cv, scoring="f1_weighted")
 
         model.fit(X_train, y_train)
-        y_pred_test = model.predict(X_test)
-        test_metrics = {
-            "accuracy": float(accuracy_score(y_test, y_pred_test)),
-            "precision": float(precision_score(y_test, y_pred_test, average="weighted", zero_division=0)),
-            "recall": float(recall_score(y_test, y_pred_test, average="weighted", zero_division=0)),
-            "f1": float(f1_score(y_test, y_pred_test, average="weighted", zero_division=0)),
-        }
-        # Optional ROC-AUC for binary classification when probabilities are available
-        try:
-            labels = pd.Series(y_test).dropna().unique()
-            if len(labels) == 2 and hasattr(model, "predict_proba"):
-                y_proba = model.predict_proba(X_test)
-                test_metrics["roc_auc"] = float(roc_auc_score(y_test, y_proba[:, 1]))
-        except Exception:
-            pass
 
         cv_scores = {
             "accuracy_mean": float(np.mean(cv_acc)),
@@ -89,12 +71,6 @@ def train_eval(
         )
 
         model.fit(X_train, y_train)
-        test_r2 = model.score(X_test, y_test)
-        test_mae = np.mean(np.abs(y_test - model.predict(X_test)))
-        test_metrics = {
-            "r2": float(test_r2),
-            "mae": float(test_mae),
-        }
         cv_scores = {
             "r2_mean": float(np.mean(cv_r2)),
             "r2_std": float(np.std(cv_r2)),
@@ -110,11 +86,10 @@ def train_eval(
         "model": model,
         "features": features,
         "cv_scores": cv_scores,
-        "test_metrics": test_metrics,
         "random_state": random_state,
     }
 
-def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off", tune_trials=None, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
+def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
     """Train and evaluate a model."""
     import json
     import joblib
@@ -157,7 +132,6 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         target=target,
         task=task,
         model_kind=model,
-        tune_mode=tune or "off",
         random_state=random_state,
     )
 
@@ -197,7 +171,7 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         except Exception:
             pass
         result["test_metrics"] = test_metrics
-        result.setdefault("train_metrics", train_metrics)
+        result["train_metrics"] = train_metrics
     else:
         # === Metrics: write BOTH train and test, including RMSE ===
         r2_tr = float(r2_score(y_train, y_pred_train))
@@ -208,22 +182,8 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
         mae_te = float(mean_absolute_error(y_test, y_pred_test))
         rmse_te = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
 
-        # Ensure consistent, positive metrics in the returned result
-        if "test_metrics" in result:
-            tm = result["test_metrics"]
-            if "mae" in tm:
-                try:
-                    tm["mae"] = float(abs(float(tm["mae"])))
-                except Exception:
-                    pass
-            tm.setdefault("rmse", rmse_te)
-        else:
-            result["test_metrics"] = {"r2": r2_te, "rmse": rmse_te, "mae": mae_te}
-
-        result.setdefault(
-            "train_metrics",
-            {"r2": r2_tr, "rmse": rmse_tr, "mae": mae_tr},
-        )
+        result["test_metrics"] = {"r2": r2_te, "rmse": rmse_te, "mae": mae_te}
+        result["train_metrics"] = {"r2": r2_tr, "rmse": rmse_tr, "mae": mae_tr}
 
     # Define model_path for saving the model
     model_path = os.path.join(out_dir, "model.joblib")
@@ -299,7 +259,6 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
                 "task": task,
                 "model": model,
                 "test_size": test_size,
-                "tune": tune,
                 "random_state": random_state,
                 "model_path": model_path,
                 "metrics_csv": metrics_csv,
@@ -313,11 +272,18 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, tune="off
     manifest = {
         "schema_version": 1,
         "artifact_type": "estimator-only",
+        "csv_path": csv_path,
         "model": model,
         "task": task,
         "target": target,
+        "test_size": test_size,
         "features": feats,
         "random_state": random_state,
+        "split": {
+            "method": "random",
+            "test_size": test_size,
+            "stratify_col": target if task == "classification" else None,
+        },
         "timestamp": datetime.now().isoformat()
     }
     manifest_path = Path(out_dir) / "manifest.json"
