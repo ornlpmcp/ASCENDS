@@ -310,11 +310,18 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
     manifest = {
         "schema_version": 1,
         "artifact_type": "estimator-only",
+        "csv_path": csv_path,
         "model": model,
         "task": task,
         "target": target,
+        "test_size": test_size,
         "features": feats,
         "random_state": random_state,
+        "split": {
+            "method": "random",
+            "test_size": test_size,
+            "stratify_col": target if task == "classification" else None,
+        },
         "timestamp": datetime.now().isoformat()
     }
     manifest_path = Path(out_dir) / "manifest.json"

@@ -50,8 +50,20 @@ def split_train_test(
         raise ValueError("Group split requires 'group_col' to be set.")
 
     if cfg.method == "random":
+        stratify = (
+            df[cfg.stratify_col]
+            if cfg.stratify_col and cfg.stratify_col in df.columns
+            else None
+        )
+        if stratify is not None:
+            class_counts = stratify.value_counts(dropna=True)
+            if len(class_counts) < 2 or int(class_counts.min()) < 2:
+                stratify = None
         return train_test_split(
-            df, test_size=cfg.test_size, random_state=cfg.random_state
+            df,
+            test_size=cfg.test_size,
+            random_state=cfg.random_state,
+            stratify=stratify,
         )
 
     elif cfg.method == "stratified":

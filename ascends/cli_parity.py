@@ -58,6 +58,19 @@ def _draw_metrics_box(ax, metrics: Dict[str, float], corner: str) -> None:
         zorder=6,
     )
 
+
+def _split_config_from_manifest(manifest: dict) -> "SplitConfig":
+    from ascends.core.data import SplitConfig
+
+    split_cfg = manifest.get("split", {}) if isinstance(manifest.get("split"), dict) else {}
+    return SplitConfig(
+        method=split_cfg.get("method", "random"),
+        test_size=float(split_cfg.get("test_size", manifest.get("test_size", 0.2))),
+        random_state=manifest["random_state"],
+        stratify_col=split_cfg.get("stratify_col"),
+    )
+
+
 def _plot_single(ax, df, subset_label, color, marker, alpha, draw_identity, equal_axes, limit, title, metrics_block_text, label: Optional[str] = None, draw_metrics: bool = True, metrics: Optional[Dict[str, float]] = None):
     ax.scatter(df['actual'], df['predicted'], alpha=alpha, c=color, marker=marker, label=label)
     ax.set_title(title)
@@ -93,7 +106,7 @@ def parity_plot(
     """Generate parity plot(s) for a saved run."""
     import os
     import pandas as pd
-    from ascends.core.data import SplitConfig, split_train_test
+    from ascends.core.data import split_train_test
     from ascends.core.serialize import load_model
 
     if scope not in {"train", "test", "both", "combined"}:
@@ -137,17 +150,10 @@ def parity_plot(
         model = load_model(model_path)
 
         df = pd.read_csv(manifest['csv_path'])
-        split_cfg = manifest.get("split", {}) if isinstance(manifest.get("split"), dict) else {}
-        split_method = split_cfg.get("method", "random")
-        split_test_size = float(split_cfg.get("test_size", manifest.get("test_size", 0.2)))
         tr, te = split_train_test(
             df,
             manifest['target'],
-            SplitConfig(
-                method=split_method,
-                test_size=split_test_size,
-                random_state=manifest['random_state']
-            )
+            _split_config_from_manifest(manifest),
         )
         # One-hot encode and reindex
         Xtrain = pd.get_dummies(tr.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=manifest['features'], fill_value=0)
