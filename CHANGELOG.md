@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1] - 2026-05-22
+
+### Fixed
+
+- Fixed GUI classification correlation for string class targets such as Iris `Name`.
+
 ## [0.6.0] - 2026-05-22
 
 ### Removed (BREAKING)
