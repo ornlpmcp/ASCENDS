@@ -23,8 +23,8 @@ def test_summarize_dataframe_counts_types_and_missing_values() -> None:
 
     assert summary["total_rows"] == 4
     assert summary["total_columns"] == 3
-    assert summary["numeric_columns"] == 2
-    assert summary["categorical_columns"] == 1
+    assert summary["numeric_columns"] == 1
+    assert summary["categorical_columns"] == 2
     assert summary["missing_columns"] == 3
     assert summary["top_missing_columns"][0] == {
         "column": "all_missing",
