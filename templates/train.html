@@ -136,7 +136,7 @@
                   Resample each run
                 </label>
 
-                <button class="btn btn-sm" type="submit" {% if not ws_id or not target or not inputs %}disabled{% endif %}>
+                <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id or not target or not inputs %}disabled{% endif %}>
                   Train
                 </button>
               </form>
@@ -187,10 +187,10 @@
                   {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
                   <label for="save-name"><strong>Name:</strong></label>
                   <input id="save-name" name="save_name" class="input" type="text" placeholder="e.g., my_best_model">
-                  <button class="btn btn-sm" type="submit" {% if not parity_img_url %}disabled{% endif %}>Save Model</button>
+                  <button class="btn btn-sm btn-primary" type="submit" {% if not parity_img_url %}disabled{% endif %}>Save Model</button>
                 </form>
                 {% if parity_img_url and ws_id %}
-                <a class="btn btn-sm" href="/train/report?ws_id={{ ws_id }}" target="_blank" style="margin-top:4px;">View Report</a>
+                <a class="btn btn-sm btn-ghost" href="/train/report?ws_id={{ ws_id }}" target="_blank" style="margin-top:4px;">View Report</a>
                 {% endif %}
               </div>
             </div>
@@ -211,7 +211,7 @@
                 <option value="default" {% if shap_view != "ascends" %}selected{% endif %}>SHAP Beeswarm (default)</option>
                 <option value="ascends" {% if shap_view == "ascends" %}selected{% endif %}>ASCENDS Bar</option>
               </select>
-              <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled{% endif %}>Run SHAP</button>
+              <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id %}disabled{% endif %}>Run SHAP</button>
             </form>
             <form action="/train/shap/view" method="post" style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
@@ -315,7 +315,7 @@
                         <form action="/train/delete" method="post" onsubmit="return confirm('Delete run {{ r.name }}?');">
                           <input type="hidden" name="run_name" value="{{ r.name }}">
                           {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
-                          <button class="btn btn-sm" type="submit">Delete</button>
+                          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
                         </form>
                       </div>
                     </td>
