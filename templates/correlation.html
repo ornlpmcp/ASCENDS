@@ -4,7 +4,13 @@
   <h2>Feature Selection</h2>
 
   <!-- Upload form -->
-  <form class="toolbar" action="/correlation/upload" method="post" enctype="multipart/form-data">
+  <form
+    class="toolbar"
+    action="/correlation/upload"
+    method="post"
+    enctype="multipart/form-data"
+    {% if ws_id %}onsubmit="return confirm('Uploading a new CSV will reset your current selections. Continue?');"{% endif %}
+  >
     <label>Upload CSV:</label>
     <input type="file" name="csvfile" accept=".csv">
     <button class="btn btn-sm" type="submit">Preview</button>
