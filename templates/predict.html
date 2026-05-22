@@ -8,9 +8,9 @@
   <div class="card">
     <div class="card-title">Model &amp; Input Data</div>
     <div class="card-body">
-      <form action="/predict/run" method="post" enctype="multipart/form-data" class="toolbar inline" style="flex-wrap:wrap; gap:10px;">
+      <form action="/predict/run" method="post" enctype="multipart/form-data" class="toolbar inline">
         <label for="run_name"><strong>Saved Model:</strong></label>
-        <select id="run_name" name="run_name" class="select" style="min-width:260px;">
+        <select id="run_name" name="run_name" class="select select-wide">
           <option value="">(choose a run)</option>
           {% for r in saved_runs or [] %}
             {# Normalize run name across dict/object/string #}
@@ -40,9 +40,9 @@
       {% endif %}
 
       {% if upload_info %}
-        <div class="subcard" style="margin-top:10px;">
+        <div class="subcard mt-3">
           <strong>Step P1:</strong> Received
-          <ul class="list" style="margin-top:6px;">
+          <ul class="list mt-2">
             <li>Run = <code>{{ selected_run }}</code></li>
             <li>File = <code>{{ upload_info.filename }}</code> ({{ upload_info.bytes }} bytes)</li>
           </ul>
@@ -53,35 +53,35 @@
   </div>
 
   <!-- Results placeholder area (P2/P3 will fill this) -->
-  <div class="card" style="margin-top:12px;">
+  <div class="card mt-3">
     <div class="card-title">Results</div>
     <div class="card-body">
       {% if rows_read is not none %}
-        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
-          <span style="display:inline-block; padding:4px 8px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc;">
+        <div class="stats-strip">
+          <span class="stat-chip">
             <strong>Read:</strong> {{ rows_read }}
           </span>
-          <span style="display:inline-block; padding:4px 8px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc;">
+          <span class="stat-chip">
             <strong>Used:</strong> {{ rows_used }}
           </span>
-          <span style="display:inline-block; padding:4px 8px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc;">
+          <span class="stat-chip">
             <strong>Dropped:</strong> {{ rows_dropped }}
           </span>
           {% if download_csv_url %}
-            <a class="btn btn-sm" href="{{ download_csv_url }}" style="margin-left:auto;">Download CSV</a>
+            <a class="btn btn-sm push-right" href="{{ download_csv_url }}">Download CSV</a>
           {% endif %}
         </div>
       {% endif %}
 
-      <div class="table-wrap" style="max-height:360px;">
+      <div class="table-wrap table-scroll-md">
         {% if predict_preview_html %}
           {% autoescape false %}{{ predict_preview_html }}{% endautoescape %}
         {% elif predict_preview_headers and predict_preview_rows %}
-          <table class="table" style="width:100%; border-collapse:collapse;">
+          <table class="table table-compact">
             <thead>
               <tr>
                 {% for h in predict_preview_headers %}
-                  <th style="text-align:left; border-bottom:1px solid #e5e7eb; padding:6px 8px;">{{ h }}</th>
+                  <th>{{ h }}</th>
                 {% endfor %}
               </tr>
             </thead>
@@ -89,20 +89,20 @@
               {% for row in predict_preview_rows %}
                 <tr>
                   {% for cell in row %}
-                    <td style="border-bottom:1px solid #f0f2f5; padding:6px 8px;">{{ cell }}</td>
+                    <td>{{ cell }}</td>
                   {% endfor %}
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         {% else %}
-          <div style="padding:10px;"><em>No results yet.</em></div>
+          <div class="placeholder-pad"><em>No results yet.</em></div>
         {% endif %}
       </div>
 
       {# download buttons shown in the stats strip above; keep Excel spot for future #}
       {% if download_xlsx_url %}
-        <div class="toolbar" style="margin-top:10px;">
+        <div class="toolbar mt-3">
           <a class="btn btn-sm" href="{{ download_xlsx_url }}">Download Excel</a>
         </div>
       {% endif %}

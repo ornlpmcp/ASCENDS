@@ -9,7 +9,7 @@
     <input type="file" name="csvfile" accept=".csv">
     <button class="btn btn-sm" type="submit">Preview</button>
     {% if csv_path %}
-      <span style="margin-left:8px;"><strong>Loaded:</strong> {{ csv_path }}</span>
+      <span class="ml-2"><strong>Loaded:</strong> {{ csv_path }}</span>
     {% endif %}
   </form>
 
@@ -23,7 +23,7 @@
       <div class="card">
         <div class="card-title">Data Table</div>
         <div class="card-body">
-          <div class="table-wrap" style="max-height:350px;">
+          <div class="table-wrap table-scroll-sm">
             {% if preview_headers %}
               <table class="table">
                 <thead>
@@ -44,7 +44,7 @@
                 </tbody>
               </table>
             {% else %}
-              <div style="padding:10px;"><em>Table preview will appear here…</em></div>
+              <div class="placeholder-pad"><em>Table preview will appear here…</em></div>
             {% endif %}
           </div>
         </div>
@@ -58,14 +58,14 @@
     <div class="col col-left">
       <div class="card">
         <div class="card-title">All Columns</div>
-<div class="card-body scroll-panel">
+    <div class="card-body scroll-panel">
   <form action="/correlation/select" method="post">
     {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
     <div class="toolbar">
       <button class="btn btn-sm" type="submit" name="action" value="set_target" {% if not ws_id %}disabled{% endif %}>🎯 Target from dropdown</button>
       <button class="btn btn-sm" type="submit" name="action" value="auto_inputs" {% if not ws_id %}disabled{% endif %}>Auto all except target</button>
       {% if inputs is defined %}
-        <span style="margin-left:8px;"><strong>Inputs:</strong> {{ inputs|length }}</span>
+        <span class="input-inline"><strong>Inputs:</strong> {{ inputs|length }}</span>
       {% endif %}
     </div>
     <ul class="list" id="all-cols">
@@ -104,7 +104,7 @@
       {% endif %}
     </ul>
     {% if all_columns %}
-      <div style="margin-top:10px;">
+      <div class="mt-3">
         <label for="target-choice"><strong>Target choice:</strong></label>
         <select id="target-choice" name="target_choice" class="select" {% if not ws_id %}disabled{% endif %}>
           {% if all_columns %}
@@ -127,7 +127,7 @@
         <div class="card-body scroll-panel">
           <form action="/correlation/select" method="post">
             {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
-            <div class="subcard" style="min-height:370px; overflow:auto;">
+            <div class="subcard subcard-tall">
               <ul class="list" id="input-cols-list">
                 {% if inputs %}
                   {% for c in inputs %}
@@ -143,9 +143,9 @@
                 {% endif %}
               </ul>
             </div>
-            <div class="subcard" style="min-height:100px;">
+            <div class="subcard subcard-short">
               <div id="target-col"><strong>Target:</strong> {{ target if target else "(none)" }}</div>
-              <div class="toolbar" style="margin-top:8px;">
+              <div class="toolbar mt-2">
                 <button class="btn btn-sm" type="submit" name="action" value="clear_target" {% if not ws_id or not target %}disabled{% endif %}>Clear target</button>
               </div>
             </div>
@@ -159,7 +159,7 @@
       <div class="card">
         <div class="card-title">Correlation Analysis</div>
         <div class="card-body no-limit correlation-body">
-          <form action="/correlation/view" method="post" class="toolbar inline" style="margin-top:8px;">
+          <form action="/correlation/view" method="post" class="toolbar inline mt-2">
             {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
             <label><strong>Metric:</strong></label>
             <select class="select" name="metric" {% if not available_metrics %}disabled{% endif %}>
@@ -194,10 +194,10 @@
             <div class="toolbar inline">
               <label><strong>Top-K:</strong></label>
               <input type="number" class="input" name="top_k" min="1" step="1" placeholder="(all)">
-              <label style="margin-left:16px;"><strong>Task:</strong></label>
+              <label class="ml-4"><strong>Task:</strong></label>
               <label><input type="radio" name="task" value="r" checked> Regression</label>
               <label><input type="radio" name="task" value="c"> Classification</label>
-              <label style="margin-left:16px;"><strong>View:</strong></label>
+              <label class="ml-4"><strong>View:</strong></label>
               <select class="select" name="view">
                 <option value="wide" selected>wide</option>
                 <option value="long">long</option>
@@ -211,14 +211,14 @@
           </form>
           {% if notice %}<div class="notice notice-info">{{ notice }}</div>{% endif %}
           {% if chart_url %}
-          <div class="subcard" style="margin-top:12px;">
+          <div class="subcard mt-3">
             <strong>Metric:</strong> {{ active_metric|upper }}
-            <div class="chart-box chart-compact" style="margin-top:8px;">
+            <div class="chart-box chart-compact mt-2">
               <img src="{{ chart_url }}" alt="correlation chart {{ active_metric }}">
             </div>
           </div>
           {% else %}
-          <div id="corr-chart" class="chart-placeholder" style="margin-top:12px;">
+          <div id="corr-chart" class="chart-placeholder mt-3">
             <em>Charts and tables will appear here after you run.</em>
           </div>
           {% endif %}
