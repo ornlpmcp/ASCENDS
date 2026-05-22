@@ -225,16 +225,6 @@
               </select>
               <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Run SHAP</button>
             </form>
-            <form action="/train/shap/view" method="post" class="form-row mb-2">
-              {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
-              <label for="shap-view-only"><strong>Switch View:</strong></label>
-              <select id="shap-view-only" name="shap_view" class="input">
-                <option value="default" {% if shap_view != "ascends" %}selected{% endif %}>SHAP Beeswarm (default)</option>
-                <option value="ascends" {% if shap_view == "ascends" %}selected{% endif %}>ASCENDS Bar</option>
-              </select>
-              <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled aria-describedby="workspace-guidance"{% endif %}>Apply</button>
-            </form>
-
             {% if shap_warning %}
               <div class="notice notice-warning">
                 <strong>SHAP Warning:</strong> {{ shap_warning }}
