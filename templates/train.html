@@ -136,13 +136,13 @@
                   Resample each run
                 </label>
 
-                <button class="btn btn-sm" type="submit" {% if not ws_id or not target or not inputs %}disabled{% endif %}>
+                <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id or not target or not inputs %}disabled{% endif %}>
                   Train
                 </button>
               </form>
 
               {% if train_error %}
-                <div class="subcard" style="color:#a33;"><strong>Error:</strong> {{ train_error }}</div>
+                <div class="notice notice-error"><strong>Error:</strong> {{ train_error }}</div>
               {% endif %}
 
               {% if metrics_train and metrics_test %}
@@ -176,21 +176,21 @@
                 {% endif %}
               </div>
 
-              <div class="save-strip" style="margin-top:8px;">
+              <div class="save-strip mt-2">
                 {% if save_ok %}
-                  <div class="notice ok"><strong>{{ save_ok }}</strong></div>
+                  <div class="notice notice-success"><strong>{{ save_ok }}</strong></div>
                 {% endif %}
                 {% if train_error %}
-                  <div class="notice err"><strong>{{ train_error }}</strong></div>
+                  <div class="notice notice-error"><strong>{{ train_error }}</strong></div>
                 {% endif %}
-                <form action="/train/save" method="post" style="display:flex; gap:8px; align-items:center;">
+                <form action="/train/save" method="post" class="form-row">
                   {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
                   <label for="save-name"><strong>Name:</strong></label>
                   <input id="save-name" name="save_name" class="input" type="text" placeholder="e.g., my_best_model">
-                  <button class="btn btn-sm" type="submit" {% if not parity_img_url %}disabled{% endif %}>Save Model</button>
+                  <button class="btn btn-sm btn-primary" type="submit" {% if not parity_img_url %}disabled{% endif %}>Save Model</button>
                 </form>
                 {% if parity_img_url and ws_id %}
-                <a class="btn btn-sm" href="/train/report?ws_id={{ ws_id }}" target="_blank" style="margin-top:4px;">View Report</a>
+                <a class="btn btn-sm btn-ghost mt-1" href="/train/report?ws_id={{ ws_id }}" target="_blank">View Report</a>
                 {% endif %}
               </div>
             </div>
@@ -202,7 +202,7 @@
         <div class="card">
           <div class="card-title">SHAP (SHapley Additive exPlanations)</div>
           <div class="card-body train-accuracy-body">
-            <form action="/train/shap" method="post" style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;" data-loading="true" data-loading-msg="Computing SHAP values… this may take a while for large datasets.">
+            <form action="/train/shap" method="post" class="form-row mb-2" data-loading="true" data-loading-msg="Computing SHAP values… this may take a while for large datasets.">
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
               <label for="shap-samples"><strong>SHAP samples:</strong></label>
               <input id="shap-samples" name="max_samples" class="input" type="number" min="50" max="5000" step="50" value="300">
@@ -211,9 +211,9 @@
                 <option value="default" {% if shap_view != "ascends" %}selected{% endif %}>SHAP Beeswarm (default)</option>
                 <option value="ascends" {% if shap_view == "ascends" %}selected{% endif %}>ASCENDS Bar</option>
               </select>
-              <button class="btn btn-sm" type="submit" {% if not ws_id %}disabled{% endif %}>Run SHAP</button>
+              <button class="btn btn-sm btn-primary" type="submit" {% if not ws_id %}disabled{% endif %}>Run SHAP</button>
             </form>
-            <form action="/train/shap/view" method="post" style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+            <form action="/train/shap/view" method="post" class="form-row mb-2">
               {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
               <label for="shap-view-only"><strong>Switch View:</strong></label>
               <select id="shap-view-only" name="shap_view" class="input">
@@ -224,12 +224,12 @@
             </form>
 
             {% if shap_warning %}
-              <div class="subcard" style="color:#7a5200; margin-top:8px;">
+              <div class="notice notice-warning">
                 <strong>SHAP Warning:</strong> {{ shap_warning }}
               </div>
             {% endif %}
 
-            <div class="plot-box shap-box" style="margin-top:8px;">
+            <div class="plot-box shap-box mt-2">
               {% if shap_img_url %}
                 <img src="{{ shap_img_url }}" alt="SHAP importance plot">
               {% else %}
@@ -238,20 +238,20 @@
             </div>
 
             {% if shap_rows %}
-              <div class="subcard" style="margin-top:8px;">
+              <div class="subcard mt-2">
                 <strong>Top SHAP Features</strong>
-                <table class="table" style="width:100%; border-collapse:collapse; margin-top:6px;">
+                <table class="table table-compact mt-2">
                   <thead>
                     <tr>
-                      <th style="text-align:left; border-bottom:1px solid #ddd;">Feature</th>
-                      <th style="text-align:left; border-bottom:1px solid #ddd;">Importance</th>
+                      <th>Feature</th>
+                      <th>Importance</th>
                     </tr>
                   </thead>
                   <tbody>
                   {% for row in shap_rows %}
                     <tr>
-                      <td style="padding:4px 6px;">{{ row[0] }}</td>
-                      <td style="padding:4px 6px;">{{ "%.6f"|format(row[1]) }}</td>
+                      <td>{{ row[0] }}</td>
+                      <td>{{ "%.6f"|format(row[1]) }}</td>
                     </tr>
                   {% endfor %}
                   </tbody>
@@ -271,27 +271,27 @@
           <div class="card-title">ML Models</div>
           <div class="card-body">
             {% if saved_runs %}
-              <table class="table" style="width:100%; border-collapse:collapse;">
+              <table class="table table-compact">
                 <thead>
                   <tr>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Name</th>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Model</th>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Task</th>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Target</th>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Inputs</th>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Test R² / MAE / RMSE</th>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Created</th>
-                    <th style="text-align:left; border-bottom:1px solid #ddd;">Actions</th>
+                    <th>Name</th>
+                    <th>Model</th>
+                    <th>Task</th>
+                    <th>Target</th>
+                    <th>Inputs</th>
+                    <th>Test R² / MAE / RMSE</th>
+                    <th>Created</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                 {% for r in saved_runs %}
                   <tr>
-                    <td style="vertical-align:top; padding:4px 6px;"><code>{{ r.name }}</code></td>
-                    <td style="vertical-align:top; padding:4px 6px;">{{ r.model or "—" }}</td>
-                    <td style="vertical-align:top; padding:4px 6px;">{{ r.task or "r" }}</td>
-                    <td style="vertical-align:top; padding:4px 6px;">{{ r.target or "—" }}</td>
-                    <td style="vertical-align:top; padding:4px 6px;">
+                    <td><code>{{ r.name }}</code></td>
+                    <td>{{ r.model or "—" }}</td>
+                    <td>{{ r.task or "r" }}</td>
+                    <td>{{ r.target or "—" }}</td>
+                    <td>
                       {% if r.inputs %}
                         {{ r.inputs|length }}&nbsp;feat<br>
                         <small>{{ r.inputs|join(", ") }}</small>
@@ -299,7 +299,7 @@
                         —
                       {% endif %}
                     </td>
-                    <td style="vertical-align:top; padding:4px 6px;">
+                    <td>
                       {% set m = r.metrics if r.metrics is defined else r.get('metrics') %}
                       {% if m %}
                         R²={{ "%.3f"|format(m["R2"]) if m["R2"] is defined else "—" }},
@@ -307,15 +307,15 @@
                         RMSE={{ "%.3f"|format(m["RMSE"]) if m["RMSE"] is defined else "—" }}
                       {% else %}—{% endif %}
                     </td>
-                    <td style="vertical-align:top; padding:4px 6px;">{{ r.created_at or "—" }}</td>
-                    <td class="actions-cell" style="vertical-align:top; padding:4px 6px;">
+                    <td>{{ r.created_at or "—" }}</td>
+                    <td class="actions-cell">
                       <div class="actions-stack">
                         <a class="btn btn-sm" href="/predict?run={{ r.name }}">Proceed</a>
                         <a class="btn btn-sm" href="/runs/{{ r.name }}/report.html" target="_blank">Report</a>
                         <form action="/train/delete" method="post" onsubmit="return confirm('Delete run {{ r.name }}?');">
                           <input type="hidden" name="run_name" value="{{ r.name }}">
                           {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
-                          <button class="btn btn-sm" type="submit">Delete</button>
+                          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
                         </form>
                       </div>
                     </td>

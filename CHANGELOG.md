@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed (internal)
+
+- Introduced design tokens (`:root` CSS variables) for colors, spacing, radius, shadows, and typography.
+- Added button hierarchy (`.btn-primary`, `.btn-danger`, `.btn-ghost`) and applied it to core GUI actions.
+- Added semantic notice classes (`.notice-success`, `.notice-warning`, `.notice-error`, `.notice-info`).
+- Migrated frequently repeated inline styles in Train, Correlation, and Predict templates to utility classes.
+- Applied a shared typography scale to body text, headings, and card titles.
+
 ## [0.6.0] - 2026-05-22
 
 ### Removed (BREAKING)
