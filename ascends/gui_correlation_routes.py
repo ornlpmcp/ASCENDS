@@ -15,7 +15,15 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 
-from ascends.gui_messages import format_missing_columns_message
+from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.gui_messages import (
+    append_notice,
+    attach_error_recovery,
+    constant_columns_message,
+    format_missing_columns_message,
+    friendly_error,
+    rows_removed_message,
+)
 from ascends.gui_plotting import plot_metric_bars
 
 PREVIEW_NROWS = 5
@@ -173,6 +181,16 @@ def _add_preview(ctx: dict[str, Any], csv_path: str | None, nrows: int = PREVIEW
         pass
 
 
+def _add_non_ascii_notice(ctx: dict[str, Any], columns) -> None:
+    columns_with_non_ascii = warn_non_ascii_columns(columns)
+    if columns_with_non_ascii:
+        append_notice(
+            ctx,
+            f"{NON_ASCII_COLUMN_MESSAGE} Columns: {', '.join(columns_with_non_ascii)}",
+            level="warning",
+        )
+
+
 def create_correlation_router(
     *,
     templates: Jinja2Templates,
@@ -246,9 +264,11 @@ def create_correlation_router(
     ) -> HTMLResponse:
         mf = load_manifest(ws_id)
         if not mf:
+            ctx = {"request": request, "error": "Invalid session. Please re-upload CSV."}
+            attach_error_recovery(ctx, "correlation")
             return templates.TemplateResponse(
                 "correlation.html",
-                {"request": request, "error": "Invalid session. Please re-upload CSV."},
+                ctx,
             )
         cols = mf.get("columns", [])
         inputs = mf.get("inputs", [])
@@ -263,14 +283,18 @@ def create_correlation_router(
             "selected": mf.get("selected", []),
         }
         if not target:
+            ctx = {**base_ctx, "error": "Please set a target column before running correlation."}
+            attach_error_recovery(ctx, "correlation", ws_id=ws_id)
             return templates.TemplateResponse(
                 "correlation.html",
-                {**base_ctx, "error": "Please set a target column before running correlation."},
+                ctx,
             )
         if not inputs:
+            ctx = {**base_ctx, "error": "Please select at least one input feature."}
+            attach_error_recovery(ctx, "correlation", ws_id=ws_id)
             return templates.TemplateResponse(
                 "correlation.html",
-                {**base_ctx, "error": "Please select at least one input feature."},
+                ctx,
             )
 
         corr_section = mf.setdefault("corr", {})
@@ -282,7 +306,8 @@ def create_correlation_router(
                 if top_k_val <= 0:
                     raise ValueError("top_k must be > 0")
             except Exception as e:
-                ctx = {**base_ctx, "error": f"Invalid Top-K: {e}"}
+                ctx = {**base_ctx, "error": friendly_error(e, "correlation")}
+                attach_error_recovery(ctx, "correlation", ws_id=ws_id)
                 _add_preview(ctx, mf.get("csv_path"))
                 return templates.TemplateResponse("correlation.html", ctx)
 
@@ -297,19 +322,27 @@ def create_correlation_router(
         (data_dir / "corr_log.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
 
         ctx = {**base_ctx, "corr_info": info}
+        if info.get("rows_dropped", 0) > 0:
+            append_notice(ctx, rows_removed_message(info["rows_dropped"]), level="info")
+        skipped_inputs = info.get("skipped_inputs", [])
+        if skipped_inputs:
+            append_notice(ctx, constant_columns_message(skipped_inputs), level="warning")
+        _add_non_ascii_notice(ctx, df_clean.columns)
         missing_columns = info.get("missing_columns", [])
         if missing_columns:
             message = format_missing_columns_message(missing_columns)
             if target in missing_columns:
                 ctx["error"] = message
+                attach_error_recovery(ctx, "correlation", ws_id=ws_id)
                 _add_preview(ctx, mf.get("csv_path"))
                 return templates.TemplateResponse("correlation.html", ctx)
-            ctx["notice"] = message
+            append_notice(ctx, message, level="warning")
         _add_preview(ctx, mf.get("csv_path"))
         try:
             used_inputs = mf["corr"].get("used_inputs", inputs)
             if not used_inputs:
                 ctx["error"] = "No usable input features after cleaning (all constant or dropped)."
+                attach_error_recovery(ctx, "correlation", ws_id=ws_id)
                 return templates.TemplateResponse("correlation.html", ctx)
 
             chosen_metrics = mf["corr"].get("metrics", ["pearson", "spearman", "mi", "dcor"])
@@ -358,7 +391,8 @@ def create_correlation_router(
             ctx["metric_rows"] = top_df.values.tolist()
             return templates.TemplateResponse("correlation.html", ctx)
         except Exception as e:
-            ctx["error"] = f"Correlation computation failed: {e}"
+            ctx["error"] = friendly_error(e, "correlation")
+            attach_error_recovery(ctx, "correlation", ws_id=ws_id)
             return templates.TemplateResponse("correlation.html", ctx)
 
     @router.post("/correlation/view", response_class=HTMLResponse)
@@ -369,9 +403,11 @@ def create_correlation_router(
     ) -> HTMLResponse:
         mf = load_manifest(ws_id)
         if not mf or "corr" not in mf or not mf["corr"].get("artifacts"):
+            ctx = {"request": request, "error": "No correlation artifacts available. Please run correlation first."}
+            attach_error_recovery(ctx, "correlation", ws_id=ws_id)
             return templates.TemplateResponse(
                 "correlation.html",
-                {"request": request, "error": "No correlation artifacts available. Please run correlation first."},
+                ctx,
             )
 
         cols = mf.get("columns", [])
@@ -381,9 +417,11 @@ def create_correlation_router(
         artifacts = corr.get("artifacts") or {}
         available = list(artifacts.keys())
         if not available:
+            ctx = {"request": request, "error": "No metrics available."}
+            attach_error_recovery(ctx, "correlation", ws_id=ws_id)
             return templates.TemplateResponse(
                 "correlation.html",
-                {"request": request, "error": "No metrics available."},
+                ctx,
             )
         if metric not in available:
             metric = available[0]
@@ -423,9 +461,11 @@ def create_correlation_router(
     async def correlation_upload(request: Request, csvfile: UploadFile = File(...)) -> HTMLResponse:
         fname = (csvfile.filename or "").lower()
         if not fname.endswith(".csv"):
+            ctx = {"request": request, "error": "Please upload a .csv file."}
+            attach_error_recovery(ctx, "correlation")
             return templates.TemplateResponse(
                 "correlation.html",
-                {"request": request, "error": "Please upload a .csv file."},
+                ctx,
             )
         saved = await _save_csv(csvfile, uploads_dir)
         try:
@@ -433,9 +473,11 @@ def create_correlation_router(
             headers = list(df.columns)
             rows = df.astype(object).where(pd.notnull(df), None).values.tolist()
         except Exception as e:
+            ctx: dict[str, Any] = {"request": request, "error": friendly_error(e, "correlation")}
+            attach_error_recovery(ctx, "correlation")
             return templates.TemplateResponse(
                 "correlation.html",
-                {"request": request, "error": f"Failed to read CSV: {e}"},
+                ctx,
             )
         ws_id = uuid4().hex
         manifest = {
@@ -457,6 +499,7 @@ def create_correlation_router(
             "target": None,
             "selected": [],
         }
+        _add_non_ascii_notice(ctx, headers)
         return templates.TemplateResponse("correlation.html", ctx)
 
     @router.post("/correlation/select", response_class=HTMLResponse)

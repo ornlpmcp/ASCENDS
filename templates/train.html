@@ -154,7 +154,17 @@
               </form>
 
               {% if train_error %}
-                <div class="notice notice-error"><strong>Error:</strong> {{ train_error }}</div>
+                <div class="notice notice-error">
+                  <strong>Error:</strong> {{ train_error }}
+                  {% if error_recovery_url %}
+                    <div class="mt-2"><a class="btn btn-sm btn-ghost" href="{{ error_recovery_url }}">{{ error_recovery_label }}</a></div>
+                  {% endif %}
+                </div>
+              {% endif %}
+              {% if notices %}
+                {% for item in notices %}
+                  <div class="notice notice-{{ item.level }}">{{ item.message }}</div>
+                {% endfor %}
               {% endif %}
 
               {% if metrics_train and metrics_test %}
@@ -193,7 +203,12 @@
                   <div class="notice notice-success"><strong>{{ save_ok }}</strong></div>
                 {% endif %}
                 {% if train_error %}
-                  <div class="notice notice-error"><strong>{{ train_error }}</strong></div>
+                  <div class="notice notice-error">
+                    <strong>{{ train_error }}</strong>
+                    {% if error_recovery_url %}
+                      <div class="mt-2"><a class="btn btn-sm btn-ghost" href="{{ error_recovery_url }}">{{ error_recovery_label }}</a></div>
+                    {% endif %}
+                  </div>
                 {% endif %}
                 <form action="/train/save" method="post" class="form-row">
                   {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}

@@ -36,7 +36,15 @@
           <ul class="list">
             {% for e in predict_errors %}<li>{{ e }}</li>{% endfor %}
           </ul>
+          {% if error_recovery_url %}
+            <div class="mt-2"><a class="btn btn-sm btn-ghost" href="{{ error_recovery_url }}">{{ error_recovery_label }}</a></div>
+          {% endif %}
         </div>
+      {% endif %}
+      {% if notices %}
+        {% for item in notices %}
+          <div class="notice notice-{{ item.level }}">{{ item.message }}</div>
+        {% endfor %}
       {% endif %}
 
       {% if upload_info %}

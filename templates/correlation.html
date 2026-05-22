@@ -20,7 +20,17 @@
   </form>
 
   {% if error %}
-    <div class="notice notice-error"><strong>Error:</strong> {{ error }}</div>
+    <div class="notice notice-error">
+      <strong>Error:</strong> {{ error }}
+      {% if error_recovery_url %}
+        <div class="mt-2"><a class="btn btn-sm btn-ghost" href="{{ error_recovery_url }}">{{ error_recovery_label }}</a></div>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if notices %}
+    {% for item in notices %}
+      <div class="notice notice-{{ item.level }}">{{ item.message }}</div>
+    {% endfor %}
   {% endif %}
 
   <!-- Row 1: Data Table (full width) -->
@@ -215,7 +225,7 @@
               <select class="select" id="avail-chart-list"><option>Charts appear after run.</option></select>
             </div>
           </form>
-          {% if notice %}<div class="notice notice-info">{{ notice }}</div>{% endif %}
+          {% if notice and not notices %}<div class="notice notice-info">{{ notice }}</div>{% endif %}
           {% if chart_url %}
           <div class="subcard mt-3">
             <strong>Metric:</strong> {{ active_metric|upper }}

@@ -15,6 +15,14 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from joblib import load
 
+from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.gui_messages import (
+    append_notice,
+    attach_error_recovery,
+    friendly_error,
+    rows_removed_message,
+)
+
 
 def create_predict_router(
     *,
@@ -25,6 +33,15 @@ def create_predict_router(
 ) -> APIRouter:
     """Create routes for prediction page, prediction run, and CSV download."""
     router = APIRouter()
+
+    def _add_non_ascii_notice(ctx: dict[str, Any], columns) -> None:
+        columns_with_non_ascii = warn_non_ascii_columns(columns)
+        if columns_with_non_ascii:
+            append_notice(
+                ctx,
+                f"{NON_ASCII_COLUMN_MESSAGE} Columns: {', '.join(columns_with_non_ascii)}",
+                level="warning",
+            )
 
     @router.get("/predict", response_class=HTMLResponse)
     async def predict_page(request: Request, run: Optional[str] = None) -> HTMLResponse:
@@ -62,33 +79,40 @@ def create_predict_router(
             errors.append("Please upload a CSV file.")
         if errors:
             ctx["predict_errors"] = errors
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         man_path = runs_dir / run_name / "manifest.json"
         if not man_path.exists():
             ctx["predict_errors"] = [f"Run '{run_name}' is missing manifest.json."]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
         try:
             manifest = json.loads(man_path.read_text(encoding="utf-8"))
         except Exception as e:
-            ctx["predict_errors"] = [f"Failed to read manifest.json for '{run_name}': {e}"]
+            ctx["predict_errors"] = [friendly_error(e, "predict")]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         inputs: list[str] = manifest.get("inputs", []) or []
         target: Optional[str] = manifest.get("target") or None
         if not inputs:
             ctx["predict_errors"] = [f"Run '{run_name}' has no recorded input features in manifest.json."]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         try:
             raw = await csvfile.read()
             df = pd.read_csv(io.BytesIO(raw))
         except Exception as e:
-            ctx["predict_errors"] = [f"Failed to parse uploaded CSV: {e}"]
+            ctx["predict_errors"] = [friendly_error(e, "predict")]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
+        _add_non_ascii_notice(ctx, df.columns)
 
         if df.empty:
             ctx["predict_errors"] = ["Uploaded CSV is empty."]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         lower_candidates: dict[str, list[str]] = {}
@@ -112,6 +136,7 @@ def create_predict_router(
                 "Missing required feature(s) in CSV (case-insensitive match failed): "
                 + ", ".join(missing)
             ]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         aligned_cols = [mapping[feature] for feature in inputs]
@@ -123,27 +148,33 @@ def create_predict_router(
         df_used = df_aligned.dropna(axis=0, how="any")
         rows_used = len(df_used)
         dropped = rows_read - rows_used
+        if dropped > 0:
+            append_notice(ctx, rows_removed_message(dropped), level="info")
 
         if rows_used == 0:
             ctx["predict_errors"] = [
                 f"All {rows_read} rows contained NA/invalid values in required inputs; nothing to predict."
             ]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         model_path = runs_dir / run_name / "model.joblib"
         if not model_path.exists():
             ctx["predict_errors"] = [f"Run '{run_name}' is missing model.joblib."]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
         try:
             est = load(model_path)
         except Exception as e:
-            ctx["predict_errors"] = [f"Failed to load model.joblib: {e}"]
+            ctx["predict_errors"] = [friendly_error(e, "predict")]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         try:
             preds = est.predict(df_used)
         except Exception as e:
-            ctx["predict_errors"] = [f"Prediction failed: {e}"]
+            ctx["predict_errors"] = [friendly_error(e, "predict")]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         pred_col = f"{target}_pred" if target else "prediction"
@@ -163,7 +194,8 @@ def create_predict_router(
         try:
             result_df.to_csv(out_path, index=False)
         except Exception as e:
-            ctx["predict_errors"] = [f"Failed to save predictions CSV: {e}"]
+            ctx["predict_errors"] = [friendly_error(e, "predict")]
+            attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
         preview_df = result_df.head(5)
