@@ -31,6 +31,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
+from ascends.gui_messages import format_missing_columns_message
 from ascends.gui_plotting import save_confusion_plot, save_parity_plot
 
 try:
@@ -208,12 +209,12 @@ def create_train_run_router(
             ctx["train_error"] = f"Failed to read CSV: {e}"
             return templates.TemplateResponse("train.html", ctx)
 
-        needed = [column for column in inputs if column in df.columns]
-        if target in df.columns:
-            needed.append(target)
-        if not needed or target not in needed:
-            ctx["train_error"] = "Selected columns not found in CSV. (Case sensitivity or mismatch.)"
+        selected_columns = list(inputs) + [target]
+        missing_columns = [column for column in selected_columns if column not in df.columns]
+        if missing_columns:
+            ctx["train_error"] = format_missing_columns_message(missing_columns)
             return templates.TemplateResponse("train.html", ctx)
+        needed = list(inputs) + [target]
 
         df2 = df[needed].dropna(axis=0, how="any")
         X = df2[inputs]

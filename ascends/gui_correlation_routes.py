@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 
+from ascends.gui_messages import format_missing_columns_message
 from ascends.gui_plotting import plot_metric_bars
 
 PREVIEW_NROWS = 5
@@ -126,6 +127,7 @@ def _prepare_corr_dataframe(
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     raw = pd.read_csv(csv_path)
     cols = list(inputs) + [target]
+    missing = [column for column in cols if column not in raw.columns]
     existing = [column for column in cols if column in raw.columns]
     df = raw.loc[:, existing].copy()
     for column in existing:
@@ -155,6 +157,7 @@ def _prepare_corr_dataframe(
         "rows_dropped": dropped,
         "skipped_inputs": skipped,
         "used_inputs": good_inputs,
+        "missing_columns": missing,
     }
     return df, info
 
@@ -294,6 +297,14 @@ def create_correlation_router(
         (data_dir / "corr_log.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
 
         ctx = {**base_ctx, "corr_info": info}
+        missing_columns = info.get("missing_columns", [])
+        if missing_columns:
+            message = format_missing_columns_message(missing_columns)
+            if target in missing_columns:
+                ctx["error"] = message
+                _add_preview(ctx, mf.get("csv_path"))
+                return templates.TemplateResponse("correlation.html", ctx)
+            ctx["notice"] = message
         _add_preview(ctx, mf.get("csv_path"))
         try:
             used_inputs = mf["corr"].get("used_inputs", inputs)
