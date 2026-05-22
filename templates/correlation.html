@@ -14,9 +14,7 @@
   </form>
 
   {% if error %}
-    <div class="card" style="border-color:#f99;background:#fff3f3;">
-      <div class="card-body"><strong>Error:</strong> {{ error }}</div>
-    </div>
+    <div class="notice notice-error"><strong>Error:</strong> {{ error }}</div>
   {% endif %}
 
   <!-- Row 1: Data Table (full width) -->
@@ -211,7 +209,7 @@
               <select class="select" id="avail-chart-list"><option>Charts appear after run.</option></select>
             </div>
           </form>
-          {% if notice %}<p style="margin-top:8px;"><em>{{ notice }}</em></p>{% endif %}
+          {% if notice %}<div class="notice notice-info">{{ notice }}</div>{% endif %}
           {% if chart_url %}
           <div class="subcard" style="margin-top:12px;">
             <strong>Metric:</strong> {{ active_metric|upper }}

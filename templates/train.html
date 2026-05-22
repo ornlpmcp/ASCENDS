@@ -142,7 +142,7 @@
               </form>
 
               {% if train_error %}
-                <div class="subcard" style="color:#a33;"><strong>Error:</strong> {{ train_error }}</div>
+                <div class="notice notice-error"><strong>Error:</strong> {{ train_error }}</div>
               {% endif %}
 
               {% if metrics_train and metrics_test %}
@@ -178,10 +178,10 @@
 
               <div class="save-strip" style="margin-top:8px;">
                 {% if save_ok %}
-                  <div class="notice ok"><strong>{{ save_ok }}</strong></div>
+                  <div class="notice notice-success"><strong>{{ save_ok }}</strong></div>
                 {% endif %}
                 {% if train_error %}
-                  <div class="notice err"><strong>{{ train_error }}</strong></div>
+                  <div class="notice notice-error"><strong>{{ train_error }}</strong></div>
                 {% endif %}
                 <form action="/train/save" method="post" style="display:flex; gap:8px; align-items:center;">
                   {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
@@ -224,7 +224,7 @@
             </form>
 
             {% if shap_warning %}
-              <div class="subcard" style="color:#7a5200; margin-top:8px;">
+              <div class="notice notice-warning">
                 <strong>SHAP Warning:</strong> {{ shap_warning }}
               </div>
             {% endif %}

@@ -31,7 +31,7 @@
       </form>
 
       {% if predict_errors %}
-        <div class="subcard" style="color:#a33; margin-top:10px;">
+        <div class="notice notice-error">
           <strong>Errors:</strong>
           <ul class="list">
             {% for e in predict_errors %}<li>{{ e }}</li>{% endfor %}

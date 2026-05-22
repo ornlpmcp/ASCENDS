@@ -299,6 +299,33 @@ nav a:hover { color:var(--accent); }
   background: #fbfdff;
   border-radius: var(--radius-md);
 }
+.notice {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border-left: 3px solid;
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-sm);
+}
+.notice-success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success-fg);
+}
+.notice-warning {
+  background: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning-fg);
+}
+.notice-error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-fg);
+}
+.notice-info {
+  background: var(--color-info-bg);
+  border-color: var(--color-info-border);
+  color: var(--color-info-fg);
+}
 
 .toolbar {
   display: flex;
