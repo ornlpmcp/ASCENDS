@@ -8,6 +8,10 @@ import pandas as pd
 
 SMALL_DATASET_WARNING_ROWS = 100
 SMALL_DATASET_WARNING = "This dataset has fewer than 100 rows. Treat model metrics as preliminary."
+CV_MIN_ROWS = 300
+CV_UNAVAILABLE_SMALL_DATA = "CV unavailable: dataset has fewer than 300 rows."
+CV_UNAVAILABLE_CLASS_IMBALANCE = "CV unavailable: class imbalance prevents 3-fold stratified split."
+CV_UNAVAILABLE_FAILED = "CV unavailable: cross-validation failed for this dataset/model."
 REGRESSION_R2_STRONG = 0.80
 REGRESSION_R2_CAUTION = 0.50
 CLASSIFICATION_STRONG = 0.85
@@ -66,6 +70,29 @@ def interpret_classification_metrics(metrics: dict[str, float]) -> dict[str, Any
         "ROC_AUC": _metric_entry("N/A", "Ranking metric for binary classification."),
     }
     return {"overall": overall, "metrics": metric_labels}
+
+
+def cv_unavailable_reason(
+    *,
+    row_count: int,
+    task: str,
+    class_counts: dict[Any, int] | None = None,
+) -> str | None:
+    """Return a user-facing reason when 3-fold CV should be skipped."""
+    if row_count < CV_MIN_ROWS:
+        return CV_UNAVAILABLE_SMALL_DATA
+    if task == "c":
+        counts = class_counts or {}
+        if len(counts) < 2 or min(counts.values(), default=0) < 3:
+            return CV_UNAVAILABLE_CLASS_IMBALANCE
+    return None
+
+
+def format_cv_summary(summary: dict[str, float | str]) -> str:
+    metric = str(summary["metric"])
+    mean = float(summary["mean"])
+    std = float(summary["std"])
+    return f"CV {metric}: {mean:.4f} ± {std:.4f}"
 
 
 def summarize_dataframe(df: pd.DataFrame, *, top_n: int = 3) -> dict[str, Any]:

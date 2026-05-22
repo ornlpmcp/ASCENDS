@@ -104,7 +104,7 @@
               {% set current_seed = (train_params['seed'] if train_params and 'seed' in train_params else 42) %}
               {% set current_resample = (train_params['resample'] if train_params and 'resample' in train_params else False) %}
 
-              <form action="/train/run" method="post" class="acc-toolbar" data-loading="true" data-loading-msg="Training model… (~30s for small datasets)">
+              <form action="/train/run" method="post" class="acc-toolbar" data-loading="true" data-loading-msg="Training model with cross-validation… (~30s for small datasets)">
                 {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
 
                 <strong>Task:</strong>
@@ -194,6 +194,11 @@
                     <div class="notice notice-info">
                       <strong>Overall:</strong> {{ metric_interpretation.overall.label }}.
                       {{ metric_interpretation.overall.note }}
+                    </div>
+                  {% endif %}
+                  {% if cv_summary_text %}
+                    <div class="notice notice-info">
+                      <strong>{{ cv_summary_text }}</strong>
                     </div>
                   {% endif %}
                   <em>Training completed and metrics are computed.</em>
