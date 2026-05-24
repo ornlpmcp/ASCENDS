@@ -12,7 +12,7 @@ from urllib.parse import quote
 
 import pandas as pd
 from fastapi import APIRouter, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from joblib import dump
 
@@ -22,9 +22,40 @@ from ascends.gui_interpretation import format_cv_summary, get_metric_help, get_p
 logger = logging.getLogger("ascends.gui")
 
 
+def _safe_run_dir(runs_dir: Path, run_name: str) -> Path:
+    """Resolve a run directory while preventing traversal outside runs_dir."""
+    if not run_name or "/" in run_name or "\\" in run_name or run_name in {".", ".."}:
+        raise ValueError("Invalid run name.")
+    root = runs_dir.resolve()
+    target = (runs_dir / run_name).resolve()
+    if target.parent != root:
+        raise ValueError("Invalid run name.")
+    return target
+
+
+def delete_saved_run_confirmation(runs_dir: Path, run_name: str) -> dict[str, str]:
+    """Return confirmation context for a saved-run delete request."""
+    target_dir = _safe_run_dir(runs_dir, run_name)
+    if not target_dir.exists() or not target_dir.is_dir():
+        raise FileNotFoundError(f"Run not found: {run_name}")
+    return {
+        "run_name": run_name,
+        "message": f"Delete saved model '{run_name}'? This cannot be undone.",
+    }
+
+
+def delete_saved_run(runs_dir: Path, run_name: str) -> str:
+    """Delete a saved run after confirmation."""
+    target_dir = _safe_run_dir(runs_dir, run_name)
+    if not target_dir.exists() or not target_dir.is_dir():
+        raise FileNotFoundError(f"Run not found: {run_name}")
+    shutil.rmtree(target_dir)
+    return f"Deleted run: {run_name}"
+
+
 def _train_context(
     request: Request,
-    ws_id: str,
+    ws_id: str | None,
     manifest: dict[str, Any],
 ) -> dict[str, Any]:
     return {
@@ -318,16 +349,35 @@ def create_saved_run_router(
         run_name: str = Form(...),
         ws_id: Optional[str] = Form(None),
     ) -> HTMLResponse:
-        ctx: dict[str, Any] = {"request": request}
-        target_dir = runs_dir / run_name
-        if target_dir.exists() and target_dir.is_dir():
-            try:
-                shutil.rmtree(target_dir)
-                ctx["save_ok"] = f"Deleted run: {run_name}"
-            except Exception as e:
-                ctx["train_error"] = f"Failed to delete run {run_name}: {e}"
-        else:
-            ctx["train_error"] = f"Run not found: {run_name}"
+        try:
+            confirmation = delete_saved_run_confirmation(runs_dir, run_name)
+        except ValueError as e:
+            return PlainTextResponse(str(e), status_code=400)
+        except FileNotFoundError as e:
+            ctx = _train_context(request, ws_id, load_manifest(ws_id) if ws_id else {})
+            ctx["train_error"] = str(e)
+            ctx["saved_runs"] = list_saved_runs()
+            return templates.TemplateResponse("train.html", ctx)
+
+        ctx = _train_context(request, ws_id, load_manifest(ws_id) if ws_id else {})
+        ctx["delete_confirm"] = confirmation
+        ctx["saved_runs"] = list_saved_runs()
+        return templates.TemplateResponse("train.html", ctx)
+
+    @router.post("/train/delete/confirm", response_class=HTMLResponse)
+    async def train_delete_confirm(
+        request: Request,
+        run_name: str = Form(...),
+        ws_id: Optional[str] = Form(None),
+    ) -> HTMLResponse:
+        ctx = _train_context(request, ws_id, load_manifest(ws_id) if ws_id else {})
+        try:
+            message = delete_saved_run(runs_dir, run_name)
+            ctx["save_ok"] = message
+        except ValueError as e:
+            return PlainTextResponse(str(e), status_code=400)
+        except Exception as e:
+            ctx["train_error"] = f"Failed to delete run {run_name}: {e}"
 
         if ws_id:
             return RedirectResponse(url=f"/train?ws_id={quote(ws_id)}", status_code=303)

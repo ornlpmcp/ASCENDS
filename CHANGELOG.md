@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.1] - 2026-05-24
+
+### Added
+
+- Added GUI workflow step indicators for Correlation, Train, and Predict with completion state.
+- Added Home page starters for bundled regression and classification sample data.
+- Added a saved-model delete confirmation step so the first click no longer deletes a run.
+- Added sample-specific Train defaults so the classification example opens with Classification selected.
+
+### Changed
+
+- Simplified core GUI page titles and workflow labels to Correlation, Train, and Predict.
+- Bumped the project version to 0.8.1 for the Phase 4 workflow visibility release.
+
 ## [0.8.0] - 2026-05-22
 
 ### Added
