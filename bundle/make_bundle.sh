@@ -76,11 +76,15 @@ fi
 if [[ -z "$BUILD_PYTHON" && -x "/usr/local/bin/python3.11" ]]; then
   BUILD_PYTHON="/usr/local/bin/python3.11"
 fi
-if [[ -z "$BUILD_PYTHON" ]]; then
-  echo "[ASCENDS] ERROR: Python 3.11 not found. Install Python 3.11 on the build machine." >&2
-  exit 1
+
+UV_SYNC_ARGS=(sync --no-dev --link-mode=copy)
+if [[ -n "$BUILD_PYTHON" ]]; then
+  echo "[ASCENDS] Using Python for build only: $BUILD_PYTHON"
+  UV_SYNC_ARGS+=(--python "$BUILD_PYTHON" --python-preference only-system)
+else
+  echo "[ASCENDS] Python 3.11 not found; using uv-managed Python for this platform."
+  UV_SYNC_ARGS+=(--python-preference managed)
 fi
-echo "[ASCENDS] Using Python for build only: $BUILD_PYTHON"
 
 # ── Pre-build venv using build-machine uv ─────────────────────────────────────
 echo "[ASCENDS] Pre-building virtual environment (speeds up first launch)..."
@@ -88,7 +92,7 @@ BUILD_UV_CACHE="$DIST_DIR/.uv-build-cache"
 rm -rf "$BUILD_UV_CACHE"
 mkdir -p "$BUILD_UV_CACHE"
 pushd "$BUNDLE_APP" >/dev/null
-UV_CACHE_DIR="$BUILD_UV_CACHE" UV_LINK_MODE=copy "$UV_BIN" sync --no-dev --link-mode=copy --python "$BUILD_PYTHON" --python-preference only-system
+UV_CACHE_DIR="$BUILD_UV_CACHE" UV_LINK_MODE=copy "$UV_BIN" "${UV_SYNC_ARGS[@]}"
 popd >/dev/null
 if [[ -f "$BUNDLE_APP/.venv/pyvenv.cfg" ]]; then
   sed -i.bak 's|^home = .*|home = ../../python/bin|' "$BUNDLE_APP/.venv/pyvenv.cfg"
@@ -114,19 +118,21 @@ echo "[ASCENDS] Bundling Python from: $PY_BASE_REAL"
 cp -R "$PY_BASE_REAL" "$BUNDLE_ROOT/python"
 
 if [[ "$OS_TAG" == "macOS" ]]; then
-  echo "[ASCENDS] Rewriting bundled Python library paths for portability..."
   PYTHON_EXE="$(find "$BUNDLE_ROOT/python/bin" -maxdepth 1 -type f -name 'python3*' | head -n 1)"
   PYTHON_DYLIB="$BUNDLE_ROOT/python/Python"
-  if [[ -z "$PYTHON_EXE" || ! -x "$PYTHON_EXE" || ! -f "$PYTHON_DYLIB" ]]; then
-    echo "[ASCENDS] ERROR: bundled Python framework layout is incomplete." >&2
+  if [[ -z "$PYTHON_EXE" || ! -x "$PYTHON_EXE" ]]; then
+    echo "[ASCENDS] ERROR: bundled Python executable not found." >&2
     exit 1
   fi
 
   OLD_PYTHON_DYLIB="$(otool -L "$PYTHON_EXE" | awk '/Python\.framework\/Versions\/[0-9.]+\/Python/ {print $1; exit}')"
-  if [[ -n "$OLD_PYTHON_DYLIB" ]]; then
+  if [[ -n "$OLD_PYTHON_DYLIB" && -f "$PYTHON_DYLIB" ]]; then
+    echo "[ASCENDS] Rewriting bundled Python framework paths for portability..."
     install_name_tool -change "$OLD_PYTHON_DYLIB" "@executable_path/../Python" "$PYTHON_EXE"
     install_name_tool -id "@executable_path/../Python" "$PYTHON_DYLIB"
     codesign --force --sign - "$PYTHON_DYLIB" "$PYTHON_EXE" >/dev/null
+  else
+    echo "[ASCENDS] Bundled Python does not use Homebrew framework paths; no rewrite needed."
   fi
 fi
 
