@@ -29,6 +29,7 @@ test/boston_rf/
 test/boston_linear/
 test/iris_rf_cli/
 test/tmp_cls.csv
+test/test_phase*.py
 
 # bundle/build artifacts
 bundle-out/

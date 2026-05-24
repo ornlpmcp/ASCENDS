@@ -10,6 +10,8 @@ ASCENDS (Advanced data SCiEnce toolkit for Non-Data Scientists) helps research u
 - Model training and prediction workflows
 - Regression outputs with parity plots and SHAP feature importance
 - Classification backend support with confusion matrix generation
+- Guided GUI workflow steps: Correlation -> Train -> Predict
+- Built-in regression and classification sample data starters
 - Reproducible run artifacts in `runs/`
 
 All processing runs locally — no data leaves your machine.
@@ -31,6 +33,23 @@ The browser opens automatically at `http://127.0.0.1:7777`.
 > **First launch on Windows/macOS** may take 1–2 minutes while math libraries compile. Subsequent launches are fast.
 
 The Windows and macOS bundles include Python and the package environment. End users do not need Python or `uv`.
+
+---
+
+## GUI Workflow
+
+The GUI is organized as a three-step flow:
+
+1. **Correlation**: upload a CSV, choose a target, and select input features.
+2. **Train**: train a regression or classification model, review metrics and plots, then save the model.
+3. **Predict**: apply a saved model to a new CSV file.
+
+From the Home page, you can start immediately with bundled sample data:
+
+- **Start with Sample Regression Data** uses Boston Housing and selects `medv` as the target.
+- **Start with Sample Classification Data** uses Iris and opens Train with Classification selected by default.
+
+All processing runs locally in your browser-backed desktop session.
 
 ---
 
@@ -97,7 +116,7 @@ The Windows and macOS bundles include a Python runtime and launch without `uv` o
 
 ---
 
-## Smoke Test
+## Developer Smoke Test
 
 ```bash
 # macOS / Linux
@@ -106,6 +125,8 @@ The Windows and macOS bundles include a Python runtime and launch without `uv` o
 # Windows (PowerShell)
 ./test/test.ps1
 ```
+
+Developer-only phase regression tests (`test/test_phase*.py`) are kept local and are not part of the public repository.
 
 ---
 
