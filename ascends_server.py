@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 import json
 from typing import Optional, Dict, Any
-from fastapi import Request
+from fastapi import Form, Request
 from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 import pandas as pd
 import time
@@ -162,7 +162,7 @@ async def home(request: Request) -> HTMLResponse:
 
 
 @app.post("/sample/start")
-async def start_sample(kind: str) -> RedirectResponse:
+async def start_sample(kind: str = Form(...)) -> RedirectResponse:
     sample_by_kind = {sample["kind"]: sample for sample in _available_samples()}
     sample = sample_by_kind.get(kind)
     if not sample:
