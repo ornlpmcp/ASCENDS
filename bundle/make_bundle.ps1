@@ -167,7 +167,27 @@ if (Test-Path $ArchivePath) {
 }
 
 Write-Host "[ASCENDS] Creating archive: $ArchivePath"
-Compress-Archive -Path $BundleRoot -DestinationPath $ArchivePath -Force
+$ArchiveParent = Split-Path -Parent $ArchivePath
+$ArchiveLeaf = Split-Path -Leaf $ArchivePath
+$BundleParent = Split-Path -Parent $BundleRoot
+$BundleLeaf = Split-Path -Leaf $BundleRoot
+$TarExe = (Get-Command tar.exe -ErrorAction SilentlyContinue).Source
+if ($TarExe) {
+  Write-Host "[ASCENDS] Using tar.exe for faster zip creation..."
+  Push-Location $BundleParent
+  try {
+    & $TarExe -a -cf (Join-Path $ArchiveParent $ArchiveLeaf) $BundleLeaf
+  } finally {
+    Pop-Location
+  }
+  if ($LASTEXITCODE -ne 0 -or -not (Test-Path $ArchivePath) -or ((Get-Item $ArchivePath).Length -le 0)) {
+    Write-Host "[ASCENDS] tar.exe failed; falling back to Compress-Archive..." -ForegroundColor Yellow
+    Compress-Archive -Path $BundleRoot -DestinationPath $ArchivePath -Force
+  }
+} else {
+  Write-Host "[ASCENDS] tar.exe not found; falling back to Compress-Archive..." -ForegroundColor Yellow
+  Compress-Archive -Path $BundleRoot -DestinationPath $ArchivePath -Force
+}
 
 Write-Host ""
 Write-Host "[ASCENDS] Bundle complete!" -ForegroundColor Green
