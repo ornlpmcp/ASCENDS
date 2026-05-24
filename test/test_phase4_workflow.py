@@ -42,12 +42,15 @@ def test_create_sample_workspace_writes_manifest_with_defaults(tmp_path: Path) -
         sample_csv=sample_csv,
         workspace_dir=workspace_dir,
         target="Name",
+        task="c",
     )
 
     manifest = json.loads((workspace_dir / ws_id / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["csv_path"] == str(sample_csv)
     assert manifest["columns"] == ["SepalLength", "SepalWidth", "PetalLength", "PetalWidth", "Name"]
     assert manifest["target"] == "Name"
+    assert manifest["task"] == "c"
+    assert manifest["train_params"]["task"] == "c"
     assert manifest["inputs"] == ["SepalLength", "SepalWidth", "PetalLength", "PetalWidth"]
     assert manifest["selected"] == manifest["columns"]
 

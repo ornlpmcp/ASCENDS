@@ -124,12 +124,14 @@ def _available_samples() -> list[dict[str, str]]:
             "label": "Start with Sample Regression Data",
             "path": BASE_DIR / "examples" / "BostonHousing.csv",
             "target": "medv",
+            "task": "r",
         },
         {
             "kind": "classification",
             "label": "Start with Sample Classification Data",
             "path": BASE_DIR / "examples" / "iris.csv",
             "target": "Name",
+            "task": "c",
         },
     ]
     return [
@@ -171,6 +173,7 @@ async def start_sample(kind: str = Form(...)) -> RedirectResponse:
         sample_csv=Path(sample["path"]),
         workspace_dir=WORKSPACE_DIR,
         target=sample["target"],
+        task=sample["task"],
     )
     return RedirectResponse(url=f"/correlation?ws_id={quote(ws_id)}", status_code=303)
 
@@ -198,6 +201,7 @@ async def train_page(request: Request, ws_id: Optional[str] = None) -> HTMLRespo
             "selected": mf.get("selected", []),
             "inputs": mf.get("inputs", []),
             "target": mf.get("target"),
+            "train_params": mf.get("train_params", {"task": mf.get("task", "r")}),
             "shap_view": shap_view,
         })
 

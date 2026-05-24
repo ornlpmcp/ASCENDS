@@ -52,7 +52,7 @@ def build_workflow_steps(
     ]
 
 
-def create_sample_workspace(*, sample_csv: Path, workspace_dir: Path, target: str) -> str:
+def create_sample_workspace(*, sample_csv: Path, workspace_dir: Path, target: str, task: str = "r") -> str:
     """Create a workspace manifest pointing at a bundled sample CSV."""
     df = pd.read_csv(sample_csv, nrows=1)
     columns = list(df.columns)
@@ -65,6 +65,8 @@ def create_sample_workspace(*, sample_csv: Path, workspace_dir: Path, target: st
         "columns": columns,
         "inputs": [column for column in columns if column != target],
         "target": target,
+        "task": task,
+        "train_params": {"task": task, "model": "rf", "test_size": 0.2, "seed": 42, "resample": False},
         "selected": columns,
         "sample_data": sample_csv.name,
     }
