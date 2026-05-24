@@ -57,11 +57,30 @@ done
 # ── Find uv for build-time environment creation ───────────────────────────────
 echo "[ASCENDS] Locating uv..."
 UV_BIN="$(command -v uv 2>/dev/null || true)"
+if [[ -z "$UV_BIN" && -x "/opt/homebrew/bin/uv" ]]; then
+  UV_BIN="/opt/homebrew/bin/uv"
+fi
+if [[ -z "$UV_BIN" && -x "/usr/local/bin/uv" ]]; then
+  UV_BIN="/usr/local/bin/uv"
+fi
 if [[ -z "$UV_BIN" ]]; then
   echo "[ASCENDS] ERROR: uv not found on PATH. Install uv first: https://docs.astral.sh/uv/" >&2
   exit 1
 fi
 echo "[ASCENDS] Using uv for build only: $UV_BIN"
+
+BUILD_PYTHON="$(command -v python3.11 2>/dev/null || true)"
+if [[ -z "$BUILD_PYTHON" && -x "/opt/homebrew/bin/python3.11" ]]; then
+  BUILD_PYTHON="/opt/homebrew/bin/python3.11"
+fi
+if [[ -z "$BUILD_PYTHON" && -x "/usr/local/bin/python3.11" ]]; then
+  BUILD_PYTHON="/usr/local/bin/python3.11"
+fi
+if [[ -z "$BUILD_PYTHON" ]]; then
+  echo "[ASCENDS] ERROR: Python 3.11 not found. Install Python 3.11 on the build machine." >&2
+  exit 1
+fi
+echo "[ASCENDS] Using Python for build only: $BUILD_PYTHON"
 
 # ── Pre-build venv using build-machine uv ─────────────────────────────────────
 echo "[ASCENDS] Pre-building virtual environment (speeds up first launch)..."
@@ -69,8 +88,12 @@ BUILD_UV_CACHE="$DIST_DIR/.uv-build-cache"
 rm -rf "$BUILD_UV_CACHE"
 mkdir -p "$BUILD_UV_CACHE"
 pushd "$BUNDLE_APP" >/dev/null
-UV_CACHE_DIR="$BUILD_UV_CACHE" UV_LINK_MODE=copy "$UV_BIN" sync --no-dev --link-mode=copy --python-preference managed
+UV_CACHE_DIR="$BUILD_UV_CACHE" UV_LINK_MODE=copy "$UV_BIN" sync --no-dev --link-mode=copy --python "$BUILD_PYTHON" --python-preference only-system
 popd >/dev/null
+if [[ -f "$BUNDLE_APP/.venv/pyvenv.cfg" ]]; then
+  sed -i.bak 's|^home = .*|home = ../../python/bin|' "$BUNDLE_APP/.venv/pyvenv.cfg"
+  rm -f "$BUNDLE_APP/.venv/pyvenv.cfg.bak"
+fi
 
 # ── Bundle the Python runtime used by the venv ────────────────────────────────
 echo "[ASCENDS] Locating Python runtime to bundle..."
@@ -89,6 +112,23 @@ fi
 PY_BASE_REAL="$(cd "$PY_BASE" && pwd -P)"
 echo "[ASCENDS] Bundling Python from: $PY_BASE_REAL"
 cp -R "$PY_BASE_REAL" "$BUNDLE_ROOT/python"
+
+if [[ "$OS_TAG" == "macOS" ]]; then
+  echo "[ASCENDS] Rewriting bundled Python library paths for portability..."
+  PYTHON_EXE="$(find "$BUNDLE_ROOT/python/bin" -maxdepth 1 -type f -name 'python3*' | head -n 1)"
+  PYTHON_DYLIB="$BUNDLE_ROOT/python/Python"
+  if [[ -z "$PYTHON_EXE" || ! -x "$PYTHON_EXE" || ! -f "$PYTHON_DYLIB" ]]; then
+    echo "[ASCENDS] ERROR: bundled Python framework layout is incomplete." >&2
+    exit 1
+  fi
+
+  OLD_PYTHON_DYLIB="$(otool -L "$PYTHON_EXE" | awk '/Python\.framework\/Versions\/[0-9.]+\/Python/ {print $1; exit}')"
+  if [[ -n "$OLD_PYTHON_DYLIB" ]]; then
+    install_name_tool -change "$OLD_PYTHON_DYLIB" "@executable_path/../Python" "$PYTHON_EXE"
+    install_name_tool -id "@executable_path/../Python" "$PYTHON_DYLIB"
+    codesign --force --sign - "$PYTHON_DYLIB" "$PYTHON_EXE" >/dev/null
+  fi
+fi
 
 # ── Bundle metadata ───────────────────────────────────────────────────────────
 cat > "$BUNDLE_ROOT/bundle-meta.txt" <<EOF
@@ -114,8 +154,11 @@ if [[ -z "\$PYTHON_BIN" || ! -x "\$PYTHON_BIN" ]]; then
   exit 1
 fi
 export PYTHONPATH="\$ROOT_DIR/ASCENDS/.venv/lib/python${PY_VERSION}/site-packages\${PYTHONPATH:+:\$PYTHONPATH}"
+export PYTHONHOME="\$ROOT_DIR/python"
 export NUMBA_CACHE_DIR="\${TMPDIR:-/tmp}/ascends_numba_cache"
+export MPLCONFIGDIR="\${TMPDIR:-/tmp}/ascends_matplotlib_cache"
 mkdir -p "\$NUMBA_CACHE_DIR"
+mkdir -p "\$MPLCONFIGDIR"
 cd "\$ROOT_DIR/ASCENDS"
 echo "[ASCENDS] Launching GUI at http://127.0.0.1:7777"
 echo "[ASCENDS] Browser should open automatically at http://127.0.0.1:7777"
@@ -137,8 +180,11 @@ if [[ -z "\$PYTHON_BIN" || ! -x "\$PYTHON_BIN" ]]; then
   exit 1
 fi
 export PYTHONPATH="\$ROOT_DIR/ASCENDS/.venv/lib/python${PY_VERSION}/site-packages\${PYTHONPATH:+:\$PYTHONPATH}"
+export PYTHONHOME="\$ROOT_DIR/python"
 export NUMBA_CACHE_DIR="\${TMPDIR:-/tmp}/ascends_numba_cache"
+export MPLCONFIGDIR="\${TMPDIR:-/tmp}/ascends_matplotlib_cache"
 mkdir -p "\$NUMBA_CACHE_DIR"
+mkdir -p "\$MPLCONFIGDIR"
 cd "\$ROOT_DIR/ASCENDS"
 exec "\$PYTHON_BIN" -c "import sys; sys.argv[0]='ascends'; from ascends.cli import app; app()" "\$@"
 EOF
