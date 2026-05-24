@@ -25,19 +25,16 @@
 
 {% set ws = (ws_id if (ws_id is defined and ws_id) else (request.query_params.get('ws_id') if request else None)) %}
 
-<nav class="tabs">
-  <a href="/correlation{% if ws %}?ws_id={{ ws }}{% endif %}"
-     class="tab{% if request and request.url and request.url.path.startswith('/correlation') %} active{% endif %}">
-    Correlation Analysis &amp; Feature Selection
-  </a>
-  <a href="/train{% if ws %}?ws_id={{ ws }}{% endif %}"
-     class="tab{% if request and request.url and request.url.path.startswith('/train') %} active{% endif %}">
-    ML Performance Training &amp; Test
-  </a>
-  <a href="/predict{% if ws %}?ws_id={{ ws }}{% endif %}"
-     class="tab{% if request and request.url and request.url.path.startswith('/predict') %} active{% endif %}">
-    ML Prediction
-  </a>
+<nav class="tabs" aria-label="ASCENDS workflow steps">
+  {% for step in workflow_steps %}
+    <a href="{{ step.href }}"
+       class="tab{% if step.active %} active{% endif %}{% if step.complete %} complete{% endif %}"
+       aria-current="{{ 'page' if step.active else 'false' }}">
+      <span class="tab-check" aria-hidden="true">{% if step.complete %}✓{% endif %}</span>
+      <span class="tab-label">{{ step.label }}</span>
+      <span class="tab-short">{{ step.short_label }}</span>
+    </a>
+  {% endfor %}
 </nav>
 
   <main class="container">

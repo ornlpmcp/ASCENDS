@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}ASCENDS — ML Performance Training &amp; Test{% endblock %}
+{% block title %}ASCENDS — Train{% endblock %}
 
 {% block content %}
 <div class="train-page">
   <section class="panel">
-    <h2>ML Performance Training &amp; Test</h2>
+    <h2>Train</h2>
     {% if not ws_id %}
       <div id="workspace-guidance" class="notice notice-info">
         Please start from the Correlation step to upload data and select features.
@@ -308,6 +308,17 @@
         <div class="card">
           <div class="card-title">ML Models</div>
           <div class="card-body">
+            {% if delete_confirm %}
+              <div class="notice notice-warning">
+                <strong>{{ delete_confirm.message }}</strong>
+                <form action="/train/delete/confirm" method="post" class="toolbar mt-2">
+                  <input type="hidden" name="run_name" value="{{ delete_confirm.run_name }}">
+                  {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
+                  <button class="btn btn-sm btn-danger" type="submit">Confirm Delete</button>
+                  <a class="btn btn-sm" href="/train{% if ws_id %}?ws_id={{ ws_id }}{% endif %}">Cancel</a>
+                </form>
+              </div>
+            {% endif %}
             {% if saved_runs %}
               <table class="table table-compact">
                 <thead>
@@ -350,7 +361,7 @@
                       <div class="actions-stack">
                         <a class="btn btn-sm" href="/predict?run={{ r.name }}">Proceed</a>
                         <a class="btn btn-sm" href="/runs/{{ r.name }}/report.html" target="_blank">Report</a>
-                        <form action="/train/delete" method="post" onsubmit="return confirm('Delete run {{ r.name }}?');">
+                        <form action="/train/delete" method="post">
                           <input type="hidden" name="run_name" value="{{ r.name }}">
                           {% if ws_id %}<input type="hidden" name="ws_id" value="{{ ws_id }}">{% endif %}
                           <button class="btn btn-sm btn-danger" type="submit">Delete</button>

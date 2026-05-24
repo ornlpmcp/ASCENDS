@@ -23,15 +23,15 @@
     <div class="card-body">
       <ol class="list" style="padding-left:18px;">
         <li>
-          <strong>Correlation Analysis &amp; Feature Selection</strong>:
+          <strong>Correlation</strong>:
           Upload CSV, choose target, and identify useful inputs.
         </li>
         <li>
-          <strong>ML Performance Training &amp; Test</strong>:
+          <strong>Train</strong>:
           Train a model, review metrics/plots, and save the run.
         </li>
         <li>
-          <strong>ML Prediction</strong>:
+          <strong>Predict</strong>:
           Apply the saved model to new CSV data.
         </li>
       </ol>
@@ -41,6 +41,16 @@
         <a class="btn btn-sm" href="/train">Go to Train</a>
         <a class="btn btn-sm" href="/predict">Go to Predict</a>
       </div>
+      {% if sample_data %}
+        <div class="toolbar mt-3">
+          {% for sample in sample_data %}
+            <form action="/sample/start" method="post">
+              <input type="hidden" name="kind" value="{{ sample.kind }}">
+              <button class="btn btn-sm btn-primary" type="submit">{{ sample.label }}</button>
+            </form>
+          {% endfor %}
+        </div>
+      {% endif %}
     </div>
   </div>
 
