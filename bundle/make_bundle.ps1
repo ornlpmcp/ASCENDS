@@ -99,6 +99,16 @@ timestamp=$Ts
 setlocal
 chcp 65001 >nul
 set "ROOT=%~dp0"
+REM Isolate from user's Python environment (v0.8.2 fix)
+set "PYTHONPATH="
+set "PYTHONHOME="
+set "PYTHONSTARTUP="
+set "PYTHONUSERBASE="
+set "VIRTUAL_ENV="
+set "CONDA_DEFAULT_ENV="
+set "CONDA_PREFIX="
+set "PYTHONNOUSERSITE=1"
+set "PYTHONDONTWRITEBYTECODE=1"
 set "PYTHONPATH=%ROOT%ASCENDS\.venv\Lib\site-packages"
 set "PYTHONUTF8=1"
 set "NUMBA_CACHE_DIR=%TEMP%\nc"
@@ -117,6 +127,16 @@ echo.
 @'
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Isolate from user's Python environment (v0.8.2 fix)
+$env:PYTHONPATH = $null
+$env:PYTHONHOME = $null
+$env:PYTHONSTARTUP = $null
+$env:PYTHONUSERBASE = $null
+$env:VIRTUAL_ENV = $null
+$env:CONDA_DEFAULT_ENV = $null
+$env:CONDA_PREFIX = $null
+$env:PYTHONNOUSERSITE = "1"
+$env:PYTHONDONTWRITEBYTECODE = "1"
 $env:PYTHONPATH = Join-Path $Root "ASCENDS\.venv\Lib\site-packages"
 $env:NUMBA_CACHE_DIR = Join-Path $env:TEMP "nc"
 if (-not (Test-Path $env:NUMBA_CACHE_DIR)) { New-Item -ItemType Directory -Force -Path $env:NUMBA_CACHE_DIR | Out-Null }
@@ -132,6 +152,16 @@ $PyExe = Join-Path $Root "python\python.exe"
 setlocal
 chcp 65001 >nul
 set "ROOT=%~dp0"
+REM Isolate from user's Python environment (v0.8.2 fix)
+set "PYTHONPATH="
+set "PYTHONHOME="
+set "PYTHONSTARTUP="
+set "PYTHONUSERBASE="
+set "VIRTUAL_ENV="
+set "CONDA_DEFAULT_ENV="
+set "CONDA_PREFIX="
+set "PYTHONNOUSERSITE=1"
+set "PYTHONDONTWRITEBYTECODE=1"
 set "PYTHONPATH=%ROOT%ASCENDS\.venv\Lib\site-packages"
 set "PYTHONUTF8=1"
 cd /d "%ROOT%ASCENDS"
