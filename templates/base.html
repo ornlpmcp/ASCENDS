@@ -26,6 +26,12 @@
 {% set ws = (ws_id if (ws_id is defined and ws_id) else (request.query_params.get('ws_id') if request else None)) %}
 
 <nav class="tabs" aria-label="ASCENDS workflow steps">
+  <a href="/"
+     class="tab tab-home{% if path == '/' %} active{% endif %}"
+     aria-current="{{ 'page' if path == '/' else 'false' }}">
+    <span class="tab-label">Home</span>
+    <span class="tab-short">Home</span>
+  </a>
   {% for step in workflow_steps %}
     <a href="{{ step.href }}"
        class="tab{% if step.active %} active{% endif %}{% if step.complete %} complete{% endif %}"
