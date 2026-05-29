@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.2] - 2026-05-29
+
+### Fixed
+
+- Bundle launchers now isolate from the host shell's Python environment (`PYTHONPATH`, `PYTHONHOME`, `VIRTUAL_ENV`, conda env vars). Previously, macOS users with existing Python setups could see import or initialization failures when double-clicking `launch_gui.command`. Applies to generated `.sh`, `.command`, `.bat`, and `.ps1` launchers.
+- Correlation page now respects the task saved in the workspace manifest. Starting from sample classification data no longer shows Regression preselected.
+
+### Added
+
+- Added a Home tab to the workflow navigation for quick return to the start page.
+- Added `examples/iris_test.csv` as a companion prediction input for the iris classification example.
+
 ## [0.8.1] - 2026-05-24
 
 ### Added
