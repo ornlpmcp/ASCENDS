@@ -67,3 +67,11 @@ def test_train_eval_regression_reports_positive_cv_mae() -> None:
 
     assert "test_metrics" not in result
     assert result["cv_scores"]["mae_mean"] > 0
+
+
+def test_iris_prediction_example_matches_training_features() -> None:
+    iris = pd.read_csv("examples/iris.csv", nrows=1)
+    iris_test = pd.read_csv("examples/iris_test.csv")
+
+    assert list(iris_test.columns) == [column for column in iris.columns if column != "Name"]
+    assert len(iris_test) == 12

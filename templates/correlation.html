@@ -229,8 +229,12 @@
               <label><strong>Top-K:</strong></label>
               <input type="number" class="input" name="top_k" min="1" step="1" placeholder="(all)">
               <label class="ml-4"><strong>Task:</strong></label>
-              <label><input type="radio" name="task" value="r" checked> Regression</label>
-              <label><input type="radio" name="task" value="c"> Classification</label>
+              <label>
+                <input type="radio" name="task" value="r" {% if current_task is not defined or current_task != 'c' %}checked{% endif %}> Regression
+              </label>
+              <label>
+                <input type="radio" name="task" value="c" {% if current_task == 'c' %}checked{% endif %}> Classification
+              </label>
               <label class="ml-4"><strong>View:</strong></label>
               <select class="select" name="view">
                 <option value="wide" selected>wide</option>

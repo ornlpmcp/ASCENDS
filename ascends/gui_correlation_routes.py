@@ -56,6 +56,14 @@ def _corr_dirs(workspace_dir: Path, static_dir: Path, ws_id: str) -> tuple[Path,
     return data_dir, img_dir
 
 
+def _current_task_from_manifest(manifest: dict[str, Any]) -> str:
+    """Return the task that should be selected on the Correlation page."""
+    corr_task = (manifest.get("corr") or {}).get("task")
+    manifest_task = manifest.get("task")
+    train_task = (manifest.get("train_params") or {}).get("task")
+    return corr_task or manifest_task or train_task or "r"
+
+
 def _compute_correlations(
     df: pd.DataFrame,
     target: str,
@@ -227,6 +235,7 @@ def create_correlation_router(
                         "inputs": mf.get("inputs", []),
                         "target": mf.get("target"),
                         "selected": mf.get("selected", []),
+                        "current_task": _current_task_from_manifest(mf),
                     }
                 )
                 _add_preview(ctx, mf.get("csv_path"))
@@ -290,6 +299,7 @@ def create_correlation_router(
             "inputs": inputs,
             "target": target,
             "selected": mf.get("selected", []),
+            "current_task": task,
         }
         if not target:
             ctx = {**base_ctx, "error": "Please set a target column before running correlation."}
