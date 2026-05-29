@@ -159,7 +159,11 @@ if [[ -z "\$PYTHON_BIN" || ! -x "\$PYTHON_BIN" ]]; then
   echo "[ASCENDS] ERROR: bundled Python not found." >&2
   exit 1
 fi
-export PYTHONPATH="\$ROOT_DIR/ASCENDS/.venv/lib/python${PY_VERSION}/site-packages\${PYTHONPATH:+:\$PYTHONPATH}"
+unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE
+unset VIRTUAL_ENV CONDA_DEFAULT_ENV CONDA_PREFIX CONDA_PYTHON_EXE
+export PYTHONNOUSERSITE=1
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="\$ROOT_DIR/ASCENDS/.venv/lib/python${PY_VERSION}/site-packages"
 export PYTHONHOME="\$ROOT_DIR/python"
 export NUMBA_CACHE_DIR="\${TMPDIR:-/tmp}/ascends_numba_cache"
 export MPLCONFIGDIR="\${TMPDIR:-/tmp}/ascends_matplotlib_cache"
@@ -185,7 +189,11 @@ if [[ -z "\$PYTHON_BIN" || ! -x "\$PYTHON_BIN" ]]; then
   echo "[ASCENDS] ERROR: bundled Python not found." >&2
   exit 1
 fi
-export PYTHONPATH="\$ROOT_DIR/ASCENDS/.venv/lib/python${PY_VERSION}/site-packages\${PYTHONPATH:+:\$PYTHONPATH}"
+unset PYTHONPATH PYTHONHOME PYTHONSTARTUP PYTHONUSERBASE
+unset VIRTUAL_ENV CONDA_DEFAULT_ENV CONDA_PREFIX CONDA_PYTHON_EXE
+export PYTHONNOUSERSITE=1
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPATH="\$ROOT_DIR/ASCENDS/.venv/lib/python${PY_VERSION}/site-packages"
 export PYTHONHOME="\$ROOT_DIR/python"
 export NUMBA_CACHE_DIR="\${TMPDIR:-/tmp}/ascends_numba_cache"
 export MPLCONFIGDIR="\${TMPDIR:-/tmp}/ascends_matplotlib_cache"
