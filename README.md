@@ -89,6 +89,7 @@ uv run ascends correlation --csv examples/BostonHousing.csv --target medv --task
 uv run ascends train --csv examples/BostonHousing.csv --target medv --task r --model rf --out runs/boston_rf
 uv run ascends parity-plot runs/boston_rf --scope combined --out runs/boston_rf
 uv run ascends predict runs/boston_rf --csv examples/BostonHousing_test.csv --out runs/boston_rf/predict
+uv run ascends predict runs/iris_rf --csv examples/iris_test.csv --out runs/iris_rf/predict
 ```
 
 ---
