@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
 
-from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, prepare_numeric_features, warn_non_ascii_columns
 from ascends.gui_interpretation import small_dataset_warning, summarize_dataframe
 from ascends.gui_messages import (
     append_notice,
@@ -23,6 +23,8 @@ from ascends.gui_messages import (
     constant_columns_message,
     format_missing_columns_message,
     friendly_error,
+    identifier_columns_message,
+    non_numeric_columns_message,
     rows_removed_message,
 )
 from ascends.gui_plotting import plot_metric_bars
@@ -148,22 +150,15 @@ def _prepare_corr_dataframe(
     raw = pd.read_csv(csv_path)
     cols = list(inputs) + [target]
     missing = [column for column in cols if column not in raw.columns]
-    existing = [column for column in cols if column in raw.columns]
-    df = raw.loc[:, existing].copy()
-    for column in existing:
-        if task == "c" and column == target:
-            continue
-        df[column] = pd.to_numeric(df[column], errors="coerce")
-    rows_before = len(df)
-    df = df.dropna(axis=0, how="any")
-    rows_after = len(df)
-    numeric_columns = [column for column in df.columns if not (task == "c" and column == target)]
-    df.loc[:, numeric_columns] = df.loc[:, numeric_columns].astype("float64")
+    prepared = prepare_numeric_features(raw, inputs, target, task=task)
+    df = prepared.frame
+    rows_before = prepared.rows_in
+    rows_after = prepared.rows_used
     dropped = rows_before - rows_after
 
     skipped: list[str] = []
     good_inputs: list[str] = []
-    for column in inputs:
+    for column in prepared.used_inputs:
         if column in df.columns:
             if df[column].nunique(dropna=True) <= 1:
                 skipped.append(column)
@@ -181,6 +176,8 @@ def _prepare_corr_dataframe(
         "skipped_inputs": skipped,
         "used_inputs": good_inputs,
         "missing_columns": missing,
+        "skipped_identifier_inputs": prepared.skipped_identifier_inputs,
+        "skipped_non_numeric_inputs": prepared.skipped_non_numeric_inputs,
     }
     return df, info
 
@@ -349,6 +346,12 @@ def create_correlation_router(
         skipped_inputs = info.get("skipped_inputs", [])
         if skipped_inputs:
             append_notice(ctx, constant_columns_message(skipped_inputs), level="warning")
+        skipped_identifier_inputs = info.get("skipped_identifier_inputs", [])
+        if skipped_identifier_inputs:
+            append_notice(ctx, identifier_columns_message(skipped_identifier_inputs), level="warning")
+        skipped_non_numeric_inputs = info.get("skipped_non_numeric_inputs", [])
+        if skipped_non_numeric_inputs:
+            append_notice(ctx, non_numeric_columns_message(skipped_non_numeric_inputs), level="warning")
         _add_non_ascii_notice(ctx, df_clean.columns)
         missing_columns = info.get("missing_columns", [])
         if missing_columns:

@@ -1,6 +1,7 @@
 """CSV I/O, schema checks, train/test splits."""
 
 import logging
+import re
 from typing import Tuple, Optional
 import pandas as pd
 from dataclasses import dataclass
@@ -26,6 +27,98 @@ class SplitConfig:
     random_state: Optional[int] = None
     stratify_col: Optional[str] = None
     group_col: Optional[str] = None
+
+
+@dataclass
+class PreparedFeatureFrame:
+    """Numeric feature frame prepared for analysis or GUI model fitting."""
+
+    frame: pd.DataFrame
+    used_inputs: list[str]
+    skipped_identifier_inputs: list[str]
+    skipped_non_numeric_inputs: list[str]
+    rows_in: int
+    rows_used: int
+
+
+def is_likely_identifier_column(column: object) -> bool:
+    """Return True for common identifier/index columns that should not be modeled."""
+    text = str(column).strip()
+    lower = text.lower()
+    normalized = re.sub(r"[^a-z0-9]+", "_", lower).strip("_")
+    compact = normalized.replace("_", "")
+
+    if lower.startswith("unnamed:"):
+        return True
+    if normalized in {
+        "id",
+        "index",
+        "row",
+        "row_id",
+        "sample_id",
+        "specimen_id",
+        "record_id",
+        "run_id",
+        "case_id",
+    }:
+        return True
+    return normalized.endswith("_id") or compact in {"sampleid", "specimenid", "recordid", "runid", "caseid"}
+
+
+def prepare_numeric_features(
+    df: pd.DataFrame,
+    inputs: list[str],
+    target: str,
+    task: str = "r",
+) -> PreparedFeatureFrame:
+    """Read all columns but keep only numeric non-ID inputs for analysis/model fitting.
+
+    Classification targets may remain categorical strings. Regression targets are
+    coerced to numeric so invalid target values are dropped before fitting.
+    """
+    task_key = (task or "r").lower()
+    skipped_identifier: list[str] = []
+    skipped_non_numeric: list[str] = []
+    used_inputs: list[str] = []
+    prepared: dict[str, pd.Series] = {}
+
+    for column in inputs:
+        if column not in df.columns:
+            continue
+        if is_likely_identifier_column(column):
+            skipped_identifier.append(column)
+            continue
+        numeric = pd.to_numeric(df[column], errors="coerce")
+        if int(numeric.notna().sum()) == 0:
+            skipped_non_numeric.append(column)
+            continue
+        prepared[column] = numeric
+        used_inputs.append(column)
+
+    if target in df.columns:
+        if task_key == "c":
+            prepared[target] = df[target]
+        else:
+            prepared[target] = pd.to_numeric(df[target], errors="coerce")
+
+    frame = pd.DataFrame(prepared, index=df.index)
+    rows_in = len(frame)
+    frame = frame.dropna(axis=0, how="any")
+    rows_used = len(frame)
+    numeric_inputs = [column for column in used_inputs if column in frame.columns]
+    if numeric_inputs:
+        frame.loc[:, numeric_inputs] = frame.loc[:, numeric_inputs].astype("float64")
+    if task_key != "c" and target in frame.columns:
+        frame.loc[:, target] = frame.loc[:, target].astype("float64")
+
+    return PreparedFeatureFrame(
+        frame=frame,
+        used_inputs=used_inputs,
+        skipped_identifier_inputs=skipped_identifier,
+        skipped_non_numeric_inputs=skipped_non_numeric,
+        rows_in=rows_in,
+        rows_used=rows_used,
+    )
 
 
 def split_train_test(

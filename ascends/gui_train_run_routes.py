@@ -31,7 +31,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVR
 
-from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, prepare_numeric_features, warn_non_ascii_columns
 from ascends.gui_interpretation import (
     CV_UNAVAILABLE_FAILED,
     cv_unavailable_reason,
@@ -47,6 +47,8 @@ from ascends.gui_messages import (
     attach_error_recovery,
     format_missing_columns_message,
     friendly_error,
+    identifier_columns_message,
+    non_numeric_columns_message,
     rows_removed_message,
     stratify_disabled_message,
 )
@@ -272,16 +274,25 @@ def create_train_run_router(
             ctx["train_error"] = format_missing_columns_message(missing_columns)
             attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
-        needed = list(inputs) + [target]
+        prepared = prepare_numeric_features(df, list(inputs), target, task=task)
+        df2 = prepared.frame
+        usable_inputs = prepared.used_inputs
+        if not usable_inputs:
+            ctx["train_error"] = "No usable numeric input features after excluding ID/text columns."
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
+            return templates.TemplateResponse("train.html", ctx)
+        if prepared.skipped_identifier_inputs:
+            append_notice(ctx, identifier_columns_message(prepared.skipped_identifier_inputs), level="warning")
+        if prepared.skipped_non_numeric_inputs:
+            append_notice(ctx, non_numeric_columns_message(prepared.skipped_non_numeric_inputs), level="warning")
 
-        df2 = df[needed].dropna(axis=0, how="any")
-        rows_dropped = len(df[needed]) - len(df2)
+        rows_dropped = prepared.rows_in - prepared.rows_used
         if rows_dropped > 0:
             append_notice(ctx, rows_removed_message(rows_dropped), level="info")
         small_warning = small_dataset_warning(len(df2))
         if small_warning:
             append_notice(ctx, small_warning, level="warning")
-        X = df2[inputs]
+        X = df2[usable_inputs]
         y = df2[target]
 
         try:
@@ -384,7 +395,8 @@ def create_train_run_router(
         last_train[ws_id] = {
             "estimator": est,
             "params": ctx["train_params"],
-            "inputs": inputs,
+            "inputs": usable_inputs,
+            "original_inputs": inputs,
             "target": target,
             "csv_path": csv_path,
             "metrics_train": ctx["metrics_train"],

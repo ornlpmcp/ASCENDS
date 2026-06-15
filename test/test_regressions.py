@@ -11,6 +11,7 @@ import pandas as pd
 
 from ascends.core.predict import batch_predict
 from ascends.core.train import train_eval
+from ascends.core.data import prepare_numeric_features
 
 
 class ColumnCheckingModel:
@@ -75,3 +76,48 @@ def test_iris_prediction_example_matches_training_features() -> None:
 
     assert list(iris_test.columns) == [column for column in iris.columns if column != "Name"]
     assert len(iris_test) == 12
+
+
+def test_prepare_numeric_features_skips_identifier_and_text_columns() -> None:
+    df = pd.DataFrame(
+        {
+            "ID": ["S1", "S2", "S3"],
+            "composition": [1.0, 2.0, 3.0],
+            "notes": ["good", "bad", "ok"],
+            "target": [10.0, 20.0, 30.0],
+        }
+    )
+
+    prepared = prepare_numeric_features(
+        df,
+        inputs=["ID", "composition", "notes"],
+        target="target",
+        task="r",
+    )
+
+    assert list(prepared.frame.columns) == ["composition", "target"]
+    assert prepared.used_inputs == ["composition"]
+    assert prepared.skipped_identifier_inputs == ["ID"]
+    assert prepared.skipped_non_numeric_inputs == ["notes"]
+
+
+def test_prepare_numeric_features_keeps_classification_text_target() -> None:
+    df = pd.DataFrame(
+        {
+            "sample_id": ["S1", "S2", "S3", "S4"],
+            "feature": [1.0, 2.0, 3.0, 4.0],
+            "class": ["a", "a", "b", "b"],
+        }
+    )
+
+    prepared = prepare_numeric_features(
+        df,
+        inputs=["sample_id", "feature"],
+        target="class",
+        task="c",
+    )
+
+    assert list(prepared.frame.columns) == ["feature", "class"]
+    assert prepared.frame["class"].tolist() == ["a", "a", "b", "b"]
+    assert prepared.used_inputs == ["feature"]
+    assert prepared.skipped_identifier_inputs == ["sample_id"]

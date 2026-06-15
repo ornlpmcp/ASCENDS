@@ -32,6 +32,14 @@ def constant_columns_message(columns: list[str]) -> str:
     return f"Excluded constant columns (only one unique value): {', '.join(columns)}."
 
 
+def identifier_columns_message(columns: list[str]) -> str:
+    return f"Excluded likely ID/index columns: {', '.join(columns)}."
+
+
+def non_numeric_columns_message(columns: list[str]) -> str:
+    return f"Excluded non-numeric input columns: {', '.join(columns)}."
+
+
 def stratify_disabled_message() -> str:
     return "Only one class found in target; stratified split disabled. Results may be unreliable."
 
