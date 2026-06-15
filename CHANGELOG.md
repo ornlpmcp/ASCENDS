@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.3] - 2026-06-15
+
+### Fixed
+
+- GUI Correlation and Training now skip likely ID/index input columns and fully non-numeric input columns at run time instead of failing or dropping all affected rows.
+- Classification targets may remain text labels while unsafe input columns are excluded with visible notices.
+
 ## [0.8.2] - 2026-05-29
 
 ### Fixed
