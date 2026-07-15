@@ -24,6 +24,25 @@ from ascends.gui_messages import (
 )
 
 
+def _safe_run_dir(runs_dir: Path, run_name: str) -> Path:
+    """Resolve a prediction run directory while preventing traversal outside runs_dir."""
+    if not run_name or "/" in run_name or "\\" in run_name or run_name in {".", ".."}:
+        raise ValueError("Invalid run name.")
+    root = runs_dir.resolve()
+    target = (runs_dir / run_name).resolve()
+    if target.parent != root:
+        raise ValueError("Invalid run name.")
+    return target
+
+
+def _safe_predictions_dir(run_dir: Path) -> Path:
+    """Resolve a run's predictions directory while keeping it inside that run."""
+    predictions_dir = (run_dir / "predictions").resolve()
+    if predictions_dir.parent != run_dir:
+        raise ValueError("Invalid predictions directory.")
+    return predictions_dir
+
+
 def create_predict_router(
     *,
     templates: Jinja2Templates,
@@ -82,7 +101,14 @@ def create_predict_router(
             attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
-        man_path = runs_dir / run_name / "manifest.json"
+        try:
+            run_dir = _safe_run_dir(runs_dir, run_name)
+        except ValueError as e:
+            ctx["predict_errors"] = [str(e)]
+            attach_error_recovery(ctx, "predict")
+            return templates.TemplateResponse("predict.html", ctx, status_code=400)
+
+        man_path = run_dir / "manifest.json"
         if not man_path.exists():
             ctx["predict_errors"] = [f"Run '{run_name}' is missing manifest.json."]
             attach_error_recovery(ctx, "predict")
@@ -97,7 +123,9 @@ def create_predict_router(
         inputs: list[str] = manifest.get("inputs", []) or []
         target: Optional[str] = manifest.get("target") or None
         if not inputs:
-            ctx["predict_errors"] = [f"Run '{run_name}' has no recorded input features in manifest.json."]
+            ctx["predict_errors"] = [
+                f"Run '{run_name}' has no recorded input features in manifest.json."
+            ]
             attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
@@ -158,7 +186,7 @@ def create_predict_router(
             attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
-        model_path = runs_dir / run_name / "model.joblib"
+        model_path = run_dir / "model.joblib"
         if not model_path.exists():
             ctx["predict_errors"] = [f"Run '{run_name}' is missing model.joblib."]
             attach_error_recovery(ctx, "predict")
@@ -181,8 +209,13 @@ def create_predict_router(
         result_df = df_used.copy()
         result_df[pred_col] = preds
 
-        pred_dir = runs_dir / run_name / "predictions"
-        pred_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            pred_dir = _safe_predictions_dir(run_dir)
+            pred_dir.mkdir(parents=True, exist_ok=True)
+        except ValueError as e:
+            ctx["predict_errors"] = [str(e)]
+            attach_error_recovery(ctx, "predict")
+            return templates.TemplateResponse("predict.html", ctx, status_code=400)
         try:
             stem = Path(csvfile.filename).stem if csvfile.filename else "input"
         except Exception:
@@ -190,7 +223,11 @@ def create_predict_router(
         safe_stem = slugify_name(stem) or "input"
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         out_name = f"{safe_stem}_{ts}_pred.csv"
-        out_path = pred_dir / out_name
+        out_path = (pred_dir / out_name).resolve()
+        if out_path.parent != pred_dir:
+            ctx["predict_errors"] = ["Invalid prediction filename."]
+            attach_error_recovery(ctx, "predict")
+            return templates.TemplateResponse("predict.html", ctx, status_code=400)
         try:
             result_df.to_csv(out_path, index=False)
         except Exception as e:
@@ -216,17 +253,24 @@ def create_predict_router(
         ctx["rows_dropped"] = dropped
         ctx["saved_relpath"] = f"runs/{run_name}/predictions/{out_name}"
         ctx["predict_summary"] = None
-        ctx["download_csv_url"] = f"/predict/download?run={quote(run_name)}&file={quote(out_name)}"
+        ctx["download_csv_url"] = (
+            f"/predict/download?run={quote(run_name)}&file={quote(out_name)}"
+        )
         ctx["predict_errors"] = None
         return templates.TemplateResponse("predict.html", ctx)
 
     @router.get("/predict/download")
     async def predict_download(
         run: str = Query(..., description="Saved run name"),
-        file: str = Query(..., description="Predictions filename in the run's predictions directory"),
+        file: str = Query(
+            ..., description="Predictions filename in the run's predictions directory"
+        ),
     ):
         """Serve a predictions CSV from runs/<run>/predictions/<file>."""
-        pred_dir = (runs_dir / run / "predictions").resolve()
+        try:
+            pred_dir = _safe_predictions_dir(_safe_run_dir(runs_dir, run))
+        except ValueError:
+            return HTMLResponse(status_code=404, content="Not found")
         file_path = (pred_dir / file).resolve()
         try:
             file_path.relative_to(pred_dir)
