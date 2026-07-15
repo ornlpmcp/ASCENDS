@@ -73,17 +73,22 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
         if kind == "linear":
             return LinearRegression()
         if kind == "ridge":
-            return Ridge(random_state=random_state)
+            return make_pipeline(StandardScaler(), Ridge(alpha=1.0))
         if kind == "lasso":
-            return Lasso(random_state=random_state)
+            return make_pipeline(StandardScaler(), Lasso(alpha=0.001, max_iter=10000))
         if kind == "elasticnet":
-            return ElasticNet(random_state=random_state)
+            return make_pipeline(
+                StandardScaler(),
+                ElasticNet(alpha=0.001, l1_ratio=0.5, max_iter=10000),
+            )
         if kind == "rf":
-            return RandomForestRegressor(random_state=random_state)
+            return RandomForestRegressor(
+                n_estimators=300, random_state=random_state, n_jobs=-1
+            )
         if kind == "hgb":
             return HistGradientBoostingRegressor(random_state=random_state)
         if kind == "svr":
-            return make_pipeline(StandardScaler(), SVR())
+            return make_pipeline(StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1))
         if kind == "knn":
             return make_pipeline(StandardScaler(), KNeighborsRegressor())
         if kind == "xgb":
@@ -94,7 +99,19 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
                     "xgboost is required for --model xgb. Install with: "
                     "`uv sync` (or `uv pip install xgboost`)."
                 ) from e
-            return XGBRegressor(random_state=random_state)
+            return XGBRegressor(
+                n_estimators=500,
+                learning_rate=0.05,
+                max_depth=6,
+                subsample=0.9,
+                colsample_bytree=0.9,
+                reg_alpha=0.0,
+                reg_lambda=1.0,
+                random_state=random_state,
+                tree_method="hist",
+                n_jobs=0,
+                verbosity=0,
+            )
         raise ValueError(f"Unsupported regression model kind: {kind!r}. Try 'rf' (or 'random_forest').")
 
     if task == "classification":
@@ -107,8 +124,9 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
         if kind == "knn":
             return make_pipeline(StandardScaler(), KNeighborsClassifier())
         if kind == "rf":
-            from sklearn.ensemble import RandomForestClassifier
-            return RandomForestClassifier(random_state=random_state)
+            return RandomForestClassifier(
+                n_estimators=300, random_state=random_state, n_jobs=-1
+            )
         if kind == "xgb":
             try:
                 from xgboost import XGBClassifier
@@ -117,7 +135,19 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
                     "xgboost is required for --model xgb. Install with: "
                     "`uv sync` (or `uv pip install xgboost`)."
                 ) from e
-            return XGBClassifier(random_state=random_state)
+            return XGBClassifier(
+                n_estimators=500,
+                learning_rate=0.05,
+                max_depth=6,
+                subsample=0.9,
+                colsample_bytree=0.9,
+                reg_alpha=0.0,
+                reg_lambda=1.0,
+                random_state=random_state,
+                tree_method="hist",
+                n_jobs=0,
+                verbosity=0,
+            )
         raise ValueError(f"Unsupported classification model kind: {kind!r}. Try 'rf' (or 'random_forest').")
 
 
