@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from importlib.metadata import PackageNotFoundError, version as package_version
 from pathlib import Path
 import json
 from typing import Optional, Dict, Any
@@ -29,7 +30,12 @@ from ascends.gui_workflow import build_workflow_steps, create_sample_workspace
 
 logger = logging.getLogger("ascends.gui")
 
-app = FastAPI(title="ASCENDS GUI", version="0.1.0")
+try:
+    APP_VERSION = package_version("ascends")
+except PackageNotFoundError:
+    APP_VERSION = "0.9.0"
+
+app = FastAPI(title="ASCENDS GUI", version=APP_VERSION)
 
 BASE_DIR = Path(__file__).parent
 TEMPLATES_DIR = BASE_DIR / "templates"

@@ -127,7 +127,14 @@ The Windows and macOS bundles include a Python runtime and launch without `uv` o
 ./test/test.ps1
 ```
 
-Developer-only phase regression tests (`test/test_phase*.py`) are kept local and are not part of the public repository.
+The public regression suite also runs on GitHub Actions:
+
+```bash
+uv run pytest -q
+uv run ruff check .
+```
+
+Developer-only historical phase tests (`test/test_phase*.py`) remain local and are not part of the public repository.
 
 ---
 

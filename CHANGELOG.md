@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.0] - 2026-07-15
+
+### Added
+
+- Added tracked reliability tests for GUI/CLI artifact interoperability, correlation edge cases, small or imbalanced datasets, prediction path containment, SHAP preprocessing, and model consistency.
+- Added GitHub Actions checks for the locked environment, Ruff, and the public test suite.
+
+### Changed
+
+- Saved-run schema version 2 records both raw input columns and encoded model features. Existing manifests remain supported.
+- GUI and CLI model names now use one shared model factory. New CLI random-forest and scaled linear-model runs therefore use the established GUI defaults; existing saved models are unaffected.
+- GUI SHAP now applies the same numeric coercion and invalid-row filtering used during training.
+
+### Fixed
+
+- Fixed CLI prediction for models trained with categorical input columns and enabled GUI prediction from CLI-created runs.
+- Fixed classification correlation with string targets and missing values.
+- Fixed uncaught split and cross-validation failures for small datasets, singleton classes, and test partitions that cannot contain every class.
+- Prevented prediction and download paths from escaping the saved-runs directory.
+
 ## [0.8.3] - 2026-06-15
 
 ### Fixed
