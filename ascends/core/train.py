@@ -270,13 +270,14 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
     # --- Write manifest.json for predict() ---
     from datetime import datetime
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "artifact_type": "estimator-only",
         "csv_path": csv_path,
         "model": model,
         "task": task,
         "target": target,
         "test_size": test_size,
+        "inputs": [column for column in df.columns if column != target],
         "features": feats,
         "random_state": random_state,
         "split": {

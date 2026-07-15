@@ -32,15 +32,18 @@ def predict(
         raise typer.Exit(code=1)
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    # Required features list from manifest (case-insensitive matching)
-    feat_keys = (
+    # Schema v2 records raw input columns separately from encoded model features.
+    # Older manifests may only have encoded features, which cannot be validated
+    # against the raw CSV before one-hot encoding.
+    raw_inputs = manifest.get("inputs")
+    feature_schema = (
         manifest.get("features")
-        or manifest.get("inputs")
+        or raw_inputs
         or manifest.get("input_features")
         or manifest.get("X_features")
         or manifest.get("X_cols")
     )
-    if not feat_keys:
+    if not feature_schema:
         typer.secho(
             "Manifest does not include input feature columns "
             "('features' or 'inputs'). Retrain and save the model again.",
@@ -57,17 +60,12 @@ def predict(
     for c in df.columns:
         lower_candidates.setdefault(str(c).lower(), []).append(c)
     missing: List[str] = []
-    ordered_cols: List[str] = []
-    for f in feat_keys:
-        if f in df.columns:
-            ordered_cols.append(f)
+    for feature in raw_inputs or []:
+        if feature in df.columns:
             continue
-        key = str(f).lower()
-        cands = lower_candidates.get(key, [])
-        if len(cands) == 1:
-            ordered_cols.append(cands[0])
-        else:
-            missing.append(f)
+        candidates = lower_candidates.get(str(feature).lower(), [])
+        if len(candidates) != 1:
+            missing.append(feature)
     if missing:
         typer.secho(
             "Input CSV is missing required features (case-insensitive): "

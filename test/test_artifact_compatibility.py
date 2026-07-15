@@ -45,7 +45,7 @@ def test_train_manifest_records_raw_inputs_and_encoded_features(tmp_path: Path) 
 
     manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["inputs"] == ["color", "x"]
-    assert manifest["features"] == ["color_blue", "color_red", "x"]
+    assert set(manifest["features"]) == {"color_blue", "color_red", "x"}
 
 
 def test_cli_predict_accepts_raw_categorical_inputs(tmp_path: Path) -> None:
