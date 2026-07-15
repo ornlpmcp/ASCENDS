@@ -36,20 +36,17 @@ def train_eval(
 
     task = canonicalize_task(task)
 
-    # 1) Build X_train, y_train, X_test, y_test (with one-hot for categoricals)
+    # 1) Fit the one-hot feature schema from training data only.
     X_train_raw = train_df.drop(columns=[target])
-    X_train_dum = pd.get_dummies(X_train_raw, drop_first=False)
-    X_test_raw = test_df.drop(columns=[target])
-    X_test_dum = pd.get_dummies(X_test_raw, drop_first=False)
-    X_train = X_train_dum.reindex(
-        columns=X_train_dum.columns.union(X_test_dum.columns), fill_value=0
-    )
+    X_train = pd.get_dummies(X_train_raw, drop_first=False)
     y_train = train_df[target]
 
     # 2) Create model
     model = make_model(task, model_kind, random_state=random_state)
     if model is None:
-        raise ValueError(f"make_model returned None for task={task!r}, kind={model_kind!r}")
+        raise ValueError(
+            f"make_model returned None for task={task!r}, kind={model_kind!r}"
+        )
 
     # 3) Build seeded CV splitter and task-specific metrics.
     cv_scores: Dict[str, float] = {}
@@ -57,10 +54,16 @@ def train_eval(
         class_counts = pd.Series(y_train).value_counts(dropna=True)
         if len(class_counts) >= 2 and int(class_counts.min()) >= 2:
             n_splits = min(5, int(class_counts.min()))
-            cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+            cv = StratifiedKFold(
+                n_splits=n_splits, shuffle=True, random_state=random_state
+            )
             try:
-                cv_acc = cross_val_score(model, X_train, y_train, cv=cv, scoring="accuracy")
-                cv_f1 = cross_val_score(model, X_train, y_train, cv=cv, scoring="f1_weighted")
+                cv_acc = cross_val_score(
+                    model, X_train, y_train, cv=cv, scoring="accuracy"
+                )
+                cv_f1 = cross_val_score(
+                    model, X_train, y_train, cv=cv, scoring="f1_weighted"
+                )
                 if np.isfinite(cv_acc).all() and np.isfinite(cv_f1).all():
                     cv_scores = {
                         "accuracy_mean": float(np.mean(cv_acc)),
@@ -101,7 +104,19 @@ def train_eval(
         "cv_scores": cv_scores,
         "random_state": random_state,
     }
-def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
+
+
+def train_model(
+    csv_path,
+    target,
+    task="r",
+    model="rf",
+    test_size=0.2,
+    out_dir="run",
+    metrics_out=None,
+    parity_out=None,
+    random_state="auto",
+):
     """Train and evaluate a model."""
     import json
     import joblib
@@ -174,20 +189,38 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
     if task == "classification":
         train_metrics = {
             "accuracy": float(accuracy_score(y_train, y_pred_train)),
-            "precision": float(precision_score(y_train, y_pred_train, average="weighted", zero_division=0)),
-            "recall": float(recall_score(y_train, y_pred_train, average="weighted", zero_division=0)),
-            "f1": float(f1_score(y_train, y_pred_train, average="weighted", zero_division=0)),
+            "precision": float(
+                precision_score(
+                    y_train, y_pred_train, average="weighted", zero_division=0
+                )
+            ),
+            "recall": float(
+                recall_score(y_train, y_pred_train, average="weighted", zero_division=0)
+            ),
+            "f1": float(
+                f1_score(y_train, y_pred_train, average="weighted", zero_division=0)
+            ),
         }
         test_metrics = {
             "accuracy": float(accuracy_score(y_test, y_pred_test)),
-            "precision": float(precision_score(y_test, y_pred_test, average="weighted", zero_division=0)),
-            "recall": float(recall_score(y_test, y_pred_test, average="weighted", zero_division=0)),
-            "f1": float(f1_score(y_test, y_pred_test, average="weighted", zero_division=0)),
+            "precision": float(
+                precision_score(
+                    y_test, y_pred_test, average="weighted", zero_division=0
+                )
+            ),
+            "recall": float(
+                recall_score(y_test, y_pred_test, average="weighted", zero_division=0)
+            ),
+            "f1": float(
+                f1_score(y_test, y_pred_test, average="weighted", zero_division=0)
+            ),
         }
         try:
             labels = pd.Series(y_test).dropna().unique()
             if len(labels) == 2 and hasattr(est, "predict_proba"):
-                test_metrics["roc_auc"] = float(roc_auc_score(y_test, est.predict_proba(X_test)[:, 1]))
+                test_metrics["roc_auc"] = float(
+                    roc_auc_score(y_test, est.predict_proba(X_test)[:, 1])
+                )
         except Exception:
             pass
         result["test_metrics"] = test_metrics
@@ -210,9 +243,9 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
     joblib.dump(est, model_path)
 
     # Standard (always written) inside run dir:
-    std_test_path  = Path(out_dir) / "parity_test.csv"
+    std_test_path = Path(out_dir) / "parity_test.csv"
     std_train_path = Path(out_dir) / "parity_train.csv"
-    std_all_path   = Path(out_dir) / "parity_all.csv"
+    std_all_path = Path(out_dir) / "parity_all.csv"
     std_test_path.parent.mkdir(parents=True, exist_ok=True)
     std_train_path.parent.mkdir(parents=True, exist_ok=True)
     std_all_path.parent.mkdir(parents=True, exist_ok=True)
@@ -289,6 +322,7 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
 
     # --- Write manifest.json for predict() ---
     from datetime import datetime
+
     manifest = {
         "schema_version": 2,
         "artifact_type": "estimator-only",
@@ -305,7 +339,7 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
             "test_size": test_size,
             "stratify_col": target if stratify is not None else None,
         },
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
     manifest_path = Path(out_dir) / "manifest.json"
     with open(manifest_path, "w") as f:
