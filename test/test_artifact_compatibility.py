@@ -10,11 +10,13 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import pytest
 from fastapi import UploadFile
 from fastapi.responses import HTMLResponse
 from typer.testing import CliRunner
 
 from ascends.cli import app
+from ascends.core.predict import batch_predict
 from ascends.core.train import train_eval, train_model
 from ascends.gui_predict_routes import create_predict_router
 
@@ -159,3 +161,53 @@ def test_training_feature_schema_does_not_learn_test_only_categories() -> None:
 
     assert set(result["features"]) == {"color_blue", "color_red"}
     assert "color_green" not in result["features"]
+
+
+def test_legacy_manifest_rejects_an_unverifiable_missing_feature(tmp_path: Path) -> None:
+    run_dir = tmp_path / "legacy_run"
+    run_dir.mkdir()
+    joblib.dump(EncodedColumnModel(), run_dir / "model.joblib")
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"target": "target", "features": ["color_blue", "color_red", "x"]}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Legacy manifest"):
+        batch_predict(
+            str(run_dir / "model.joblib"),
+            pd.DataFrame({"color": ["red", "blue"]}),
+            out_dir=str(tmp_path / "out"),
+            run_dir=str(run_dir),
+        )
+
+
+def test_legacy_categorical_manifest_uses_training_csv_to_validate_inputs(
+    tmp_path: Path,
+) -> None:
+    run_dir = tmp_path / "legacy_run"
+    run_dir.mkdir()
+    training_csv = tmp_path / "training.csv"
+    pd.DataFrame(
+        {"color": ["red", "blue"], "x": [1.0, 2.0], "target": [0.0, 1.0]}
+    ).to_csv(training_csv, index=False)
+    joblib.dump(EncodedColumnModel(), run_dir / "model.joblib")
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "target": "target",
+                "features": ["color_blue", "color_red", "x"],
+                "csv_path": str(training_csv),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = batch_predict(
+        str(run_dir / "model.joblib"),
+        pd.DataFrame({"color": ["red", "blue"], "x": [3.0, 4.0]}),
+        out_dir=str(tmp_path / "out"),
+        run_dir=str(run_dir),
+    )
+
+    output = pd.read_csv(result["out_path"])
+    assert output["target_pred"].tolist() == [0.0, 1.0]
