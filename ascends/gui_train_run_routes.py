@@ -299,16 +299,42 @@ def create_train_run_router(
             ts = float(test_size)
         except Exception:
             ts = 0.2
-        stratify_vec = y if task == "c" and y.nunique(dropna=True) > 1 else None
-        if task == "c" and stratify_vec is None:
-            append_notice(ctx, stratify_disabled_message(), level="warning")
-        X_train, X_test, y_train, y_test = train_test_split(
-            X,
-            y,
-            test_size=ts,
-            random_state=seed_val,
-            stratify=stratify_vec,
-        )
+        stratify_vec = None
+        if task == "c":
+            class_counts = y.value_counts(dropna=True)
+            class_count = len(class_counts)
+            test_rows = int(np.ceil(len(y) * ts))
+            train_rows = len(y) - test_rows
+            if class_count < 2:
+                append_notice(ctx, stratify_disabled_message(), level="warning")
+            elif int(class_counts.min()) < 2:
+                append_notice(
+                    ctx,
+                    "Class counts are too small for a stratified split; using a random split instead.",
+                    level="warning",
+                )
+            elif test_rows < class_count or train_rows < class_count:
+                append_notice(
+                    ctx,
+                    "Selected test size cannot support every class in a stratified split; using a random split instead.",
+                    level="warning",
+                )
+            else:
+                stratify_vec = y
+        try:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X,
+                y,
+                test_size=ts,
+                random_state=seed_val,
+                stratify=stratify_vec,
+            )
+        except ValueError:
+            ctx["train_error"] = (
+                "Unable to split this dataset for training. Choose a smaller test size or add data."
+            )
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
+            return templates.TemplateResponse("train.html", ctx)
 
         est = _make_regressor(model, seed=seed_val) if task == "r" else _make_classifier(model, seed=seed_val)
         cv_summary, cv_warning = _compute_cv_summary(est, X, y, task, seed_val)

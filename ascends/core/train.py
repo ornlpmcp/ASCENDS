@@ -1,5 +1,6 @@
 """CV loop, final test eval, orchestration."""
 
+import logging
 from typing import Any, Dict
 import pandas as pd
 from pathlib import Path
@@ -16,6 +17,9 @@ from sklearn.metrics import (
     f1_score,
     roc_auc_score,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def train_eval(
@@ -47,36 +51,45 @@ def train_eval(
     if model is None:
         raise ValueError(f"make_model returned None for task={task!r}, kind={model_kind!r}")
 
-    # 3) Build seeded CV splitter and task-specific metrics
+    # 3) Build seeded CV splitter and task-specific metrics.
+    cv_scores: Dict[str, float] = {}
     if task == "classification":
-        min_class_count = int(pd.Series(y_train).value_counts().min())
-        n_splits = max(2, min(5, min_class_count))
-        cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-        cv_acc = cross_val_score(model, X_train, y_train, cv=cv, scoring="accuracy")
-        cv_f1 = cross_val_score(model, X_train, y_train, cv=cv, scoring="f1_weighted")
-
-        model.fit(X_train, y_train)
-
-        cv_scores = {
-            "accuracy_mean": float(np.mean(cv_acc)),
-            "accuracy_std": float(np.std(cv_acc)),
-            "f1_mean": float(np.mean(cv_f1)),
-            "f1_std": float(np.std(cv_f1)),
-        }
+        class_counts = pd.Series(y_train).value_counts(dropna=True)
+        if len(class_counts) >= 2 and int(class_counts.min()) >= 2:
+            n_splits = min(5, int(class_counts.min()))
+            cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+            try:
+                cv_acc = cross_val_score(model, X_train, y_train, cv=cv, scoring="accuracy")
+                cv_f1 = cross_val_score(model, X_train, y_train, cv=cv, scoring="f1_weighted")
+                if np.isfinite(cv_acc).all() and np.isfinite(cv_f1).all():
+                    cv_scores = {
+                        "accuracy_mean": float(np.mean(cv_acc)),
+                        "accuracy_std": float(np.std(cv_acc)),
+                        "f1_mean": float(np.mean(cv_f1)),
+                        "f1_std": float(np.std(cv_f1)),
+                    }
+            except Exception as exc:
+                logger.warning("Classification cross-validation was skipped: %s", exc)
     else:
-        cv = KFold(n_splits=5, shuffle=True, random_state=random_state)
-        cv_r2 = cross_val_score(model, X_train, y_train, cv=cv, scoring="r2")
-        cv_mae = cross_val_score(
-            model, X_train, y_train, cv=cv, scoring="neg_mean_absolute_error"
-        )
+        # Five-fold R2 requires at least two observations in every test fold.
+        if len(X_train) >= 10:
+            cv = KFold(n_splits=5, shuffle=True, random_state=random_state)
+            try:
+                cv_r2 = cross_val_score(model, X_train, y_train, cv=cv, scoring="r2")
+                cv_mae = cross_val_score(
+                    model, X_train, y_train, cv=cv, scoring="neg_mean_absolute_error"
+                )
+                if np.isfinite(cv_r2).all() and np.isfinite(cv_mae).all():
+                    cv_scores = {
+                        "r2_mean": float(np.mean(cv_r2)),
+                        "r2_std": float(np.std(cv_r2)),
+                        "mae_mean": float(-np.mean(cv_mae)),
+                        "mae_std": float(np.std(cv_mae)),
+                    }
+            except Exception as exc:
+                logger.warning("Regression cross-validation was skipped: %s", exc)
 
-        model.fit(X_train, y_train)
-        cv_scores = {
-            "r2_mean": float(np.mean(cv_r2)),
-            "r2_std": float(np.std(cv_r2)),
-            "mae_mean": float(-np.mean(cv_mae)),
-            "mae_std": float(np.std(cv_mae)),
-        }
+    model.fit(X_train, y_train)
 
     # 6) Features list
     features = list(X_train.columns)
@@ -88,7 +101,6 @@ def train_eval(
         "cv_scores": cv_scores,
         "random_state": random_state,
     }
-
 def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="run", metrics_out=None, parity_out=None, random_state="auto"):
     """Train and evaluate a model."""
     import json
@@ -118,7 +130,15 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
     stratify = None
     if task == "classification":
         class_counts = df[target].value_counts(dropna=True)
-        if len(class_counts) > 1 and int(class_counts.min()) >= 2:
+        class_count = len(class_counts)
+        test_rows = int(np.ceil(len(df) * float(test_size)))
+        train_rows = len(df) - test_rows
+        if (
+            class_count > 1
+            and int(class_counts.min()) >= 2
+            and test_rows >= class_count
+            and train_rows >= class_count
+        ):
             stratify = df[target]
 
     # simple split
@@ -283,7 +303,7 @@ def train_model(csv_path, target, task="r", model="rf", test_size=0.2, out_dir="
         "split": {
             "method": "random",
             "test_size": test_size,
-            "stratify_col": target if task == "classification" else None,
+            "stratify_col": target if stratify is not None else None,
         },
         "timestamp": datetime.now().isoformat()
     }
