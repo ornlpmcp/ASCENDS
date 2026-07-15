@@ -13,8 +13,6 @@ import pandas as pd
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
-from sklearn.linear_model import ElasticNet, Lasso, LinearRegression, Ridge
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -25,13 +23,19 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import KFold, StratifiedKFold, cross_val_score, train_test_split
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVR
+from sklearn.model_selection import (
+    KFold,
+    StratifiedKFold,
+    cross_val_score,
+    train_test_split,
+)
 
-from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, prepare_numeric_features, warn_non_ascii_columns
+from ascends.core.data import (
+    NON_ASCII_COLUMN_MESSAGE,
+    prepare_numeric_features,
+    warn_non_ascii_columns,
+)
+from ascends.core.models import make_model
 from ascends.gui_interpretation import (
     CV_UNAVAILABLE_FAILED,
     cv_unavailable_reason,
@@ -54,78 +58,13 @@ from ascends.gui_messages import (
 )
 from ascends.gui_plotting import save_confusion_plot, save_parity_plot
 
-try:
-    import xgboost as xgb  # type: ignore
-except Exception:
-    xgb = None
-
 
 def _make_regressor(key: str, seed: Optional[int] = 42):
-    k = (key or "rf").lower()
-    if k == "rf":
-        return RandomForestRegressor(n_estimators=300, random_state=seed, n_jobs=-1)
-    if k == "xgb" and xgb is not None:
-        return xgb.XGBRegressor(
-            n_estimators=500,
-            learning_rate=0.05,
-            max_depth=6,
-            subsample=0.9,
-            colsample_bytree=0.9,
-            reg_alpha=0.0,
-            reg_lambda=1.0,
-            random_state=seed,
-            tree_method="hist",
-            n_jobs=0,
-            verbosity=0,
-        )
-    if k == "hgb":
-        return HistGradientBoostingRegressor(random_state=seed)
-    if k == "svr":
-        return make_pipeline(StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1))
-    if k == "knn":
-        return make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
-    if k == "linear":
-        return LinearRegression()
-    if k == "ridge":
-        return make_pipeline(StandardScaler(), Ridge(alpha=1.0))
-    if k == "lasso":
-        return make_pipeline(StandardScaler(), Lasso(alpha=0.001, max_iter=10000))
-    if k == "elastic":
-        return make_pipeline(StandardScaler(), ElasticNet(alpha=0.001, l1_ratio=0.5, max_iter=10000))
-    return RandomForestRegressor(n_estimators=300, random_state=seed, n_jobs=-1)
+    return make_model("regression", key or "rf", random_state=seed)
 
 
 def _make_classifier(key: str, seed: Optional[int] = 42):
-    from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
-    from sklearn.linear_model import LogisticRegression, RidgeClassifier
-    from sklearn.neighbors import KNeighborsClassifier
-
-    k = (key or "rf").lower()
-    if k == "rf":
-        return RandomForestClassifier(n_estimators=300, random_state=seed, n_jobs=-1)
-    if k == "xgb" and xgb is not None:
-        return xgb.XGBClassifier(
-            n_estimators=500,
-            learning_rate=0.05,
-            max_depth=6,
-            subsample=0.9,
-            colsample_bytree=0.9,
-            reg_alpha=0.0,
-            reg_lambda=1.0,
-            random_state=seed,
-            tree_method="hist",
-            n_jobs=0,
-            verbosity=0,
-        )
-    if k == "hgb":
-        return HistGradientBoostingClassifier(random_state=seed)
-    if k == "knn":
-        return make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5))
-    if k == "linear":
-        return LogisticRegression(max_iter=2000, random_state=seed)
-    if k == "ridge":
-        return RidgeClassifier(random_state=seed)
-    return RandomForestClassifier(n_estimators=300, random_state=seed, n_jobs=-1)
+    return make_model("classification", key or "rf", random_state=seed)
 
 
 def _save_parity_plot(
@@ -160,11 +99,18 @@ def _save_confusion_plot(
     return save_confusion_plot(static_dir, ws_id, y_true, y_pred, labels)
 
 
-def _compute_cv_summary(est, X, y, task: str, seed: int) -> tuple[dict[str, float | str] | None, str | None]:
+def _compute_cv_summary(
+    est, X, y, task: str, seed: int
+) -> tuple[dict[str, float | str] | None, str | None]:
     class_counts = None
     if task == "c":
-        class_counts = {label: int(count) for label, count in pd.Series(y).value_counts(dropna=True).items()}
-    reason = cv_unavailable_reason(row_count=len(X), task=task, class_counts=class_counts)
+        class_counts = {
+            label: int(count)
+            for label, count in pd.Series(y).value_counts(dropna=True).items()
+        }
+    reason = cv_unavailable_reason(
+        row_count=len(X), task=task, class_counts=class_counts
+    )
     if reason:
         return None, reason
 
@@ -183,7 +129,11 @@ def _compute_cv_summary(est, X, y, task: str, seed: int) -> tuple[dict[str, floa
     scores = np.asarray(scores, dtype=np.float64)
     if not np.isfinite(scores).all():
         return None, CV_UNAVAILABLE_FAILED
-    return {"metric": metric, "mean": float(np.mean(scores)), "std": float(np.std(scores))}, None
+    return {
+        "metric": metric,
+        "mean": float(np.mean(scores)),
+        "std": float(np.std(scores)),
+    }, None
 
 
 def create_train_run_router(
@@ -251,7 +201,9 @@ def create_train_run_router(
 
         task = (task or "r").lower()
         if task not in {"r", "c"}:
-            ctx["train_error"] = "Task must be 'r' (regression) or 'c' (classification)."
+            ctx["train_error"] = (
+                "Task must be 'r' (regression) or 'c' (classification)."
+            )
             attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
         if not inputs or not target:
@@ -269,7 +221,9 @@ def create_train_run_router(
         _add_non_ascii_notice(ctx, df.columns)
 
         selected_columns = list(inputs) + [target]
-        missing_columns = [column for column in selected_columns if column not in df.columns]
+        missing_columns = [
+            column for column in selected_columns if column not in df.columns
+        ]
         if missing_columns:
             ctx["train_error"] = format_missing_columns_message(missing_columns)
             attach_error_recovery(ctx, "train", ws_id=ws_id)
@@ -278,13 +232,23 @@ def create_train_run_router(
         df2 = prepared.frame
         usable_inputs = prepared.used_inputs
         if not usable_inputs:
-            ctx["train_error"] = "No usable numeric input features after excluding ID/text columns."
+            ctx["train_error"] = (
+                "No usable numeric input features after excluding ID/text columns."
+            )
             attach_error_recovery(ctx, "train", ws_id=ws_id)
             return templates.TemplateResponse("train.html", ctx)
         if prepared.skipped_identifier_inputs:
-            append_notice(ctx, identifier_columns_message(prepared.skipped_identifier_inputs), level="warning")
+            append_notice(
+                ctx,
+                identifier_columns_message(prepared.skipped_identifier_inputs),
+                level="warning",
+            )
         if prepared.skipped_non_numeric_inputs:
-            append_notice(ctx, non_numeric_columns_message(prepared.skipped_non_numeric_inputs), level="warning")
+            append_notice(
+                ctx,
+                non_numeric_columns_message(prepared.skipped_non_numeric_inputs),
+                level="warning",
+            )
 
         rows_dropped = prepared.rows_in - prepared.rows_used
         if rows_dropped > 0:
@@ -299,18 +263,48 @@ def create_train_run_router(
             ts = float(test_size)
         except Exception:
             ts = 0.2
-        stratify_vec = y if task == "c" and y.nunique(dropna=True) > 1 else None
-        if task == "c" and stratify_vec is None:
-            append_notice(ctx, stratify_disabled_message(), level="warning")
-        X_train, X_test, y_train, y_test = train_test_split(
-            X,
-            y,
-            test_size=ts,
-            random_state=seed_val,
-            stratify=stratify_vec,
-        )
+        stratify_vec = None
+        if task == "c":
+            class_counts = y.value_counts(dropna=True)
+            class_count = len(class_counts)
+            test_rows = int(np.ceil(len(y) * ts))
+            train_rows = len(y) - test_rows
+            if class_count < 2:
+                append_notice(ctx, stratify_disabled_message(), level="warning")
+            elif int(class_counts.min()) < 2:
+                append_notice(
+                    ctx,
+                    "Class counts are too small for a stratified split; using a random split instead.",
+                    level="warning",
+                )
+            elif test_rows < class_count or train_rows < class_count:
+                append_notice(
+                    ctx,
+                    "Selected test size cannot support every class in a stratified split; using a random split instead.",
+                    level="warning",
+                )
+            else:
+                stratify_vec = y
+        try:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X,
+                y,
+                test_size=ts,
+                random_state=seed_val,
+                stratify=stratify_vec,
+            )
+        except ValueError:
+            ctx["train_error"] = (
+                "Unable to split this dataset for training. Choose a smaller test size or add data."
+            )
+            attach_error_recovery(ctx, "train", ws_id=ws_id)
+            return templates.TemplateResponse("train.html", ctx)
 
-        est = _make_regressor(model, seed=seed_val) if task == "r" else _make_classifier(model, seed=seed_val)
+        est = (
+            _make_regressor(model, seed=seed_val)
+            if task == "r"
+            else _make_classifier(model, seed=seed_val)
+        )
         cv_summary, cv_warning = _compute_cv_summary(est, X, y, task, seed_val)
         if cv_summary:
             ctx["cv_summary"] = cv_summary
@@ -336,8 +330,12 @@ def create_train_run_router(
 
             ctx["metrics_train"] = _metrics_reg(y_train, y_pred_train)
             ctx["metrics_test"] = _metrics_reg(y_test, y_pred_test)
-            ctx["metric_interpretation"] = interpret_regression_metrics(ctx["metrics_test"])
-            ctx["metric_help"] = {metric: get_metric_help(metric) for metric in ctx["metrics_test"]}
+            ctx["metric_interpretation"] = interpret_regression_metrics(
+                ctx["metrics_test"]
+            )
+            ctx["metric_help"] = {
+                metric: get_metric_help(metric) for metric in ctx["metrics_test"]
+            }
             ctx["plot_guidance"] = get_plot_guidance("regression")
             try:
                 ctx["parity_img_url"] = _save_parity_plot(
@@ -358,8 +356,12 @@ def create_train_run_router(
             def _metrics_clf(y_true, y_pred, estm, X_eval):
                 out = {
                     "Accuracy": accuracy_score(y_true, y_pred),
-                    "Precision": precision_score(y_true, y_pred, average="weighted", zero_division=0),
-                    "Recall": recall_score(y_true, y_pred, average="weighted", zero_division=0),
+                    "Precision": precision_score(
+                        y_true, y_pred, average="weighted", zero_division=0
+                    ),
+                    "Recall": recall_score(
+                        y_true, y_pred, average="weighted", zero_division=0
+                    ),
                     "F1": f1_score(y_true, y_pred, average="weighted", zero_division=0),
                 }
                 try:
@@ -373,8 +375,12 @@ def create_train_run_router(
 
             ctx["metrics_train"] = _metrics_clf(y_train, y_pred_train, est, X_train)
             ctx["metrics_test"] = _metrics_clf(y_test, y_pred_test, est, X_test)
-            ctx["metric_interpretation"] = interpret_classification_metrics(ctx["metrics_test"])
-            ctx["metric_help"] = {metric: get_metric_help(metric) for metric in ctx["metrics_test"]}
+            ctx["metric_interpretation"] = interpret_classification_metrics(
+                ctx["metrics_test"]
+            )
+            ctx["metric_help"] = {
+                metric: get_metric_help(metric) for metric in ctx["metrics_test"]
+            }
             ctx["plot_guidance"] = get_plot_guidance("classification")
             try:
                 labels = sorted(pd.Series(y).dropna().unique().tolist())
@@ -406,6 +412,7 @@ def create_train_run_router(
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "n_train": len(X_train),
             "n_test": len(X_test),
+            "stratify_col": target if stratify_vec is not None else None,
         }
 
         ctx["saved_runs"] = list_saved_runs()

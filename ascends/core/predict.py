@@ -12,6 +12,29 @@ import joblib
 logger = logging.getLogger(__name__)
 
 
+def manifest_input_columns(manifest: dict[str, Any]) -> list[str]:
+    """Return raw input columns, including a safe fallback for legacy manifests."""
+    configured = (
+        manifest.get("inputs")
+        or manifest.get("input_features")
+        or manifest.get("X_features")
+        or manifest.get("X_cols")
+    )
+    if configured:
+        return list(configured)
+
+    csv_path = manifest.get("csv_path")
+    if csv_path and Path(csv_path).is_file():
+        try:
+            columns = list(pd.read_csv(csv_path, nrows=0).columns)
+        except Exception as exc:
+            logger.warning("Could not read legacy training CSV schema: %s", exc)
+        else:
+            target = manifest.get("target")
+            return [column for column in columns if column != target]
+    return []
+
+
 def _load_manifest(run_dir: str) -> dict[str, Any]:
     manifest_path = Path(run_dir) / "manifest.json"
     if not manifest_path.exists():
@@ -25,7 +48,9 @@ def _load_manifest(run_dir: str) -> dict[str, Any]:
         return {}
 
 
-def _casefold_columns_to_features(data: pd.DataFrame, features: list[str]) -> pd.DataFrame:
+def _casefold_columns_to_features(
+    data: pd.DataFrame, features: list[str]
+) -> pd.DataFrame:
     feature_by_lower: dict[str, list[str]] = {}
     for feature in features:
         feature_by_lower.setdefault(str(feature).lower(), []).append(feature)
@@ -41,7 +66,42 @@ def _casefold_columns_to_features(data: pd.DataFrame, features: list[str]) -> pd
     return data.rename(columns=rename)
 
 
-def _prepare_prediction_frame(data: pd.DataFrame, manifest: dict[str, Any]) -> pd.DataFrame:
+def _infer_legacy_inputs(
+    data: pd.DataFrame, features: list[str]
+) -> tuple[pd.DataFrame, list[str]]:
+    """Infer raw columns only when they collectively explain every legacy feature."""
+    rename: dict[object, str] = {}
+    raw_inputs: list[str] = []
+    covered: set[str] = set()
+    for column in data.columns:
+        column_text = str(column)
+        lower = column_text.lower()
+        matches = [
+            feature
+            for feature in features
+            if str(feature).lower() == lower
+            or str(feature).lower().startswith(lower + "_")
+        ]
+        if not matches:
+            continue
+        exact = next(
+            (feature for feature in matches if str(feature).lower() == lower), None
+        )
+        canonical = str(exact) if exact is not None else str(matches[0])[: len(column_text)]
+        rename[column] = canonical
+        raw_inputs.append(canonical)
+        covered.update(str(feature) for feature in matches)
+
+    normalized = data.rename(columns=rename)
+    if covered != {str(feature) for feature in features}:
+        return normalized, []
+    return normalized, raw_inputs
+
+
+def prepare_prediction_frame(
+    data: pd.DataFrame, manifest: dict[str, Any]
+) -> pd.DataFrame:
+    """Transform raw prediction data into the model feature schema."""
     features = (
         manifest.get("features")
         or manifest.get("inputs")
@@ -52,8 +112,24 @@ def _prepare_prediction_frame(data: pd.DataFrame, manifest: dict[str, Any]) -> p
     if not features:
         return data
     feature_list = list(features)
-    normalized = _casefold_columns_to_features(data, feature_list)
-    pred_dummies = pd.get_dummies(normalized, drop_first=False)
+    raw_inputs = manifest_input_columns(manifest)
+    if raw_inputs:
+        normalized = _casefold_columns_to_features(data, raw_inputs)
+        missing = [column for column in raw_inputs if column not in normalized.columns]
+        if missing:
+            raise ValueError(
+                "Input CSV is missing required features (case-insensitive): "
+                + ", ".join(missing)
+            )
+    else:
+        normalized, raw_inputs = _infer_legacy_inputs(data, feature_list)
+        if not raw_inputs:
+            raise ValueError(
+                "Legacy manifest cannot safely validate the raw input columns. "
+                "Re-train and save this model with ASCENDS 0.9.0 or later."
+            )
+
+    pred_dummies = pd.get_dummies(normalized[raw_inputs], drop_first=False)
     ignored = sorted(set(pred_dummies.columns) - set(feature_list))
     if ignored:
         logger.warning(
@@ -64,7 +140,9 @@ def _prepare_prediction_frame(data: pd.DataFrame, manifest: dict[str, Any]) -> p
     return pred_dummies.reindex(columns=feature_list, fill_value=0)
 
 
-def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str = ".") -> dict[str, str]:
+def batch_predict(
+    model_path: str, data: Any, out_dir: str = ".", run_dir: str = "."
+) -> dict[str, str]:
     """Perform batch predictions with the model.
 
     Args:
@@ -91,7 +169,7 @@ def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str =
         )
 
     manifest = _load_manifest(run_dir)
-    X_pred = _prepare_prediction_frame(data, manifest)
+    X_pred = prepare_prediction_frame(data, manifest)
 
     # --- Generate predictions ---
     y_pred = est.predict(X_pred)

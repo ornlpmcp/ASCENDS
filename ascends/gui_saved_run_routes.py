@@ -53,6 +53,37 @@ def delete_saved_run(runs_dir: Path, run_name: str) -> str:
     return f"Deleted run: {run_name}"
 
 
+def _build_run_manifest(
+    rec: dict[str, Any], run_name: str, ws_id: str
+) -> dict[str, Any]:
+    """Build the shared schema used by GUI and CLI saved-run consumers."""
+    params = rec.get("params", {})
+    inputs = list(rec.get("inputs", []))
+    test_size = params.get("test_size", 0.2)
+    random_state = params.get("seed")
+    return {
+        "schema_version": 2,
+        "artifact_type": "estimator-only",
+        "name": run_name,
+        "created_at": rec["timestamp"],
+        "task": params.get("task", "r"),
+        "model": params.get("model"),
+        "seed": random_state,
+        "random_state": random_state,
+        "test_size": test_size,
+        "inputs": inputs,
+        "features": inputs,
+        "target": rec.get("target"),
+        "csv_path": rec.get("csv_path"),
+        "ws_id": ws_id,
+        "split": {
+            "method": "random",
+            "test_size": test_size,
+            "stratify_col": rec.get("stratify_col"),
+        },
+    }
+
+
 def _train_context(
     request: Request,
     ws_id: str | None,
@@ -267,18 +298,7 @@ def create_saved_run_router(
             ctx["saved_runs"] = list_saved_runs()
             return templates.TemplateResponse("train.html", ctx)
 
-        manifest = {
-            "name": run_name,
-            "created_at": rec["timestamp"],
-            "task": rec["params"].get("task", "r"),
-            "model": rec["params"].get("model"),
-            "seed": rec["params"].get("seed"),
-            "test_size": rec["params"].get("test_size"),
-            "inputs": rec.get("inputs", []),
-            "target": rec.get("target"),
-            "csv_path": rec.get("csv_path"),
-            "ws_id": ws_id,
-        }
+        manifest = _build_run_manifest(rec, run_name=run_name, ws_id=ws_id)
         try:
             (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         except Exception as e:

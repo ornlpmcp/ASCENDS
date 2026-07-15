@@ -36,7 +36,7 @@ Then open:
 
 ## Portable Bundle Build
 
-macOS/Linux:
+macOS:
 
 ```bash
 bash ./bundle/make_bundle.sh
@@ -56,10 +56,10 @@ Windows PowerShell (optional):
 
 Outputs:
 
-- `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.tar.gz` (macOS/Linux)
+- `dist/ASCENDS-v<version>-<YYYYMMDD>-macOS-<arch>.zip` (macOS)
 - `dist/ASCENDS-v<version>-<YYYYMMDD>-<OS>.zip` (Windows)
 
-Windows bundles include Python and are intended for double-click launch with `launch_gui.bat`. macOS/Linux bundles include `uv` and a prebuilt environment for the build platform.
+Windows and macOS bundles include Python and the package environment. They are intended for double-click launch and do not require Python or `uv` on the target machine. Linux users should use the developer workflow.
 
 ## CLI examples
 
