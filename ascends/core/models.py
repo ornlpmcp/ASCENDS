@@ -17,6 +17,7 @@ from sklearn.linear_model import LogisticRegression, RidgeClassifier
 
 try:
     from xgboost import XGBRegressor, XGBClassifier  # type: ignore
+
     HAS_XGBOOST = True
 except Exception:
     XGBRegressor = None  # type: ignore[assignment]
@@ -51,10 +52,12 @@ KIND_ALIASES = {
     "knn": "knn",
 }
 
+
 def _normalize(task: str, kind: str):
     t = TASK_ALIASES.get((task or "").lower().strip())
     k = KIND_ALIASES.get((kind or "").lower().strip())
     return t, k
+
 
 def make_model(task: str, kind: str, random_state: Optional[int] = None):
     task, kind = _normalize(task, kind)
@@ -88,7 +91,9 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
         if kind == "hgb":
             return HistGradientBoostingRegressor(random_state=random_state)
         if kind == "svr":
-            return make_pipeline(StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1))
+            return make_pipeline(
+                StandardScaler(), SVR(kernel="rbf", C=10.0, epsilon=0.1)
+            )
         if kind == "knn":
             return make_pipeline(StandardScaler(), KNeighborsRegressor())
         if kind == "xgb":
@@ -112,7 +117,9 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
                 n_jobs=0,
                 verbosity=0,
             )
-        raise ValueError(f"Unsupported regression model kind: {kind!r}. Try 'rf' (or 'random_forest').")
+        raise ValueError(
+            f"Unsupported regression model kind: {kind!r}. Try 'rf' (or 'random_forest')."
+        )
 
     if task == "classification":
         if kind == "linear":
@@ -148,7 +155,9 @@ def make_model(task: str, kind: str, random_state: Optional[int] = None):
                 n_jobs=0,
                 verbosity=0,
             )
-        raise ValueError(f"Unsupported classification model kind: {kind!r}. Try 'rf' (or 'random_forest').")
+        raise ValueError(
+            f"Unsupported classification model kind: {kind!r}. Try 'rf' (or 'random_forest')."
+        )
 
 
 def is_tree_model(est) -> bool:
