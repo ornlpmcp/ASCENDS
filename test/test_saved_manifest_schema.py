@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ascends.cli_parity import _split_config_from_manifest
 from ascends.gui_saved_run_routes import _build_run_manifest
 
 
@@ -27,3 +28,10 @@ def test_gui_saved_run_manifest_contains_cli_compatible_schema() -> None:
         "test_size": 0.2,
         "stratify_col": "class",
     }
+
+
+def test_parity_split_config_accepts_legacy_gui_seed_field() -> None:
+    config = _split_config_from_manifest({"test_size": 0.25, "seed": 17})
+
+    assert config.test_size == 0.25
+    assert config.random_state == 17
