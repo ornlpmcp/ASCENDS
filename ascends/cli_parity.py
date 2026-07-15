@@ -66,7 +66,7 @@ def _split_config_from_manifest(manifest: dict):
     return SplitConfig(
         method=split_cfg.get("method", "random"),
         test_size=float(split_cfg.get("test_size", manifest.get("test_size", 0.2))),
-        random_state=manifest["random_state"],
+        random_state=manifest.get("random_state", manifest.get("seed", 42)),
         stratify_col=split_cfg.get("stratify_col"),
     )
 
@@ -142,9 +142,10 @@ def parity_plot(
         with open(manifest_path, 'r') as f:
             manifest = json.load(f)
 
-        # Check for required fields in manifest
-        if 'csv_path' not in manifest or 'features' not in manifest:
-            raise typer.BadParameter("Manifest missing 'csv_path' or 'features'. Re-train with ASCENDS.")
+        # Check for required fields in manifest, including legacy GUI manifests.
+        feature_columns = manifest.get("features") or manifest.get("inputs")
+        if 'csv_path' not in manifest or not feature_columns:
+            raise typer.BadParameter("Manifest missing 'csv_path' or input features. Re-train with ASCENDS.")
 
         # Load model
         model = load_model(model_path)
@@ -156,8 +157,8 @@ def parity_plot(
             _split_config_from_manifest(manifest),
         )
         # One-hot encode and reindex
-        Xtrain = pd.get_dummies(tr.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=manifest['features'], fill_value=0)
-        Xtest = pd.get_dummies(te.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=manifest['features'], fill_value=0)
+        Xtrain = pd.get_dummies(tr.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=feature_columns, fill_value=0)
+        Xtest = pd.get_dummies(te.drop(columns=[manifest['target']]), drop_first=False).reindex(columns=feature_columns, fill_value=0)
         ytrain = tr[manifest['target']]
         ytest = te[manifest['target']]
         if need_train and df_train is None:

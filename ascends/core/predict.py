@@ -12,6 +12,29 @@ import joblib
 logger = logging.getLogger(__name__)
 
 
+def manifest_input_columns(manifest: dict[str, Any]) -> list[str]:
+    """Return raw input columns, including a safe fallback for legacy manifests."""
+    configured = (
+        manifest.get("inputs")
+        or manifest.get("input_features")
+        or manifest.get("X_features")
+        or manifest.get("X_cols")
+    )
+    if configured:
+        return list(configured)
+
+    csv_path = manifest.get("csv_path")
+    if csv_path and Path(csv_path).is_file():
+        try:
+            columns = list(pd.read_csv(csv_path, nrows=0).columns)
+        except Exception as exc:
+            logger.warning("Could not read legacy training CSV schema: %s", exc)
+        else:
+            target = manifest.get("target")
+            return [column for column in columns if column != target]
+    return []
+
+
 def _load_manifest(run_dir: str) -> dict[str, Any]:
     manifest_path = Path(run_dir) / "manifest.json"
     if not manifest_path.exists():
@@ -57,8 +80,25 @@ def prepare_prediction_frame(
     if not features:
         return data
     feature_list = list(features)
-    normalized = _casefold_columns_to_features(data, feature_list)
-    pred_dummies = pd.get_dummies(normalized, drop_first=False)
+    raw_inputs = manifest_input_columns(manifest)
+    if raw_inputs:
+        normalized = _casefold_columns_to_features(data, raw_inputs)
+        missing = [column for column in raw_inputs if column not in normalized.columns]
+        if missing:
+            raise ValueError(
+                "Input CSV is missing required features (case-insensitive): "
+                + ", ".join(missing)
+            )
+    else:
+        normalized = _casefold_columns_to_features(data, feature_list)
+        if not all(feature in normalized.columns for feature in feature_list):
+            raise ValueError(
+                "Legacy manifest cannot safely validate the raw input columns. "
+                "Re-train and save this model with ASCENDS 0.9.0 or later."
+            )
+        raw_inputs = feature_list
+
+    pred_dummies = pd.get_dummies(normalized[raw_inputs], drop_first=False)
     ignored = sorted(set(pred_dummies.columns) - set(feature_list))
     if ignored:
         logger.warning(

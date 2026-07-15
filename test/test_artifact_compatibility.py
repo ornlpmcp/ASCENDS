@@ -163,7 +163,9 @@ def test_training_feature_schema_does_not_learn_test_only_categories() -> None:
     assert "color_green" not in result["features"]
 
 
-def test_legacy_manifest_rejects_an_unverifiable_missing_feature(tmp_path: Path) -> None:
+def test_legacy_manifest_rejects_an_unverifiable_missing_feature(
+    tmp_path: Path,
+) -> None:
     run_dir = tmp_path / "legacy_run"
     run_dir.mkdir()
     joblib.dump(EncodedColumnModel(), run_dir / "model.joblib")

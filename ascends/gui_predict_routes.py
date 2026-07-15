@@ -169,19 +169,28 @@ def create_predict_router(
             attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
-        encoded_schema = bool(features) and (not inputs or set(features) != set(inputs))
-        if encoded_schema:
-            renamed = df.rename(
-                columns={actual: expected for expected, actual in mapping.items()}
+        try:
+            encoded_schema = bool(features) and (
+                not inputs or set(features) != set(inputs)
             )
-            df_aligned = prepare_prediction_frame(renamed, manifest)
-            output_rows = df.copy()
-        else:
-            aligned_cols = [mapping[feature] for feature in inputs]
-            df_aligned = df[aligned_cols].copy()
-            for column in df_aligned.columns:
-                df_aligned[column] = pd.to_numeric(df_aligned[column], errors="coerce")
-            output_rows = df_aligned
+            if encoded_schema:
+                renamed = df.rename(
+                    columns={actual: expected for expected, actual in mapping.items()}
+                )
+                df_aligned = prepare_prediction_frame(renamed, manifest)
+                output_rows = df.copy()
+            else:
+                aligned_cols = [mapping[feature] for feature in inputs]
+                df_aligned = df[aligned_cols].copy()
+                for column in df_aligned.columns:
+                    df_aligned[column] = pd.to_numeric(
+                        df_aligned[column], errors="coerce"
+                    )
+                output_rows = df_aligned
+        except ValueError as e:
+            ctx["predict_errors"] = [str(e)]
+            attach_error_recovery(ctx, "predict")
+            return templates.TemplateResponse("predict.html", ctx)
 
         rows_read = len(df_aligned)
         df_used = df_aligned.dropna(axis=0, how="any")

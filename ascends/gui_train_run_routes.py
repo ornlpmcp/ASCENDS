@@ -412,6 +412,7 @@ def create_train_run_router(
             "timestamp": datetime.now().isoformat(timespec="seconds"),
             "n_train": len(X_train),
             "n_test": len(X_test),
+            "stratify_col": target if stratify_vec is not None else None,
         }
 
         ctx["saved_runs"] = list_saved_runs()
