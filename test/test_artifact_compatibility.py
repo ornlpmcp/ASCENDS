@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse
 from typer.testing import CliRunner
 
 from ascends.cli import app
-from ascends.core.train import train_model
+from ascends.core.train import train_eval, train_model
 from ascends.gui_predict_routes import create_predict_router
 
 
@@ -82,7 +82,9 @@ def test_cli_predict_accepts_raw_categorical_inputs(tmp_path: Path) -> None:
         ),
         encoding="utf-8",
     )
-    pd.DataFrame({"color": ["red", "blue"], "x": [1.0, 2.0]}).to_csv(csv_path, index=False)
+    pd.DataFrame({"color": ["red", "blue"], "x": [1.0, 2.0]}).to_csv(
+        csv_path, index=False
+    )
 
     result = CliRunner().invoke(
         app,
@@ -117,13 +119,17 @@ def test_gui_predict_accepts_cli_categorical_manifest(tmp_path: Path) -> None:
         list_saved_runs=lambda: [],
         slugify_name=lambda value: value,
     )
-    predict_run = next(route.endpoint for route in router.routes if route.path == "/predict/run")
+    predict_run = next(
+        route.endpoint for route in router.routes if route.path == "/predict/run"
+    )
     upload = UploadFile(
         file=io.BytesIO(b"color,x\nred,1.0\nblue,2.0\n"),
         filename="input.csv",
     )
 
-    response = asyncio.run(predict_run(request=None, run_name="cli_run", csvfile=upload))
+    response = asyncio.run(
+        predict_run(request=None, run_name="cli_run", csvfile=upload)
+    )
 
     assert response.status_code == 200
     assert templates.contexts[-1]["predict_errors"] is None
@@ -131,3 +137,25 @@ def test_gui_predict_accepts_cli_categorical_manifest(tmp_path: Path) -> None:
     assert len(output_files) == 1
     output = pd.read_csv(output_files[0])
     assert output["target_pred"].tolist() == [0.0, 1.0]
+
+
+def test_training_feature_schema_does_not_learn_test_only_categories() -> None:
+    train_df = pd.DataFrame(
+        {
+            "color": ["red", "blue"] * 5,
+            "target": np.arange(10, dtype=float),
+        }
+    )
+    test_df = pd.DataFrame({"color": ["green", "red"], "target": [10.0, 11.0]})
+
+    result = train_eval(
+        train_df=train_df,
+        test_df=test_df,
+        target="target",
+        task="regression",
+        model_kind="ridge",
+        random_state=42,
+    )
+
+    assert set(result["features"]) == {"color_blue", "color_red"}
+    assert "color_green" not in result["features"]
