@@ -12,12 +12,35 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from ascends.core.data import prepare_numeric_features
 from ascends.core.explain import (
     explain_model as core_explain,
     save_default_shap_plot,
     save_importance_plot,
 )
 from ascends.gui_plotting import train_img_dir
+
+
+def _prepare_shap_frame(
+    source: pd.DataFrame,
+    inputs: list[str],
+    target: str,
+    task: str,
+) -> pd.DataFrame:
+    """Apply the same numeric coercion and row filtering used for GUI training."""
+    if target not in source.columns:
+        raise ValueError("Target column missing in source CSV.")
+    missing_inputs = [column for column in inputs if column not in source.columns]
+    if missing_inputs:
+        raise ValueError("Input column(s) missing in source CSV: " + ", ".join(missing_inputs))
+
+    prepared = prepare_numeric_features(source, inputs, target, task=task)
+    if prepared.used_inputs != inputs:
+        skipped = [column for column in inputs if column not in prepared.used_inputs]
+        raise ValueError("Training input column(s) are no longer usable: " + ", ".join(skipped))
+    if prepared.frame.empty:
+        raise ValueError("No valid rows remain after applying the training data rules.")
+    return prepared.frame
 
 
 def _train_context(
@@ -103,12 +126,7 @@ def create_shap_router(
 
         try:
             df = pd.read_csv(csv_path)
-            required = [column for column in inputs if column in df.columns]
-            if target in df.columns:
-                required.append(target)
-            if target not in required:
-                raise ValueError("Target column missing in source CSV.")
-            df2 = df[required].dropna(axis=0, how="any")
+            df2 = _prepare_shap_frame(df, list(inputs), target, str(task))
             X = df2[inputs]
             y = df2[target]
             task_name = "classification" if str(task).lower() == "c" else "regression"
