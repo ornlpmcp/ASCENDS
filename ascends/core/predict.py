@@ -66,6 +66,38 @@ def _casefold_columns_to_features(
     return data.rename(columns=rename)
 
 
+def _infer_legacy_inputs(
+    data: pd.DataFrame, features: list[str]
+) -> tuple[pd.DataFrame, list[str]]:
+    """Infer raw columns only when they collectively explain every legacy feature."""
+    rename: dict[object, str] = {}
+    raw_inputs: list[str] = []
+    covered: set[str] = set()
+    for column in data.columns:
+        column_text = str(column)
+        lower = column_text.lower()
+        matches = [
+            feature
+            for feature in features
+            if str(feature).lower() == lower
+            or str(feature).lower().startswith(lower + "_")
+        ]
+        if not matches:
+            continue
+        exact = next(
+            (feature for feature in matches if str(feature).lower() == lower), None
+        )
+        canonical = str(exact) if exact is not None else str(matches[0])[: len(column_text)]
+        rename[column] = canonical
+        raw_inputs.append(canonical)
+        covered.update(str(feature) for feature in matches)
+
+    normalized = data.rename(columns=rename)
+    if covered != {str(feature) for feature in features}:
+        return normalized, []
+    return normalized, raw_inputs
+
+
 def prepare_prediction_frame(
     data: pd.DataFrame, manifest: dict[str, Any]
 ) -> pd.DataFrame:
@@ -90,13 +122,12 @@ def prepare_prediction_frame(
                 + ", ".join(missing)
             )
     else:
-        normalized = _casefold_columns_to_features(data, feature_list)
-        if not all(feature in normalized.columns for feature in feature_list):
+        normalized, raw_inputs = _infer_legacy_inputs(data, feature_list)
+        if not raw_inputs:
             raise ValueError(
                 "Legacy manifest cannot safely validate the raw input columns. "
                 "Re-train and save this model with ASCENDS 0.9.0 or later."
             )
-        raw_inputs = feature_list
 
     pred_dummies = pd.get_dummies(normalized[raw_inputs], drop_first=False)
     ignored = sorted(set(pred_dummies.columns) - set(feature_list))
