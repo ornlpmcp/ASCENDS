@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
+import io
 import json
 from pathlib import Path
 
 import joblib
 import numpy as np
 import pandas as pd
+from fastapi import UploadFile
+from fastapi.responses import HTMLResponse
 from typer.testing import CliRunner
 
 from ascends.cli import app
 from ascends.core.train import train_model
+from ascends.gui_predict_routes import create_predict_router
 
 
 class EncodedColumnModel:
@@ -20,6 +25,19 @@ class EncodedColumnModel:
     def predict(self, data: pd.DataFrame) -> np.ndarray:
         assert list(data.columns) == ["color_blue", "color_red", "x"]
         return np.arange(len(data), dtype=float)
+
+
+class RecordingTemplates:
+    """Capture GUI prediction contexts without rendering Jinja templates."""
+
+    def __init__(self) -> None:
+        self.contexts: list[dict[str, object]] = []
+
+    def TemplateResponse(
+        self, _name: str, context: dict[str, object], status_code: int = 200
+    ) -> HTMLResponse:
+        self.contexts.append(context)
+        return HTMLResponse("rendered", status_code=status_code)
 
 
 def test_train_manifest_records_raw_inputs_and_encoded_features(tmp_path: Path) -> None:
@@ -73,4 +91,43 @@ def test_cli_predict_accepts_raw_categorical_inputs(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     output = pd.read_csv(out_dir / "predictions.csv")
+    assert output["target_pred"].tolist() == [0.0, 1.0]
+
+
+def test_gui_predict_accepts_cli_categorical_manifest(tmp_path: Path) -> None:
+    runs_dir = tmp_path / "runs"
+    run_dir = runs_dir / "cli_run"
+    run_dir.mkdir(parents=True)
+    joblib.dump(EncodedColumnModel(), run_dir / "model.joblib")
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "target": "target",
+                "inputs": ["color", "x"],
+                "features": ["color_blue", "color_red", "x"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    templates = RecordingTemplates()
+    router = create_predict_router(
+        templates=templates,  # type: ignore[arg-type]
+        runs_dir=runs_dir,
+        list_saved_runs=lambda: [],
+        slugify_name=lambda value: value,
+    )
+    predict_run = next(route.endpoint for route in router.routes if route.path == "/predict/run")
+    upload = UploadFile(
+        file=io.BytesIO(b"color,x\nred,1.0\nblue,2.0\n"),
+        filename="input.csv",
+    )
+
+    response = asyncio.run(predict_run(request=None, run_name="cli_run", csvfile=upload))
+
+    assert response.status_code == 200
+    assert templates.contexts[-1]["predict_errors"] is None
+    output_files = list((run_dir / "predictions").glob("input_*_pred.csv"))
+    assert len(output_files) == 1
+    output = pd.read_csv(output_files[0])
     assert output["target_pred"].tolist() == [0.0, 1.0]
