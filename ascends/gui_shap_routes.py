@@ -32,12 +32,16 @@ def _prepare_shap_frame(
         raise ValueError("Target column missing in source CSV.")
     missing_inputs = [column for column in inputs if column not in source.columns]
     if missing_inputs:
-        raise ValueError("Input column(s) missing in source CSV: " + ", ".join(missing_inputs))
+        raise ValueError(
+            "Input column(s) missing in source CSV: " + ", ".join(missing_inputs)
+        )
 
     prepared = prepare_numeric_features(source, inputs, target, task=task)
     if prepared.used_inputs != inputs:
         skipped = [column for column in inputs if column not in prepared.used_inputs]
-        raise ValueError("Training input column(s) are no longer usable: " + ", ".join(skipped))
+        raise ValueError(
+            "Training input column(s) are no longer usable: " + ", ".join(skipped)
+        )
     if prepared.frame.empty:
         raise ValueError("No valid rows remain after applying the training data rules.")
     return prepared.frame
@@ -110,7 +114,9 @@ def create_shap_router(
 
         rec = last_train.get(ws_id)
         if not rec:
-            ctx["train_error"] = "No trained model found in this workspace. Train first, then run SHAP."
+            ctx["train_error"] = (
+                "No trained model found in this workspace. Train first, then run SHAP."
+            )
             return templates.TemplateResponse("train.html", ctx)
 
         _add_training_outputs(ctx, rec)
@@ -121,7 +127,9 @@ def create_shap_router(
         task = rec.get("params", {}).get("task", "r")
         est = rec.get("estimator")
         if not csv_path or not est or not inputs or not target:
-            ctx["train_error"] = "Insufficient training context for SHAP. Re-train and try again."
+            ctx["train_error"] = (
+                "Insufficient training context for SHAP. Re-train and try again."
+            )
             return templates.TemplateResponse("train.html", ctx)
 
         try:
@@ -191,8 +199,12 @@ def create_shap_router(
             encoding="utf-8",
         )
 
-        selected_png = png_default if (shap_view == "default" and default_ready) else png_ascends
-        ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
+        selected_png = (
+            png_default if (shap_view == "default" and default_ready) else png_ascends
+        )
+        ctx["shap_img_url"] = (
+            f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
+        )
         ctx["shap_rows"] = imp_df.head(10).values.tolist()
         if expl.get("warning"):
             ctx["shap_warning"] = expl["warning"]
@@ -224,13 +236,21 @@ def create_shap_router(
         fallback_png = img_dir / "shap_importance_ascends.png"
         legacy_png = img_dir / "shap_importance.png"
         if selected_png.exists():
-            ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
+            ctx["shap_img_url"] = (
+                f"/static/workspace/{ws_id}/train/{selected_png.name}?ts={int(time.time())}"
+            )
         elif fallback_png.exists():
-            ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{fallback_png.name}?ts={int(time.time())}"
+            ctx["shap_img_url"] = (
+                f"/static/workspace/{ws_id}/train/{fallback_png.name}?ts={int(time.time())}"
+            )
             if shap_view == "default":
-                ctx["shap_warning"] = "SHAP beeswarm view is not available for this run. Showing ASCENDS bar view."
+                ctx["shap_warning"] = (
+                    "SHAP beeswarm view is not available for this run. Showing ASCENDS bar view."
+                )
         elif legacy_png.exists():
-            ctx["shap_img_url"] = f"/static/workspace/{ws_id}/train/{legacy_png.name}?ts={int(time.time())}"
+            ctx["shap_img_url"] = (
+                f"/static/workspace/{ws_id}/train/{legacy_png.name}?ts={int(time.time())}"
+            )
 
         _add_shap_table(ctx, ws_dir(ws_id))
         return templates.TemplateResponse("train.html", ctx)

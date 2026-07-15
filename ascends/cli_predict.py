@@ -14,8 +14,12 @@ from ascends.core.predict import batch_predict as core_predict
 
 @app.command(help="Run batch predictions using a saved model.")
 def predict(
-    run_dir: Path = typer.Argument(..., help="Run directory containing model.joblib & manifest.json"),
-    csv: Path = typer.Option(..., "--csv", help="Feature CSV to score (headers case-insensitive)"),
+    run_dir: Path = typer.Argument(
+        ..., help="Run directory containing model.joblib & manifest.json"
+    ),
+    csv: Path = typer.Option(
+        ..., "--csv", help="Feature CSV to score (headers case-insensitive)"
+    ),
     out: Path = typer.Option(..., "--out", help="Directory to write predictions.csv"),
 ):
     """
@@ -77,7 +81,9 @@ def predict(
 
     Path(out).mkdir(parents=True, exist_ok=True)
     try:
-        result = core_predict(model_path=model_path, data=df, out_dir=out, run_dir=run_dir)
+        result = core_predict(
+            model_path=model_path, data=df, out_dir=out, run_dir=run_dir
+        )
     except Exception as e:
         typer.secho(f"Prediction failed: {e}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=1)

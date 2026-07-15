@@ -169,11 +169,11 @@ def create_predict_router(
             attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
-        encoded_schema = bool(features) and (
-            not inputs or set(features) != set(inputs)
-        )
+        encoded_schema = bool(features) and (not inputs or set(features) != set(inputs))
         if encoded_schema:
-            renamed = df.rename(columns={actual: expected for expected, actual in mapping.items()})
+            renamed = df.rename(
+                columns={actual: expected for expected, actual in mapping.items()}
+            )
             df_aligned = prepare_prediction_frame(renamed, manifest)
             output_rows = df.copy()
         else:

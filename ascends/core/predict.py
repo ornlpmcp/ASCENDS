@@ -25,7 +25,9 @@ def _load_manifest(run_dir: str) -> dict[str, Any]:
         return {}
 
 
-def _casefold_columns_to_features(data: pd.DataFrame, features: list[str]) -> pd.DataFrame:
+def _casefold_columns_to_features(
+    data: pd.DataFrame, features: list[str]
+) -> pd.DataFrame:
     feature_by_lower: dict[str, list[str]] = {}
     for feature in features:
         feature_by_lower.setdefault(str(feature).lower(), []).append(feature)
@@ -41,7 +43,9 @@ def _casefold_columns_to_features(data: pd.DataFrame, features: list[str]) -> pd
     return data.rename(columns=rename)
 
 
-def prepare_prediction_frame(data: pd.DataFrame, manifest: dict[str, Any]) -> pd.DataFrame:
+def prepare_prediction_frame(
+    data: pd.DataFrame, manifest: dict[str, Any]
+) -> pd.DataFrame:
     """Transform raw prediction data into the model feature schema."""
     features = (
         manifest.get("features")
@@ -65,7 +69,9 @@ def prepare_prediction_frame(data: pd.DataFrame, manifest: dict[str, Any]) -> pd
     return pred_dummies.reindex(columns=feature_list, fill_value=0)
 
 
-def batch_predict(model_path: str, data: Any, out_dir: str = ".", run_dir: str = ".") -> dict[str, str]:
+def batch_predict(
+    model_path: str, data: Any, out_dir: str = ".", run_dir: str = "."
+) -> dict[str, str]:
     """Perform batch predictions with the model.
 
     Args:
