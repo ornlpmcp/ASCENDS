@@ -16,6 +16,7 @@ from fastapi.templating import Jinja2Templates
 from joblib import load
 
 from ascends.core.data import NON_ASCII_COLUMN_MESSAGE, warn_non_ascii_columns
+from ascends.core.predict import prepare_prediction_frame
 from ascends.gui_messages import (
     append_notice,
     attach_error_recovery,
@@ -121,8 +122,9 @@ def create_predict_router(
             return templates.TemplateResponse("predict.html", ctx)
 
         inputs: list[str] = manifest.get("inputs", []) or []
+        features: list[str] = manifest.get("features", []) or []
         target: Optional[str] = manifest.get("target") or None
-        if not inputs:
+        if not inputs and not features:
             ctx["predict_errors"] = [
                 f"Run '{run_name}' has no recorded input features in manifest.json."
             ]
@@ -167,10 +169,19 @@ def create_predict_router(
             attach_error_recovery(ctx, "predict")
             return templates.TemplateResponse("predict.html", ctx)
 
-        aligned_cols = [mapping[feature] for feature in inputs]
-        df_aligned = df[aligned_cols].copy()
-        for column in df_aligned.columns:
-            df_aligned[column] = pd.to_numeric(df_aligned[column], errors="coerce")
+        encoded_schema = bool(features) and (
+            not inputs or set(features) != set(inputs)
+        )
+        if encoded_schema:
+            renamed = df.rename(columns={actual: expected for expected, actual in mapping.items()})
+            df_aligned = prepare_prediction_frame(renamed, manifest)
+            output_rows = df.copy()
+        else:
+            aligned_cols = [mapping[feature] for feature in inputs]
+            df_aligned = df[aligned_cols].copy()
+            for column in df_aligned.columns:
+                df_aligned[column] = pd.to_numeric(df_aligned[column], errors="coerce")
+            output_rows = df_aligned
 
         rows_read = len(df_aligned)
         df_used = df_aligned.dropna(axis=0, how="any")
@@ -206,7 +217,7 @@ def create_predict_router(
             return templates.TemplateResponse("predict.html", ctx)
 
         pred_col = f"{target}_pred" if target else "prediction"
-        result_df = df_used.copy()
+        result_df = output_rows.loc[df_used.index].copy()
         result_df[pred_col] = preds
 
         try:
